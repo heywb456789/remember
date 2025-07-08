@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{admin/layout/default :: html(
+        ~{::title},
+        ~{::section},
+        ~{::customCSS},
+        ~{::customJS},
+        'users',
+        'admin'
+      )}">
+<head>
+  <title>관리자 관리 - 슈퍼 관리자</title>
+
+  <!-- Custom CSS -->
+  <customCSS>
+    <link th:href="@{/assets/admin/css/adminList.css}" rel="stylesheet">
+  </customCSS>
+</head>
+<body>
+<section sec:authorize="hasRole('SUPER_ADMIN')">
+  <!-- Page Header -->
+  <div class="page-header d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex align-items-center">
+      <a href="/admin/users/app/user-list" class="btn btn-sm btn-light me-3">
+        <i class="fas fa-arrow-left"></i>
+      </a>
+      <h4 class="page-title mb-0">관리자 관리</h4>
+    </div>
+  </div>
+
+  <!-- Status Card -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <i class="mdi mdi-shield-account text-primary display-4 me-3"></i>
+            <div>
+              <h5 class="font-weight-normal mt-0">슈퍼관리자</h5>
+              <h3 class="mt-2 mb-1" th:text="${#lists.size(superAdmins)}">0</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <i class="mdi mdi-account-multiple text-success display-4 me-3"></i>
+            <div>
+              <h5 class="font-weight-normal mt-0">운영진</h5>
+              <h3 class="mt-2 mb-1" th:text="${#lists.size(operators)}">0</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <i class="mdi mdi-cloud-upload text-info display-4 me-3"></i>
+            <div>
+              <h5 class="font-weight-normal mt-0">업로더</h5>
+              <h3 class="mt-2 mb-1" th:text="${#lists.size(uploaders)}">0</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <i class="mdi mdi-clock-outline text-warning display-4 me-3"></i>
+            <div>
+              <h5 class="font-weight-normal mt-0">심사대기</h5>
+              <h3 class="mt-2 mb-1" th:text="${#lists.size(pendings)}">0</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Role Tabs -->
+  <div class="card">
+    <div class="card-body p-0">
+      <ul class="nav nav-tabs nav-bordered" role="tablist">
+        <li class="nav-item">
+          <a class="nav-link active" data-bs-toggle="tab" href="#tab-super" role="tab">슈퍼관리자</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" data-bs-toggle="tab" href="#tab-operator" role="tab">운영진</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" data-bs-toggle="tab" href="#tab-uploader" role="tab">업로더</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" data-bs-toggle="tab" href="#tab-pending" role="tab">심사대기</a>
+        </li>
+      </ul>
+
+      <!-- Tab Contents -->
+      <div class="tab-content">
+        <!-- 슈퍼관리자 -->
+        <div class="tab-pane fade show active" id="tab-super">
+          <div class="table-responsive">
+            <table class="table table-centered table-hover mb-0">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>관리자</th>
+                  <th>전화번호</th>
+                  <th>권한</th>
+                  <th>마지막 로그인</th>
+                  <th sec:authorize="hasRole('SUPER_ADMIN')">작업</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr th:each="a : ${superAdmins}">
+                  <td th:text="${a.adminId}">1</td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="admin-avatar me-2">
+                        <img class="avatar-img" th:src="${a.profileImage != null} ? ${a.profileImage} : '/assets/admin/images/user_default.png'" alt="프로필">
+                      </div>
+                      <div>
+                        <h5 class="m-0 font-weight-normal" th:text="${a.name}">관리자 이름</h5>
+                        <p class="mb-0 text-muted" th:text="${a.email}">admin@example.com</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td th:text="${a.phoneNumber}">010-1234-5678</td>
+                  <td><span class="badge bg-primary" th:text="${a.role.displayName}">슈퍼관리자</span></td>
+                  <td th:text="${a.lastAccessAt != null ? #temporals.format(a.lastAccessAt,'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                  <td sec:authorize="hasRole('SUPER_ADMIN')">
+                    <div class="d-flex">
+                      <button class="btn btn-sm btn-outline-primary me-1 btn-edit-admin"
+                              th:data-admin-id="${a.adminId}"
+                              th:data-admin-name="${a.name}"
+                              th:data-admin-roles="${a.role}">
+                        권한변경
+                      </button>
+                      <button th:if="${a.status != null && a.status.name() == 'BLOCKED'}"
+                              class="btn btn-sm btn-outline-success btn-block-admin"
+                              th:data-admin-id="${a.adminId}"
+                              th:data-admin-name="${a.name}"
+                              th:data-is-blocked="true">
+                        활성화
+                      </button>
+                      <button th:if="${a.status == null || a.status.name() != 'BLOCKED'}"
+                              class="btn btn-sm btn-outline-danger btn-block-admin"
+                              th:data-admin-id="${a.adminId}"
+                              th:data-admin-name="${a.name}"
+                              th:data-is-blocked="false">
+                        비활성화
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(superAdmins)}">
+                  <td colspan="6" class="text-center">등록된 슈퍼관리자가 없습니다.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 운영진 -->
+        <div class="tab-pane fade" id="tab-operator">
+          <div class="table-responsive">
+            <table class="table table-centered table-hover mb-0">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>관리자</th>
+                  <th>전화번호</th>
+                  <th>권한</th>
+                  <th>마지막 로그인</th>
+                  <th sec:authorize="hasRole('SUPER_ADMIN')">작업</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr th:each="a : ${operators}" th:class="${a.status != null && a.status.name() == 'BLOCKED'} ? 'table-danger' : ''">
+                  <td th:text="${a.adminId}">1</td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="admin-avatar me-2">
+                        <img class="avatar-img" th:src="${a.profileImage != null} ? ${a.profileImage} : '/assets/admin/images/user_default.png'" alt="프로필">
+                      </div>
+                      <div>
+                        <h5 class="m-0 font-weight-normal" th:text="${a.name}">관리자 이름</h5>
+                        <p class="mb-0 text-muted" th:text="${a.email}">admin@example.com</p>
+                        <small th:if="${a.status != null && a.status.name() == 'BLOCKED'}" class="text-danger">비활성화됨</small>
+                      </div>
+                    </div>
+                  </td>
+                  <td th:text="${a.phoneNumber}">010-1234-5678</td>
+                  <td><span class="badge bg-success" th:text="${a.role.displayName}">운영진</span></td>
+                  <td th:text="${a.lastAccessAt != null ? #temporals.format(a.lastAccessAt,'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                  <td sec:authorize="hasRole('SUPER_ADMIN')">
+                    <div class="d-flex">
+                      <button class="btn btn-sm btn-outline-primary me-1 btn-edit-admin"
+                              th:data-admin-id="${a.adminId}"
+                              th:data-admin-name="${a.name}"
+                              th:data-admin-roles="${a.role}">
+                        권한변경
+                      </button>
+                      <button th:if="${a.status != null && a.status.name() == 'BLOCKED'}"
+                              class="btn btn-sm btn-outline-success btn-block-admin"
+                              th:data-admin-id="${a.adminId}"
+                              th:data-admin-name="${a.name}"
+                              th:data-is-blocked="true">
+                        활성화
+                      </button>
+                      <button th:if="${a.status == null || a.status.name() != 'BLOCKED'}"
+                              class="btn btn-sm btn-outline-danger btn-block-admin"
+                              th:data-admin-id="${a.adminId}"
+                              th:data-admin-name="${a.name}"
+                              th:data-is-blocked="false">
+                        비활성화
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(operators)}">
+                  <td colspan="6" class="text-center">등록된 운영진이 없습니다.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 업로더 -->
+        <div class="tab-pane fade" id="tab-uploader">
+          <div class="table-responsive">
+            <table class="table table-centered table-hover mb-0">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>관리자</th>
+                  <th>전화번호</th>
+                  <th>권한</th>
+                  <th>마지막 로그인</th>
+                  <th sec:authorize="hasRole('SUPER_ADMIN')">작업</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr th:each="a : ${uploaders}">
+                  <td th:text="${a.adminId}">1</td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="admin-avatar me-2">
+                        <img class="avatar-img" th:src="${a.profileImage != null} ? ${a.profileImage} : '/assets/admin/images/user_default.png'" alt="프로필">
+                      </div>
+                      <div>
+                        <h5 class="m-0 font-weight-normal" th:text="${a.name}">관리자 이름</h5>
+                        <p class="mb-0 text-muted" th:text="${a.email}">admin@example.com</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td th:text="${a.phoneNumber}">010-1234-5678</td>
+                  <td><span class="badge bg-info" th:text="${a.role.displayName}">업로더</span></td>
+                  <td th:text="${a.lastAccessAt != null ? #temporals.format(a.lastAccessAt,'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                  <td sec:authorize="hasRole('SUPER_ADMIN')">
+                    <div class="d-flex">
+                      <button class="btn btn-sm btn-outline-primary me-1 btn-edit-admin"
+                              th:data-admin-id="${a.adminId}"
+                              th:data-admin-name="${a.name}"
+                              th:data-admin-roles="${a.role}">
+                        권한변경
+                      </button>
+                      <button th:if="${a.status != null && a.status.name() == 'BLOCKED'}"
+                              class="btn btn-sm btn-outline-success btn-block-admin"
+                              th:data-admin-id="${a.adminId}"
+                              th:data-admin-name="${a.name}"
+                              th:data-is-blocked="true">
+                        활성화
+                      </button>
+                      <button th:if="${a.status == null || a.status.name() != 'BLOCKED'}"
+                              class="btn btn-sm btn-outline-danger btn-block-admin"
+                              th:data-admin-id="${a.adminId}"
+                              th:data-admin-name="${a.name}"
+                              th:data-is-blocked="false">
+                        비활성화
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(uploaders)}">
+                  <td colspan="6" class="text-center">등록된 업로더가 없습니다.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 심사대기 -->
+        <div class="tab-pane fade" id="tab-pending">
+          <div class="table-responsive">
+            <table class="table table-centered table-hover mb-0">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>관리자</th>
+                  <th>전화번호</th>
+                  <th>권한</th>
+                  <th>마지막 로그인</th>
+                  <th>작업</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr th:each="a : ${pendings}">
+                  <td th:text="${a.adminId}">1</td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="admin-avatar me-2">
+                        <img class="avatar-img" th:src="${a.profileImage != null} ? ${a.profileImage} : '/assets/admin/images/user_default.png'" alt="프로필">
+                      </div>
+                      <div>
+                        <h5 class="m-0 font-weight-normal" th:text="${a.name}">관리자 이름</h5>
+                        <p class="mb-0 text-muted" th:text="${a.email}">admin@example.com</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td th:text="${a.phoneNumber}">010-1234-5678</td>
+                  <td><span class="badge bg-warning" th:text="${a.role.displayName}">심사대기</span></td>
+                  <td th:text="${a.lastAccessAt != null ? #temporals.format(a.lastAccessAt,'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                  <td>
+                    <div class="d-flex">
+                      <button class="btn btn-sm btn-outline-success me-1 btn-approve-request"
+                              th:data-request-id="${a.adminId}"
+                              th:data-user-id="${a.adminId}"
+                              th:data-user-name="${a.name}">
+                        승인
+                      </button>
+                      <button class="btn btn-sm btn-outline-danger btn-reject-request"
+                              th:data-request-id="${a.adminId}"
+                              th:data-user-id="${a.adminId}"
+                              th:data-user-name="${a.name}">
+                        거부
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(pendings)}">
+                  <td colspan="6" class="text-center">승인 대기 중인 요청이 없습니다.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 관리자 편집 모달 -->
+  <div class="modal fade" id="editAdminModal" tabindex="-1" aria-labelledby="editAdminModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="editAdminModalLabel">관리자 권한 변경</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>
+            <strong id="editAdminName">관리자명</strong> 계정의 권한을 변경합니다.
+            <input type="hidden" id="editAdminId" value="">
+          </p>
+
+          <h6>권한 설정</h6>
+          <div class="form-check" th:each="role : ${availableRoles}">
+            <input class="form-check-input" type="radio" name="editRoles" th:value="${role}" th:id="'editRole_' + ${role}">
+            <label class="form-check-label" th:for="'editRole_' + ${role}" th:text="${role.displayName}">권한명</label>
+          </div>
+
+          <div class="mb-3 mt-3">
+            <label for="editReason" class="form-label">권한 변경 사유 (선택사항)</label>
+            <textarea class="form-control" id="editReason" rows="3" placeholder="권한 변경 사유를 입력하세요"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+          <button type="button" class="btn btn-primary" id="btnSaveAdminEdit">저장</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 관리자 제거 모달 -->
+  <div class="modal fade" id="removeAdminModal" tabindex="-1" aria-labelledby="removeAdminModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="removeAdminModalLabel">관리자 제거</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-danger">
+            <strong id="removeAdminName">관리자명</strong> 계정의 관리자 권한을 제거하고 일반 사용자로 변경합니다.
+            <input type="hidden" id="removeAdminId" value="">
+          </div>
+          <p>
+            이 작업은 되돌릴 수 없습니다. 계속하시겠습니까?
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+          <button type="button" class="btn btn-danger" id="btnConfirmRemoveAdmin">제거</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 요청 승인 모달 -->
+  <div class="modal fade" id="approveRequestModal" tabindex="-1" aria-labelledby="approveRequestModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="approveRequestModalLabel">관리자 등록 요청 승인</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>
+            <strong id="approveRequestName">사용자명</strong>님의 관리자 등록 요청을 승인합니다.
+            <input type="hidden" id="approveRequestId" value="">
+            <input type="hidden" id="approveUserId" value="">
+          </p>
+
+          <h6>부여할 권한 설정</h6>
+          <div class="form-check" th:each="role : ${availableRoles}">
+            <input class="form-check-input" type="radio" name="approveRoles" th:value="${role}" th:id="'approveRole_' + ${role}">
+            <label class="form-check-label" th:for="'approveRole_' + ${role}" th:text="${role.displayName}">권한명</label>
+          </div>
+
+          <div class="mb-3 mt-3">
+            <label for="approveReason" class="form-label">승인 사유 (선택사항)</label>
+            <textarea class="form-control" id="approveReason" rows="3" placeholder="승인 사유를 입력하세요"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+          <button type="button" class="btn btn-success" id="btnConfirmApprove">승인</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 요청 거부 모달 -->
+  <div class="modal fade" id="rejectRequestModal" tabindex="-1" aria-labelledby="rejectRequestModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="rejectRequestModalLabel">관리자 등록 요청 거부</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>
+            <strong id="rejectRequestName">사용자명</strong>님의 관리자 등록 요청을 거부합니다.
+            <input type="hidden" id="rejectRequestId" value="">
+            <input type="hidden" id="rejectUserId" value="">
+          </p>
+
+          <div class="mb-3">
+            <label for="rejectReason" class="form-label">거부 사유 (선택사항)</label>
+            <textarea class="form-control" id="rejectReason" rows="3" placeholder="요청을 거부하는 사유를 입력하세요"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+          <button type="button" class="btn btn-danger" id="btnConfirmReject">거부</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 요청 사유 보기 모달 -->
+  <div class="modal fade" id="reasonViewModal" tabindex="-1" aria-labelledby="reasonViewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="reasonViewModalLabel">요청 사유</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="p-3 bg-light rounded">
+            <p id="reasonContent" class="mb-0">요청 사유 내용이 여기에 표시됩니다.</p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Custom JavaScript -->
+<customJS>
+  <script th:src="@{/assets/admin/js/adminList.js}" type="module"></script>
+</customJS>
+</body>
+</html>

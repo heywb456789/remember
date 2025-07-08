@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{admin/layout/default :: html(
+        ~{::title},
+        ~{::section},
+        ~{::customCSS},
+        ~{::customJS},
+        'news',
+        'detail'
+      )}">
+<head>
+  <title>뉴스 상세 - 관리자</title>
+
+  <!-- Custom CSS -->
+  <customCSS>
+    <link th:href="@{/assets/admin/css/newsDetail.css}" rel="stylesheet">
+    <link th:href="@{/assets/admin/css/newsEditor.css}" rel="stylesheet">
+  </customCSS>
+</head>
+<body>
+<section>
+  <!-- Page Title & Actions -->
+  <div class="row">
+    <div class="col-12">
+      <div class="page-title-box">
+        <div class="page-title-right">
+          <ol class="breadcrumb m-0">
+            <li class="breadcrumb-item"><a href="/admin/dashboard">대시보드</a></li>
+            <li class="breadcrumb-item"><a href="/admin/original/news/list">뉴스 관리</a></li>
+            <li class="breadcrumb-item active">뉴스 상세</li>
+          </ol>
+        </div>
+        <h4 class="page-title">뉴스 상세</h4>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="header-title" th:text="${news.title}">뉴스 제목</h4>
+            <div class="button-list">
+              <a th:href="@{/admin/original/news/update/{id}(id=${news.id})}" class="btn btn-primary">
+                <i class="mdi mdi-pencil me-1"></i>수정
+              </a>
+              <button class="btn btn-danger" id="btnDelete">
+                <i class="mdi mdi-trash-can me-1"></i>삭제
+              </button>
+            </div>
+          </div>
+
+          <!-- News Status Badges -->
+          <div class="mb-3">
+            <span class="badge"
+                  th:classappend="${news.isPublic ? 'bg-success' : 'bg-secondary'}"
+                  th:text="${news.isPublic ? '공개' : '비공개'}">공개 상태</span>
+            <span class="badge bg-info ms-1" th:if="${news.category != null}"
+                  th:text="${news.category.displayName}">카테고리</span>
+            <span class="badge bg-warning ms-1" th:if="${news.isHot}">
+              <i class="mdi mdi-fire"></i> 핫 뉴스
+            </span>
+          </div>
+
+          <div class="row">
+            <!-- Main Content Column -->
+            <div class="col-lg-8">
+              <!-- News Info -->
+              <div class="mb-4">
+                <div class="table-responsive">
+                  <table class="table table-sm table-bordered mb-0">
+                    <tr>
+                      <th class="table-light" style="width: 150px;">작성자</th>
+                      <td th:text="${news.author.getName()}">작성자명</td>
+                      <th class="table-light" style="width: 150px;">등록일</th>
+                      <td th:text="${#temporals.format(news.createdAt, 'yyyy-MM-dd HH:mm')}">2023-01-01 00:00</td>
+                    </tr>
+                    <tr>
+                      <th class="table-light">최종 수정일</th>
+                      <td th:text="${#temporals.format(news.updatedAt, 'yyyy-MM-dd HH:mm')}">2023-01-01 00:00</td>
+                      <th class="table-light">공개일</th>
+                      <td th:text="${news.publishedAt != null ? #temporals.format(news.publishedAt, 'yyyy-MM-dd HH:mm') : '-'}">2023-01-01 00:00</td>
+                    </tr>
+                    <tr>
+                      <th class="table-light">조회수</th>
+                      <td th:text="${#numbers.formatInteger(news.viewCount, 0, 'COMMA')}">0</td>
+<!--                      <th class="table-light">좋아요</th>-->
+<!--                      <td th:text="${#numbers.formatInteger(news.likeCount, 0, 'COMMA')}">0</td>-->
+                    </tr>
+                  </table>
+                </div>
+              </div>
+
+              <!-- News Content -->
+              <div class="card border mb-4">
+                <div class="card-header">
+                  <h5 class="card-title m-0">뉴스 내용</h5>
+                </div>
+                <div class="card-body">
+                  <div class="news-content" th:utext="${news.content}">
+                    <!-- 뉴스 본문 내용 -->
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Side Column -->
+            <div class="col-lg-4">
+              <!-- Thumbnail -->
+              <div class="card border mb-4">
+                <div class="card-header">
+                  <h5 class="card-title m-0">썸네일</h5>
+                </div>
+                <div class="card-body">
+                  <img th:src="${news.thumbnailUrl}" alt="뉴스 썸네일" class="img-fluid rounded">
+                </div>
+              </div>
+
+<!--              &lt;!&ndash; Mobile Preview &ndash;&gt;-->
+<!--              <div class="card border">-->
+<!--                <div class="card-header d-flex justify-content-between align-items-center">-->
+<!--                  <h5 class="card-title m-0">모바일 미리보기</h5>-->
+<!--                  <button class="btn btn-sm btn-primary" id="btnOpenPreview">-->
+<!--                    <i class="mdi mdi-open-in-new me-1"></i>새 창에서 보기-->
+<!--                  </button>-->
+<!--                </div>-->
+<!--                <div class="card-body">-->
+<!--                  <div class="mobile-preview-container">-->
+<!--                    <div class="mobile-frame">-->
+<!--                      <div class="mobile-status-bar"></div>-->
+<!--                      <div class="mobile-content">-->
+<!--                        <iframe th:src="@{/preview/news/{id}(id=${news.id})}" id="previewFrame" class="preview-iframe"></iframe>-->
+<!--                      </div>-->
+<!--                      <div class="mobile-home-button"></div>-->
+<!--                    </div>-->
+<!--                  </div>-->
+<!--                </div>-->
+<!--              </div>-->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div class="modal fade" id="deleteConfirmModal" tabindex="-1"
+       aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-danger">
+          <h5 class="modal-title text-white" id="deleteConfirmModalLabel">뉴스 삭제 확인</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"
+                  aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="text-center mb-3">
+            <i class="mdi mdi-alert-circle-outline text-danger" style="font-size: 3rem;"></i>
+          </div>
+          <p class="text-center">정말로 다음 뉴스를 삭제하시겠습니까?</p>
+          <p class="text-center fw-bold" th:text="${news.title}">뉴스 제목</p>
+          <div class="alert alert-warning">
+            <i class="mdi mdi-alert me-1"></i>
+            이 작업은 되돌릴 수 없으며, 모든 관련 데이터가 영구적으로 삭제됩니다.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">취소</button>
+          <button type="button" id="btnConfirmDelete" class="btn btn-danger">삭제</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Custom JS -->
+<customJS>
+  <script th:src="@{/assets/admin/js/newsDetail.js}" type="module"></script>
+</customJS>
+</body>
+</html>

@@ -1,0 +1,168 @@
+# =======================================================
+# 토마토리멤버 기본 설정 파일 (기존 설정 기반 정리)
+# =======================================================
+
+spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+  
+  application:
+    name: remember
+  
+  output:
+    ansi:
+      enabled: always
+  
+  main:
+    banner-mode: off
+
+  # =======================================================
+  # JPA 설정 (기존 설정 유지 + 정리)
+  # =======================================================
+  jpa:
+    database: mysql
+    open-in-view: true
+    show-sql: ${SHOW_SQL:false}
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MariaDBDialect
+        format_sql: true
+        use_sql_comments: true
+
+  # =======================================================
+  # MVC 설정 (기존 설정 유지)
+  # =======================================================
+  mvc:
+    format:
+      date: yyyy-MM-dd
+      date-time: yyyy-MM-dd HH:mm:ss
+      time: HH:mm:ss
+
+  # =======================================================
+  # Thymeleaf 설정 (기존 설정 정리)
+  # =======================================================
+  thymeleaf:
+    prefix: classpath:/templates/
+    suffix: .html
+    mode: HTML
+    cache: ${THYMELEAF_CACHE:false}
+
+  # =======================================================
+  # 정적 리소스 설정 (기존 설정 유지)
+  # =======================================================
+  web:
+    resources:
+      cache:
+        period: ${RESOURCE_CACHE_PERIOD:0}
+
+  # =======================================================
+  # 파일 업로드 설정 (기존 설정 유지)
+  # =======================================================
+  servlet:
+    multipart:
+      max-file-size: 500MB
+      max-request-size: 500MB
+
+  # =======================================================
+  # JWT 보안 설정 (기존 설정 정리)
+  # =======================================================
+  security:
+    jwt:
+      secret: ${JWT_SECRET:MDEyMzQ1Njc4OWNiZmFnZDEyMzQ1Njc4OWNiZmFnZA==}
+      access-token-expiration: ${JWT_ACCESS_EXPIRATION:3600000}      # 기존 테스트 10초 → 1시간으로 수정
+      refresh-token-expiration: ${JWT_REFRESH_EXPIRATION:1209600000} # 2주 (기존 설정 유지)
+      auto-login-expiration: ${JWT_AUTO_LOGIN_EXPIRATION:31536000000} # 1년 (기존 설정 유지)
+      cookie:
+        secure: ${JWT_COOKIE_SECURE:false}
+        http-only: true
+        same-site: lax
+        path: /
+
+  # =======================================================
+  # 개발툴 설정 (기존 설정 유지)
+  # =======================================================
+  devtools:
+    livereload:
+      enabled: ${DEVTOOLS_ENABLED:true}
+
+# =======================================================
+# SpringDoc OpenAPI 설정 (기존 설정 정리)
+# =======================================================
+springdoc:
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:true}
+    path: /swagger-ui.html
+    groups-order: ASC
+    tags-sorter: alpha
+    operations-sorter: alpha
+    try-it-out-enabled: true
+    filter: true
+    display-request-duration: true
+    default-models-expand-depth: 2
+    default-model-expand-depth: 2
+    # 기존 커스텀 CSS 유지 (토마토 브랜드 색상)
+    custom-css: |
+      .swagger-ui .topbar { 
+        background-color: #6c5ce7; 
+        border-bottom: 2px solid #a29bfe;
+      }
+      .swagger-ui .topbar .download-url-wrapper { 
+        display: none; 
+      }
+      .swagger-ui .info .title { 
+        color: #2d3436; 
+        font-weight: 700;
+      }
+      .swagger-ui .scheme-container { 
+        background: #f8f9fa; 
+        padding: 15px; 
+        border-radius: 8px;
+        margin: 15px 0;
+      }
+  
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+    groups:
+      enabled: true
+  
+  # 기존: com.tomato.naraclub → 새 프로젝트 패키지로 변경
+  packages-to-scan: com.tomato.remember
+  paths-to-match: /api/**  # /admin/** 제거 (관리자 기능 없음)
+  
+  default-consumes-media-type: application/json
+  default-produces-media-type: application/json
+  model-and-view-allowed: true
+  override-with-generic-response: false
+  remove-broken-reference-definitions: false
+  writer-with-order-by-keys: true
+  cache:
+    disabled: false
+
+# =======================================================
+# 토마토 ONE-ID 설정 (기존 설정 정리)
+# =======================================================
+one-id:
+  base-url: https://api.otongtong.net
+  nation: KR
+  app-type: ${ONE_ID_APP_TYPE:newstong}
+  endpoints:
+    login: /v1/api/external/PASSTONG/plain/login
+    send-sms-cert: /v1/api/external/{apptype}/join/certi
+    verify-sms-cert: /v1/api/external/{apptype}/join/certicheck
+    register: /v1/api/external/{apptype}/join
+    coin-info: /v1/api/external/{apptype}/coin-info
+    profile-img: /v1/api/external/{apptype}/profile/img/upload/{userkey}
+
+# =======================================================
+# 로깅 설정 (기존 설정 유지)
+# =======================================================
+logging:
+  level:
+    org.springframework.web.reactive.function.client.ExchangeFilterFunctions: ${LOG_LEVEL_HTTP:DEBUG}
+    reactor.netty.http.client.HttpClient: ${LOG_LEVEL_HTTP:DEBUG}
+
+# =======================================================
+# 인바운드 로깅 설정 (기존 설정 유지)
+# =======================================================
+inbound-logging: ${INBOUND_LOGGING:true}

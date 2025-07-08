@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration debug="true">
+  <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+  <!-- 로그 파일 경로 변수 -->
+  <property name="LOG_PATH" value="logs"/>
+
+  <!-- 콘솔 출력 -->
+  <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>
+        [%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}]){faint} %clr(%5p): %clr(${PID:- }){magenta} %clr([%X{traceId:-},%X{spanId:-}]){yellow} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n%wEx
+      </pattern>
+    </encoder>
+  </appender>
+
+  <!-- 롤링 파일 -->
+  <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${LOG_PATH}/application.log</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>${LOG_PATH}/application.%d{yyyy-MM-dd}.log</fileNamePattern>
+      <maxHistory>30</maxHistory>
+      <totalSizeCap>1GB</totalSizeCap>
+    </rollingPolicy>
+    <encoder>
+      <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <!-- 공통 로거 레벨 -->
+  <logger name="org.springframework" level="INFO"/>
+  <logger name="com.tomato"       level="DEBUG"/>
+
+  <!-- JDBC 드라이버 자체 로그 비활성화 -->
+  <logger name="jdbc"            level="OFF"/>
+  <logger name="jdbc.audit"      level="OFF"/>
+  <logger name="jdbc.connection" level="OFF"/>
+
+  <!-- 개발/테스트/스테이징 프로파일 -->
+  <springProfile name="local,dev,staging">
+    <!-- log4jdbc SQL 덤프 -->
+    <logger name="jdbc.sqlonly"        level="DEBUG"/>
+    <logger name="jdbc.sqltiming"      level="DEBUG"/>
+    <logger name="jdbc.resultsettable" level="DEBUG"/>
+
+    <!-- Hibernate SQL, 바인딩 로그 -->
+    <logger name="org.hibernate.SQL"                                level="DEBUG"/>
+    <logger name="org.hibernate.type.descriptor.sql.BasicBinder"    level="TRACE"/>
+  </springProfile>
+
+  <!-- 운영 프로파일 -->
+  <springProfile name="prod">
+    <!-- log4jdbc SQL 덤프 (WARN 이상) -->
+    <logger name="jdbc.sqlonly"        level="WARN"/>
+    <logger name="jdbc.sqltiming"      level="WARN"/>
+    <logger name="jdbc.resultsettable" level="WARN"/>
+
+    <!-- Hibernate SQL 로그 비활성화 -->
+    <logger name="org.hibernate.SQL"                             level="WARN"/>
+    <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="WARN"/>
+
+    <!-- Spring Security 인증/인가 로그 -->
+    <logger name="org.springframework.security"                                        level="WARN"/>
+    <logger name="org.springframework.security.web.authentication"                     level="DEBUG"/>
+    <logger name="org.springframework.security.access.intercept.FilterSecurityInterceptor" level="DEBUG"/>
+    <logger name="org.springframework.security.web.access.AccessDeniedHandlerImpl"     level="WARN"/>
+    <logger name="org.springframework.security.web.AuthenticationEntryPoint"            level="WARN"/>
+  </springProfile>
+
+  <!-- 루트 로거 -->
+  <root level="INFO">
+    <appender-ref ref="CONSOLE"/>
+    <appender-ref ref="FILE"/>
+  </root>
+</configuration>

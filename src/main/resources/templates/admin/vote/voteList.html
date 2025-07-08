@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{admin/layout/default :: html(
+        ~{::title},
+        ~{::section},
+        ~{::customCSS},
+        ~{::customJS},
+        'vote',
+        'voteList'
+      )}">
+<head>
+  <title>투표 관리 - 나라걱정 관리자</title>
+
+  <!-- Custom CSS -->
+  <customCSS>
+    <link th:href="@{/assets/admin/css/voteList.css}" rel="stylesheet">
+  </customCSS>
+</head>
+<body>
+<section>
+  <!-- Page Title and Buttons -->
+  <div class="page-header d-flex justify-content-between align-items-center mb-4">
+    <h4 class="page-title">투표 관리</h4>
+    <div class="page-actions">
+      <button type="button" id="btnCreate" class="btn btn-primary">
+        <i class="fas fa-plus"></i> 등록
+      </button>
+      <button type="button" id="btnEdit" class="btn btn-secondary">
+        <i class="fas fa-edit"></i> 수정
+      </button>
+      <button type="button" id="btnDelete" class="btn btn-danger" disabled>
+        <i class="fas fa-trash"></i> 삭제
+      </button>
+    </div>
+  </div>
+
+  <!-- Search Area -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <form id="searchForm" method="get" action="/admin/vote/list">
+        <div class="row g-3 align-items-center">
+          <div class="col-auto">
+            <select id="searchType" name="searchType" class="form-select">
+              <option value="VOTE_QUESTION"
+                      th:selected="${request != null and request.searchType != null and request.searchType.name() == 'VOTE_QUESTION'}">
+                제목
+              </option>
+              <option value="VOTE_AUTHOR"
+                      th:selected="${request != null and request.searchType != null and request.searchType.name() == 'VOTE_AUTHOR'}">
+                작성자
+              </option>
+            </select>
+          </div>
+          <div class="col">
+            <div class="input-group">
+              <input type="text" id="searchText" name="searchText" class="form-control"
+                     th:value="${request != null ? request.searchText : ''}"
+                     placeholder="검색어를 입력하세요">
+              <button class="btn btn-outline-secondary" type="button" id="btnSearch">
+                <i class="fas fa-search"></i> 검색
+              </button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Vote List Table -->
+  <div class="card">
+    <!-- 카드 헤더 추가 -->
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <div>
+        <h5 class="card-title mb-0 d-inline-block">
+          총 <span th:text="${#numbers.formatInteger(totalCount, 0, 'COMMA')}">0</span>개의 투표
+        </h5>
+        <span class="text-muted ms-2">
+        (페이지 <span th:text="${currentPage}">1</span>/<span th:text="${totalPages}">1</span>)
+      </span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table id="voteTable" class="table table-hover">
+          <thead>
+          <tr>
+            <th><input type="checkbox" id="checkAll" class="form-check-input"></th>
+            <th>번호</th>
+            <th>제목</th>
+            <!--                        <th>상태</th>-->
+            <th>시작일</th>
+            <!--                        <th>종료일</th>-->
+            <th>참여수</th>
+            <th>작성자</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr th:each="vote : ${voteList}" th:data-id="${vote.votePostId}">
+            <td>
+              <input type="checkbox" class="form-check-input row-check"
+                     th:value="${vote.votePostId}">
+            </td>
+            <td th:text="${vote.votePostId}">1</td>
+            <td class="vote-title">
+              <a th:href="@{'/admin/vote/' + ${vote.votePostId}}"
+                 th:text="${vote.question}">투표 제목</a>
+            </td>
+            <!--                        <td>-->
+            <!--                            <span th:if="${vote.status == 'SCHEDULED'}" class="status-badge badge bg-warning">예정</span>-->
+            <!--                            <span th:if="${vote.status == 'ACTIVE'}" class="status-badge badge bg-success">진행 중</span>-->
+            <!--                            <span th:if="${vote.status == 'CLOSED'}" class="status-badge badge bg-secondary">마감</span>-->
+            <!--                        </td>-->
+            <td th:text="${#temporals.format(vote.createdAt,'yyyy-MM-dd')}">2025-04-28</td>
+            <!--                        <td th:text="${#temporals.format(vote.endDate,'yyyy-MM-dd')}">2025-05-28</td>-->
+            <td th:text="${vote.voteCount}">100</td>
+            <td th:text="${vote.authorName}">작성자</td>
+          </tr>
+          <tr th:if="${#lists.isEmpty(voteList)}">
+            <td colspan="8" class="text-center py-4">등록된 투표가 없습니다.</td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="d-flex justify-content-between align-items-center mt-3" th:if="${totalPages > 0}">
+        <div class="text-muted">
+          총 <span th:text="${#numbers.formatInteger(totalCount, 0, 'COMMA')}">0</span>개
+          (<span th:text="${currentPage}">1</span>/<span th:text="${totalPages}">1</span> 페이지)
+        </div>
+
+        <nav aria-label="Page navigation">
+          <ul class="pagination mb-0">
+            <!-- First Page -->
+            <li class="page-item" th:classappend="${!hasPrevious ? 'disabled' : ''}">
+              <a class="page-link"
+                 th:href="@{/admin/vote/list(page=0, size=10, searchType=${request != null ? request.searchType : ''}, searchText=${request != null ? request.searchText : ''})}"
+                 aria-label="First">
+                <span aria-hidden="true">&laquo;&laquo;</span>
+              </a>
+            </li>
+
+            <!-- Previous Page -->
+            <li class="page-item" th:classappend="${!hasPrevious ? 'disabled' : ''}">
+              <a class="page-link"
+                 th:href="@{/admin/vote/list(page=${currentPageZeroIndex - 1}, size=10, searchType=${request != null ? request.searchType : ''}, searchText=${request != null ? request.searchText : ''})}"
+                 aria-label="Previous">
+                <span aria-hidden="true">&laquo;</span>
+              </a>
+            </li>
+
+            <!-- Page Numbers -->
+            <li class="page-item"
+                th:each="pageNumber : ${#numbers.sequence(startPage, endPage)}"
+                th:classappend="${pageNumber == currentPage ? 'active' : ''}">
+              <a class="page-link"
+                 th:href="@{/admin/vote/list(page=${pageNumber - 1}, size=10, searchType=${request != null ? request.searchType : ''}, searchText=${request != null ? request.searchText : ''})}"
+                 th:text="${pageNumber}">1</a>
+            </li>
+
+            <!-- Next Page -->
+            <li class="page-item" th:classappend="${!hasNext ? 'disabled' : ''}">
+              <a class="page-link"
+                 th:href="@{/admin/vote/list(page=${currentPageZeroIndex + 1}, size=10, searchType=${request != null ? request.searchType : ''}, searchText=${request != null ? request.searchText : ''})}"
+                 aria-label="Next">
+                <span aria-hidden="true">&raquo;</span>
+              </a>
+            </li>
+
+            <!-- Last Page -->
+            <li class="page-item" th:classappend="${!hasNext ? 'disabled' : ''}">
+              <a class="page-link"
+                 th:href="@{/admin/vote/list(page=${totalPages - 1}, size=10, searchType=${request != null ? request.searchType : ''}, searchText=${request != null ? request.searchText : ''})}"
+                 aria-label="Last">
+                <span aria-hidden="true">&raquo;&raquo;</span>
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirmation Modal -->
+  <div class="modal fade" id="confirmModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">삭제 확인</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          선택한 투표를 정말 삭제하시겠습니까?
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+          <button type="button" class="btn btn-danger" id="btnConfirmDelete">삭제</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Custom JS -->
+<customJS>
+  <script th:src="@{/assets/admin/js/voteAdminList.js?v=1.1}" type="module"></script>
+</customJS>
+</body>
+</html>

@@ -1,0 +1,269 @@
+/* 회원가입 페이지 스타일 */
+body {
+  background-color: #fff;
+  color: #333;
+  min-height: 100vh;
+  font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+}
+
+.container {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 20px;
+  width: 100%;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.back-button {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin-right: 20px;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: bold;
+  text-align: center;
+  flex-grow: 1;
+  margin-right: 44px; /* To balance the back button width */
+}
+
+.subtitle {
+  font-size: 14px;
+  color: #666;
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-label {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.form-control {
+  padding: 12px;
+  font-size: 14px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  width: 100%;
+}
+
+.form-select {
+  padding: 12px;
+  font-size: 14px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  width: 100%;
+  background-color: #fff;
+}
+
+.phone-input-container {
+  display: flex;
+  gap: 0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.country-code {
+  width: 70px;
+  padding: 12px;
+  text-align: center;
+  font-size: 14px;
+  border: none;
+  border-right: 1px solid #ddd;
+  background-color: #f9f9f9;
+}
+
+.phone-input {
+  flex: 1;
+  border: none;
+  padding: 12px;
+  font-size: 14px;
+  outline: none;
+}
+
+.verification-group {
+  display: flex;
+  margin-bottom: 16px;
+  position: relative;
+  align-items: stretch;
+}
+
+.verification-input {
+  flex: 1;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.verification-buttons {
+  display: flex;
+  margin-left: 0;
+}
+
+.verification-button {
+  width: auto;
+  min-width: 80px;
+  background-color: #ffcccc;
+  color: #333;
+  border: none;
+  padding: 0 12px;
+  font-size: 14px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.verification-button:first-of-type {
+  border-radius: 0;
+  border-right: 1px solid rgba(0,0,0,0.1);
+}
+
+.verification-button:last-of-type {
+  border-top-right-radius: 4px;
+  border-bottom-right-radius: 4px;
+}
+
+.verification-button:hover {
+  background-color: #ffbbbb;
+}
+
+.verification-button:disabled {
+  background-color: #cccccc;
+  color: #666;
+  cursor: not-allowed;
+}
+
+/* 타이머 스타일 */
+.timer-container {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 4px;
+  min-height: 20px;
+}
+
+.timer-display {
+  color: #dc3545;
+  font-size: 14px;
+  font-weight: bold;
+  margin-left: auto;
+}
+
+.timer-display.success {
+  color: #28a745;
+}
+
+.terms-container {
+  margin: 30px 0;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  padding: 15px;
+}
+
+.terms-title {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 15px;
+}
+
+.terms-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.terms-label {
+  font-size: 14px;
+  margin-left: 8px;
+}
+
+.terms-link {
+  color: #f06060;
+  text-decoration: none;
+  margin-left: auto;
+  font-size: 12px;
+}
+
+.form-check-input:checked {
+  background-color: #f06060;
+  border-color: #f06060;
+}
+
+.signup-button {
+  width: 100%;
+  background-color: #ffcccc;
+  color: #333;
+  border: none;
+  border-radius: 4px;
+  padding: 14px;
+  font-size: 16px;
+  cursor: pointer;
+  margin-top: 20px;
+}
+
+.signup-button:hover {
+  background-color: #ffbbbb;
+}
+
+.signup-button:disabled {
+  background-color: #ffdddd;
+  color: #999;
+  cursor: not-allowed;
+}
+
+.error-message {
+  color: #dc3545;
+  font-size: 12px;
+  margin-top: 4px;
+  display: none;
+}
+
+/* 인증 완료 스타일 */
+.verification-success .verification-button,
+.verification-success .form-control {
+  background-color: #f8f9fa;
+  color: #6c757d;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 480px) {
+  .container {
+    padding: 15px;
+    width: 100%;
+  }
+
+  .verification-button {
+    min-width: 80px;
+    padding: 12px 8px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 320px) {
+  .title {
+    font-size: 16px;
+  }
+
+  .form-control, .form-select, .phone-input {
+    font-size: 13px;
+  }
+
+  .verification-button, .signup-button {
+    font-size: 13px;
+    padding: 10px 8px;
+  }
+}

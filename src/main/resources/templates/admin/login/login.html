@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로그인 - 나라걱정 클럽 관리자</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link th:href="@{/assets/admin/css/login.css}" rel="stylesheet">
+</head>
+<body>
+    <div class="background-effect">
+        <div class="shape shape1"></div>
+        <div class="shape shape2"></div>
+        <div class="shape shape3"></div>
+    </div>
+
+    <div class="container">
+        <div class="login-container">
+            <div class="card shadow-lg">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <img th:src="@{/assets/admin/images/logo.svg}" alt="나라걱정 클럽 로고" class="logo img-fluid mb-3">
+                        <h3 class="fw-bold">나라걱정 클럽 관리자</h3>
+                        <p class="text-muted">계정에 로그인하여 계속하세요</p>
+                    </div>
+                    <div id="errorMsg" class="alert alert-danger d-none" role="alert"></div>
+                    <!-- 로그인 폼 -->
+                    <form method="post" id="loginForm" onsubmit="return false;">
+                        <!-- 오류 메시지 표시 -->
+                        <div th:if="${param.error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            <span>아이디 또는 비밀번호가 올바르지 않습니다.</span>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+
+                        <div th:if="${param.logout}" class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <span>로그아웃 되었습니다.</span>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+
+                        <!-- 아이디 입력 -->
+                        <div class="form-group mb-3">
+                            <label for="username" class="form-label">아이디</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                <input type="text" id="username" name="username" class="form-control" placeholder="아이디를 입력하세요" required autofocus>
+                            </div>
+                        </div>
+
+                        <!-- 비밀번호 입력 -->
+                        <div class="form-group mb-4">
+                            <label for="password" class="form-label">비밀번호</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                <input type="password" id="password" name="password" class="form-control" placeholder="비밀번호를 입력하세요" required>
+                                <button type="button" class="btn btn-outline-secondary toggle-password" tabindex="-1">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 자동 로그인 -->
+                        <div class="form-check mb-4">
+                            <input type="checkbox" id="remember-me" name="autoLogin" class="form-check-input">
+                            <label for="remember-me" class="form-check-label">로그인 상태 유지</label>
+                            <a href="#" class="float-end text-decoration-none" data-bs-toggle="modal" data-bs-target="#forgotPasswordModal">비밀번호 찾기</a>
+                        </div>
+
+                        <!-- 로그인 버튼 -->
+                        <div class="d-grid gap-2">
+                            <button type="button" id="loginBtn" class="btn btn-primary btn-lg">로그인</button>
+                            <a th:href="@{/admin/auth/register}" class="btn btn-outline-secondary">회원가입</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 비밀번호 찾기 모달 -->
+    <div class="modal fade" id="forgotPasswordModal" tabindex="-1" aria-labelledby="forgotPasswordModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="forgotPasswordModalLabel">비밀번호 찾기</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="forgotPasswordForm">
+                        <div class="mb-3">
+                            <label for="recovery-username" class="form-label">아이디</label>
+                            <input type="text" class="form-control" id="recovery-username" placeholder="가입 시 사용한 아이디를 입력하세요" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="recovery-phone" class="form-label">휴대폰 번호</label>
+                            <input type="tel" class="form-control" id="recovery-phone" placeholder="가입 시 등록한 휴대폰 번호를 입력하세요 (예: 010-1234-5678)" required>
+                        </div>
+                        <div id="recoverResult" class="alert alert-info d-none">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <span id="recoverMessage"></span>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                    <button type="button" class="btn btn-primary" id="btnRecoverPassword">비밀번호 찾기</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script th:src="@{/assets/admin/js/login.js}" type="module"></script>
+</body>
+</html>

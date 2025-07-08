@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{admin/layout/default :: html(
+        ~{::title},
+        ~{::section},
+        ~{::customCSS},
+        ~{::customJS},
+        'users',
+        'app'
+      )}">
+<head>
+  <title>회원 관리 - 관리자</title>
+
+  <!-- Custom CSS -->
+  <customCSS>
+    <link th:href="@{/assets/admin/css/appUserList.css}" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css"
+          rel="stylesheet">
+    <link th:href="@{/assets/admin/css/dateRange.css}" rel="stylesheet">
+  </customCSS>
+</head>
+<body>
+<section>
+  <!-- Page Title & Actions -->
+  <div class="page-header d-flex justify-content-between align-items-center mb-4">
+    <h4 class="page-title">회원 관리</h4>
+    <!--    <div class="page-actions">-->
+    <!--      <a href="/admin/users/admin/user-list" class="btn btn-secondary me-2"-->
+    <!--         sec:authorize="hasRole('SUPER_ADMIN')">-->
+    <!--        <i class="fas fa-user-shield"></i> 관리자 목록-->
+    <!--      </a>-->
+    <!--      <a href="/admin/users/create" class="btn btn-primary" sec:authorize="hasRole('SUPER_ADMIN')">-->
+    <!--        <i class="fas fa-plus"></i> 관리자 추가-->
+    <!--      </a>-->
+    <!--    </div>-->
+  </div>
+
+  <!-- Filter Card -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <form id="searchForm" method="get" action="/admin/users/app/user-list">
+        <input type="hidden" name="size" value="10">
+        <div class="row g-3">
+          <div class="col-md-3">
+            <label for="searchType" class="form-label">검색 유형</label>
+            <select class="form-select" id="searchType" name="searchType">
+              <option value="USER_NAME"
+                      th:selected="${searchRequest.searchType?.name() == 'USER_NAME'}">이름
+              </option>
+              <option value="USER_EMAIL"
+                      th:selected="${searchRequest.searchType?.name() == 'USER_EMAIL'}">이메일
+              </option>
+              <option value="USER_PHONE"
+                      th:selected="${searchRequest.searchType?.name() == 'USER_PHONE'}">전화번호
+              </option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label for="searchText" class="form-label">검색어</label>
+            <input type="text" class="form-control" id="searchText" name="searchText"
+                   th:value="${searchRequest.searchText}" placeholder="검색어를 입력하세요">
+          </div>
+          <div class="col-md-3">
+            <label for="memberStatus" class="form-label">회원 상태</label>
+            <select class="form-select" id="memberStatus" name="memberStatus">
+              <option value="">전체</option>
+              <option value="ACTIVE"
+                      th:selected="${searchRequest.memberStatus?.name() == 'ACTIVE'}">활성
+              </option>
+              <option value="BLOCKED"
+                      th:selected="${searchRequest.memberStatus?.name() == 'BLOCKED'}">비활성
+              </option>
+              <option value="TEMPORARY_INVITE"
+                      th:selected="${searchRequest.memberStatus?.name() == 'TEMPORARY_INVITE'}">초대코드
+                대기
+              </option>
+              <option value="TEMPORARY_PASS"
+                      th:selected="${searchRequest.memberStatus?.name() == 'TEMPORARY_PASS'}">PASS
+                인증 대기
+              </option>
+              <option value="DELETED"
+                      th:selected="${searchRequest.memberStatus?.name() == 'DELETED'}">탈퇴
+              </option>
+            </select>
+          </div>
+          <!--          <div class="col-md-3">-->
+          <!--            <label for="userType" class="form-label">회원 유형</label>-->
+          <!--            <select class="form-select" id="userType" name="userType">-->
+          <!--              <option value="">전체</option>-->
+          <!--              <option value="NORMAL" th:selected="${searchRequest.userType == 'NORMAL'}">일반 회원</option>-->
+          <!--              <option value="SNS_KAKAO" th:selected="${searchRequest.userType == 'SNS_KAKAO'}">카카오 연동</option>-->
+          <!--              <option value="SNS_NAVER" th:selected="${searchRequest.userType == 'SNS_NAVER'}">네이버 연동</option>-->
+          <!--            </select>-->
+          <!--          </div>-->
+          <div class="col-md-3">
+            <label for="sortType" class="form-label">정렬 기준</label>
+            <select class="form-select" id="sortType" name="sortType">
+              <option value="LATEST"
+                      th:selected="${searchRequest.sortType?.name() == 'LATEST' || searchRequest.sortType == null}">
+                가입일
+              </option>
+              <option value="NAME" th:selected="${searchRequest.sortType?.name() == 'NAME'}">이름
+              </option>
+              <option value="LOGIN" th:selected="${searchRequest.sortType?.name() == 'LOGIN'}">최근
+                로그인
+              </option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label for="sortDirection" class="form-label">정렬 방향</label>
+            <select class="form-select" id="sortDirection" name="sortDirection">
+              <option value="DESC"
+                      th:selected="${searchRequest.sortDirection?.name() == 'DESC' || searchRequest.sortDirection == null}">
+                내림차순
+              </option>
+              <option value="ASC" th:selected="${searchRequest.sortDirection?.name() == 'ASC'}">오름차순
+              </option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label for="dateRange" class="form-label">가입일 범위</label>
+            <div class="input-group date-range-input-group">
+              <span class="input-group-text"><i class="fas fa-calendar"></i></span>
+              <input type="text" class="form-control" id="dateRange" name="dateRange"
+                     th:value="${searchRequest.dateRange}" placeholder="날짜 범위 선택">
+            </div>
+          </div>
+          <div class="col-md-6 d-flex align-items-end">
+            <div class="d-grid w-100">
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-search"></i> 검색
+              </button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Results Card -->
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <div>
+        <h5 class="card-title mb-0 d-inline-block">
+          총 <span th:text="${#numbers.formatInteger(totalCount, 0, 'COMMA')}">0</span>명의 회원
+        </h5>
+        <span class="text-muted ms-2">
+        (페이지 <span th:text="${currentPage}">1</span>/<span th:text="${totalPages}">1</span>)
+      </span>
+      </div>
+      <div class="header-actions">
+        <div class="btn-group">
+          <button type="button" class="btn btn-sm btn-outline-secondary active" id="btnViewList">
+            <i class="fas fa-list"></i>
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="btnViewCard">
+            <i class="fas fa-th-large"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- List View (Default) -->
+    <div class="table-responsive" id="listView">
+      <table class="table table-hover align-middle">
+        <thead class="table-light">
+        <tr>
+          <th style="width: 60px;">#</th>
+          <th style="width: 80px;">프로필</th>
+          <th>이름 / 이메일</th>
+          <th style="width: 120px;">상태</th>
+          <!--          <th style="width: 100px;">유형</th>-->
+          <th style="width: 160px;">가입일</th>
+          <th style="width: 160px;">최근 로그인</th>
+          <th style="width: 120px;">작업</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:if="${userList.empty}">
+          <td colspan="8" class="text-center py-5">
+            <i class="fas fa-users fa-3x text-muted mb-3"></i>
+            <p class="mb-0">조건에 맞는 회원이 없습니다.</p>
+          </td>
+        </tr>
+        <tr th:unless="${userList.empty}" th:each="user : ${userList}">
+          <td th:text="${user.userId}">1</td>
+          <td>
+            <div class="user-avatar">
+              <img
+                  th:src="@{${#strings.isEmpty(user.profileImageUrl) ? '/assets/admin/images/user_default.png' : user.profileImageUrl}}"
+                  alt="프로필 이미지" class="avatar-img">
+            </div>
+          </td>
+          <td>
+            <a th:href="@{/admin/users/app/user/{id}(id=${user.userId})}" class="user-name-link">
+              <span th:text="${user.userName}">사용자 이름</span>
+            </a>
+            <div class="user-email text-muted">
+              <small th:text="${user.email}">user@example.com</small>
+            </div>
+          </td>
+          <td>
+            <span class="badge rounded-pill"
+                  th:classappend="${user.status.name() == 'ACTIVE' ? 'bg-success' :
+                      (user.status.name() == 'TEMPORARY_INVITE' ? 'bg-warning' :
+                      (user.status.name() == 'TEMPORARY_PASS'  ? 'bg-warning' :
+                      (user.status.name() == 'BLOCKED'          ? 'bg-danger'  :
+                                                          'bg-secondary')))}"
+                  th:text="${user.status.name() == 'ACTIVE' ? '활성' :
+                      (user.status.name() == 'TEMPORARY_INVITE' ? '초대 대기' :
+                      (user.status.name() == 'TEMPORARY_PASS'  ? '인증 대기' :
+                      (user.status.name() == 'BLOCKED'          ? '차단'     :
+                                                          '탈퇴')))}">
+            </span>
+          </td>
+
+          <!--          <td>-->
+          <!--            <span th:text="${user.userType == 'NORMAL' ? '일반' :-->
+          <!--                    (user.userType == 'SNS_KAKAO' ? '카카오' :-->
+          <!--                    (user.userType == 'SNS_NAVER' ? '네이버' : '기타'))}">일반</span>-->
+          <!--          </td>-->
+          <td>
+            <span th:text="${#temporals.format(user.createdAt, 'yyyy-MM-dd HH:mm')}">2023-01-01 00:00</span>
+          </td>
+          <td>
+            <span
+                th:text="${user.lastAccessAt != null ? #temporals.format(user.lastAccessAt, 'yyyy-MM-dd HH:mm') : '-'}">2023-01-01 00:00</span>
+          </td>
+          <td>
+            <div class="btn-group">
+              <a th:href="@{/admin/users/app/user/{id}(id=${user.userId})}"
+                 class="btn btn-sm btn-outline-primary">
+                <i class="fas fa-eye"></i>
+              </a>
+              <button th:data-user-id="${user.userId}"
+                      th:data-user-status="${user.status}"
+                      class="btn btn-sm btn-outline-secondary btn-status-change">
+                <i class="fas fa-exchange-alt"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Card View (Alternative) -->
+    <div class="card-body d-none" id="cardView">
+      <div class="row" th:if="${!userList.empty}">
+        <div class="col-sm-6 col-md-4 col-xl-3 mb-4" th:each="user : ${userList}">
+          <div class="user-card">
+            <div class="user-card-header">
+              <div class="user-avatar">
+                <img th:src="${user.profileImageUrl} ?: @{/assets/admin/images/user_default.png}"
+                     alt="프로필 이미지" class="avatar-img">
+              </div>
+              <h6 class="user-card-name">
+                <a th:href="@{/admin/users/app/user/{id}(id=${user.userId})}"
+                   th:text="${user.userName}">사용자
+                  이름</a>
+              </h6>
+              <div class="user-card-email" th:text="${user.email}">user@example.com</div>
+              <div class="user-card-badge">
+                <span class="badge rounded-pill"
+                      th:classappend="${user.status.name() == 'ACTIVE' ? 'bg-success' :
+                          (user.status.name() == 'TEMPORARY_INVITE' ? 'bg-warning' :
+                          (user.status.name() == 'TEMPORARY_PASS'  ? 'bg-warning' :
+                          (user.status.name() == 'BLOCKED'          ? 'bg-danger'  :
+                                                              'bg-secondary')))}"
+                      th:text="${user.status.name() == 'ACTIVE' ? '활성' :
+                          (user.status.name() == 'TEMPORARY_INVITE' ? '초대 대기' :
+                          (user.status.name() == 'TEMPORARY_PASS'  ? '인증 대기' :
+                          (user.status.name() == 'BLOCKED'          ? '차단'     :
+                                                              '탈퇴')))}">
+                </span>
+              </div>
+
+            </div>
+            <div class="user-card-body">
+              <div class="user-card-info">
+                <div class="info-item">
+                  <span class="info-label">가입일</span>
+                  <span class="info-value"
+                        th:text="${#temporals.format(user.createdAt, 'yyyy-MM-dd')}">2023-01-01</span>
+                </div>
+                <!--                <div class="info-item">-->
+                <!--                  <span class="info-label">가입 경로</span>-->
+                <!--                  <span class="info-value" th:text="${user.userType == 'NORMAL' ? '일반' :-->
+                <!--                    (user.userType == 'SNS_KAKAO' ? '카카오' :-->
+                <!--                    (user.userType == 'SNS_NAVER' ? '네이버' : '기타'))}">일반</span>-->
+                <!--                </div>-->
+                <div class="info-item">
+                  <span class="info-label">최근 로그인</span>
+                  <span class="info-value"
+                        th:text="${user.lastAccessAt != null ? #temporals.format(user.lastAccessAt, 'yyyy-MM-dd') : '-'}">2023-01-01</span>
+                </div>
+              </div>
+              <div class="user-card-actions">
+                <div class="btn-group w-100">
+                  <a th:href="@{/admin/users/app/user/{id}(id=${user.userId})}"
+                     class="btn btn-sm btn-outline-primary flex-fill">
+                    <i class="fas fa-eye"></i> 상세보기
+                  </a>
+                  <button th:data-user-id="${user.userId}"
+                          th:data-user-status="${user.status}"
+                          class="btn btn-sm btn-outline-secondary flex-fill btn-status-change">
+                    <i class="fas fa-exchange-alt"></i> 상태변경
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="text-center py-5" th:if="${userList.empty}">
+        <i class="fas fa-users fa-3x text-muted mb-3"></i>
+        <p class="mb-0">조건에 맞는 회원이 없습니다.</p>
+      </div>
+    </div>
+
+    <!-- Pagination -->
+    <div class="card-footer d-flex justify-content-between align-items-center"
+         th:if="${totalPages > 0}">
+      <div class="text-muted">
+        총 <span th:text="${#numbers.formatInteger(totalCount, 0, 'COMMA')}">0</span>명
+        (<span th:text="${currentPage}">1</span>/<span th:text="${totalPages}">1</span> 페이지)
+      </div>
+
+      <nav aria-label="Page navigation">
+        <ul class="pagination mb-0">
+          <!-- First Page -->
+          <li class="page-item" th:classappend="${!hasPrevious ? 'disabled' : ''}">
+            <a class="page-link"
+               th:href="@{/admin/users/app/user-list(page=0, size=10, searchType=${searchRequest.searchType}, searchText=${searchRequest.searchText}, memberStatus=${searchRequest.memberStatus}, sortType=${searchRequest.sortType}, sortDirection=${searchRequest.sortDirection}, dateRange=${searchRequest.dateRange})}"
+               aria-label="First">
+              <span aria-hidden="true">&laquo;&laquo;</span>
+            </a>
+          </li>
+
+          <!-- Previous Page -->
+          <li class="page-item" th:classappend="${!hasPrevious ? 'disabled' : ''}">
+            <a class="page-link"
+               th:href="@{/admin/users/app/user-list(page=${currentPageZeroIndex - 1}, size=10, searchType=${searchRequest.searchType}, searchText=${searchRequest.searchText}, memberStatus=${searchRequest.memberStatus}, sortType=${searchRequest.sortType}, sortDirection=${searchRequest.sortDirection}, dateRange=${searchRequest.dateRange})}"
+               aria-label="Previous">
+              <span aria-hidden="true">&laquo;</span>
+            </a>
+          </li>
+
+          <!-- Page Numbers -->
+          <li class="page-item"
+              th:each="pageNumber : ${#numbers.sequence(startPage, endPage)}"
+              th:classappend="${pageNumber == currentPage ? 'active' : ''}">
+            <a class="page-link"
+               th:href="@{/admin/users/app/user-list(page=${pageNumber - 1}, size=10, searchType=${searchRequest.searchType}, searchText=${searchRequest.searchText}, memberStatus=${searchRequest.memberStatus}, sortType=${searchRequest.sortType}, sortDirection=${searchRequest.sortDirection}, dateRange=${searchRequest.dateRange})}"
+               th:text="${pageNumber}">1</a>
+          </li>
+
+          <!-- Next Page -->
+          <li class="page-item" th:classappend="${!hasNext ? 'disabled' : ''}">
+            <a class="page-link"
+               th:href="@{/admin/users/app/user-list(page=${currentPageZeroIndex + 1}, size=10, searchType=${searchRequest.searchType}, searchText=${searchRequest.searchText}, memberStatus=${searchRequest.memberStatus}, sortType=${searchRequest.sortType}, sortDirection=${searchRequest.sortDirection}, dateRange=${searchRequest.dateRange})}"
+               aria-label="Next">
+              <span aria-hidden="true">&raquo;</span>
+            </a>
+          </li>
+
+          <!-- Last Page -->
+          <li class="page-item" th:classappend="${!hasNext ? 'disabled' : ''}">
+            <a class="page-link"
+               th:href="@{/admin/users/app/user-list(page=${totalPages - 1}, size=10, searchType=${searchRequest.searchType}, searchText=${searchRequest.searchText}, memberStatus=${searchRequest.memberStatus}, sortType=${searchRequest.sortType}, sortDirection=${searchRequest.sortDirection}, dateRange=${searchRequest.dateRange})}"
+               aria-label="Last">
+              <span aria-hidden="true">&raquo;&raquo;</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </div>
+
+  <!-- Status Change Modal -->
+  <div class="modal fade" id="statusChangeModal" tabindex="-1"
+       aria-labelledby="statusChangeModalLabel">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="statusChangeModalLabel">회원 상태 변경</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"
+                  aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>회원 상태를 변경하시겠습니까?</p>
+          <p class="mb-3">현재 상태: <span id="currentStatusText"
+                                       class="badge rounded-pill bg-secondary">상태</span></p>
+
+          <div class="form-group mb-3">
+            <label for="newStatus" class="form-label">새 상태</label>
+            <select id="newStatus" class="form-select">
+              <option value="ACTIVE">활성</option>
+              <option value="BLOCKED">차단</option>
+              <option value="TEMPORARY_INVITE">초대 대기</option>
+              <option value="TEMPORARY_PASS">인증 대기</option>
+              <option value="DELETED">탈퇴</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="statusChangeReason" class="form-label">사유 (선택사항)</label>
+            <textarea id="statusChangeReason" class="form-control" rows="3"
+                      placeholder="상태 변경 사유를 입력하세요."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+          <button type="button" id="btnConfirmStatusChange" class="btn btn-primary">변경</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Custom JS -->
+<customJS>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/l10n/ko.min.js"></script>
+  <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/plugins/rangePlugin.min.js"></script>
+  <script th:src="@{/assets/admin/js/appUserList.js}" type="module"></script>
+</customJS>
+</body>
+</html>

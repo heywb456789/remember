@@ -1,0 +1,183 @@
+/* ======= Vote Detail Specific Styles ======= */
+
+/* Page Header */
+.page-header {
+  margin-bottom: 1.5rem;
+}
+
+.page-title {
+  margin-bottom: 0;
+  font-weight: 600;
+  color: var(--dark-color);
+}
+
+.page-actions .btn {
+  margin-left: 0.5rem;
+}
+
+/* Basic Info Card */
+.card {
+  border: none;
+  box-shadow: 0 0 35px 0 rgba(154, 161, 171, 0.15);
+  margin-bottom: 24px;
+  border-radius: 0.375rem;
+}
+
+.card-body {
+  padding: 1.5rem;
+}
+
+.card-header {
+  background-color: rgba(0, 0, 0, 0.03);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  padding: 1rem 1.5rem;
+}
+
+.text-primary {
+  color: var(--primary-color) !important;
+}
+
+/* Table Styling */
+.table {
+  margin-bottom: 0;
+}
+
+.table th {
+  font-weight: 600;
+  color: #495057;
+}
+
+.table-borderless th,
+.table-borderless td {
+  border: none;
+}
+
+.table-light {
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+.table-hover tbody tr:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.table-sm th,
+.table-sm td {
+  padding: 0.5rem;
+}
+
+/* Vote Stats Card */
+.vote-stats-card {
+  background-color: #f8f9fa;
+  border-radius: 0.375rem;
+  padding: 1.25rem;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.vote-status-period {
+  color: #6c757d;
+  font-size: 0.875rem;
+}
+
+.vote-progress-container {
+  height: 10px;
+  background-color: #e9ecef;
+  border-radius: 5px;
+  margin: 1rem 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.vote-progress-bar {
+  position: absolute;
+  height: 100%;
+  background-color: var(--primary-color);
+  border-radius: 5px;
+  transition: width 0.5s ease-in-out;
+}
+
+.vote-progress-labels {
+  font-size: 0.75rem;
+  color: #6c757d;
+}
+
+/* Vote Results */
+.progress {
+  background-color: #e9ecef;
+  border-radius: 0.25rem;
+  overflow: hidden;
+}
+
+.progress-bar {
+  background-color: var(--primary-color);
+  transition: width 0.5s ease;
+}
+
+.badge.bg-primary {
+  background-color: var(--primary-color) !important;
+}
+
+.badge.bg-warning {
+  background-color: #f7b84b !important;
+}
+
+.badge.bg-success {
+  background-color: #1abc9c !important;
+}
+
+.badge.bg-secondary {
+  background-color: #6c757d !important;
+}
+
+/* Chart Container */
+.vote-chart-container {
+  height: 300px;
+  position: relative;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 767.98px) {
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .page-actions {
+    margin-top: 1rem;
+  }
+
+  .vote-stats-card {
+    margin-top: 1rem;
+  }
+
+  .vote-chart-container {
+    height: 250px;
+  }
+}
+
+/* Animation for refresh */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.fa-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Custom styles for total votes count in card */
+.vote-total-count {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+/* Card title styling */
+.card h5 {
+  color: #495057;
+  font-weight: 600;
+}

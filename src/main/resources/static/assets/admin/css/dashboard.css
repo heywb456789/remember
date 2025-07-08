@@ -1,0 +1,210 @@
+/* ======= Dashboard Specific Styles ======= */
+
+/* Welcome Section */
+.welcome-section {
+  background-color: var(--primary-color);
+  padding: 2rem;
+  border-radius: var(--card-border-radius);
+  color: #fff;
+  margin-bottom: 1.5rem;
+}
+
+.welcome-section h2 {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.welcome-section p {
+  margin-bottom: 0;
+  font-size: 1rem;
+  opacity: 0.9;
+}
+
+/* Card Chart */
+.card-chart {
+  height: 100%;
+}
+
+.card-chart .card-body {
+  padding: 1.25rem;
+  height: auto;
+}
+
+.card-chart canvas {
+  width: 100% !important;
+  height: 100% !important;
+  max-height: 300px;
+}
+
+/* Stat Cards */
+.card-stat {
+  height: 100%;
+}
+
+.card-header .card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 1.25rem;
+}
+
+.card-value {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--dark-color);
+}
+
+.card-stat-change {
+  margin-bottom: 0;
+  font-size: 0.875rem;
+}
+
+.card-stat-change.positive {
+  color: var(--success-color);
+}
+
+.card-stat-change.negative {
+  color: var(--danger-color);
+}
+
+/* Calendar */
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.prev-month, .next-month {
+  background: transparent;
+  border: none;
+  color: var(--secondary-color);
+  cursor: pointer;
+}
+
+.month-name {
+  margin-bottom: 0;
+  font-weight: 600;
+}
+
+.calendar-table {
+  width: 100%;
+  text-align: center;
+}
+
+.calendar-table th {
+  padding: 0.5rem;
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: var(--secondary-color);
+}
+
+.calendar-table td {
+  padding: 0.5rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+}
+
+.calendar-table td:hover {
+  background-color: #f8f9fa;
+}
+
+.calendar-table td.today {
+  background-color: var(--primary-color);
+  color: #fff;
+}
+
+.calendar-table td.prev-month,
+.calendar-table td.next-month {
+  color: #c0c0c0;
+}
+
+/* Visitors Map */
+.visitors-map {
+  height: 300px;
+  background: url('../images/visitors-map.png') no-repeat center center;
+  background-size: contain;
+}
+
+/* Browser Chart */
+.browser-chart-container {
+  height: 200px;
+  width: 100%;
+  max-height: 200px;
+  position: relative;
+}
+
+.browser-stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.browser-name {
+  display: flex;
+  align-items: center;
+}
+
+.browser-icon {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  margin-right: 0.5rem;
+}
+
+.browser-icon.chrome {
+  background: linear-gradient(135deg, #4285f4 0%, #4285f4 25%, #34a853 25%, #34a853 50%, #fbbc05 50%, #fbbc05 75%, #ea4335 75%, #ea4335 100%);
+}
+
+.browser-count {
+  font-weight: 600;
+  color: var(--dark-color);
+}
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+  .welcome-section {
+    padding: 1.5rem;
+  }
+
+  .welcome-section h2 {
+    font-size: 1.5rem;
+  }
+
+  .card-value {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .welcome-section {
+    padding: 1.25rem;
+  }
+
+  .welcome-section h2 {
+    font-size: 1.25rem;
+  }
+
+  .card-value {
+    font-size: 1.25rem;
+  }
+
+  .visitors-map {
+    height: 200px;
+  }
+
+  .browser-chart-container {
+    height: 150px;
+  }
+}

@@ -1,0 +1,25 @@
+# ──────────────────────────────────────────
+# Gradle 캐시
+**/.gradle/
+
+# 빌드 산출물 (모든 build/ 폴더)
+**/build/
+
+# 애플리케이션 로그
+**/logs/
+*.log
+
+# IDE 출력
+**/out/
+
+# wrapper jar 은 버전 관리
+!gradle/wrapper/gradle-wrapper.jar
+
+# 기타 IDE 설정
+/.idea/
+/*.iml
+/.vscode/
+
+# OS 메타파일
+.DS_Store
+Thumbs.db

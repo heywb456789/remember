@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>검색 결과 - 나라 걱정 클럽</title>
+  <link href="/bootstrap/css/bootstrap.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link href="/css/common.css" rel="stylesheet" />
+  <link href="/css/main/search.css" rel="stylesheet" />
+  <script src="/bootstrap/js/bootstrap.bundle.js"></script>
+</head>
+<body>
+  <div id="side-menu-container"></div>
+  <div class="main-container">
+    <div id="header-container"></div>
+
+    <!-- 검색 입력 영역 -->
+    <div class="search-container">
+      <form class="search-form">
+        <select id="search-filter-section" class="search-select">
+          <option value="all">전체</option>
+          <option value="video">동영상</option>
+          <option value="shorts">쇼츠</option>
+          <option value="article">뉴스</option>
+          <option value="board">자유게시판</option>
+          <option value="vote">투표광장</option>
+        </select>
+        <select id="search-filter-field" class="search-select">
+          <option value="all">전체</option>
+          <option value="title">제목</option>
+          <option value="content">내용</option>
+          <option value="author">작성자</option>
+        </select>
+        <div class="search-input-wrapper">
+<!--          <i class="fas fa-search search-icon"></i>-->
+          <input
+            id="search-input"
+            type="text"
+            class="search-input"
+            placeholder="검색어 입력"
+          />
+          <button type="submit" id="search-btn" class="search-button">
+            <i class="fas fa-search"></i>
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- 검색 탭 -->
+    <div class="search-tabs">
+      <div class="search-tab-item active" data-tab="all">
+        전체<span class="tab-count">(0)</span>
+      </div>
+      <div class="search-tab-item" data-tab="video">
+        동영상<span class="tab-count">(0)</span>
+      </div>
+      <div class="search-tab-item" data-tab="shorts">
+        쇼츠<span class="tab-count">(0)</span>
+      </div>
+      <div class="search-tab-item" data-tab="article">
+        뉴스<span class="tab-count">(0)</span>
+      </div>
+      <div class="search-tab-item" data-tab="board">
+        자유게시판<span class="tab-count">(0)</span>
+      </div>
+      <div class="search-tab-item" data-tab="vote">
+        투표광장<span class="tab-count">(0)</span>
+      </div>
+    </div>
+
+    <!-- 결과 리스트 -->
+    <div id="searchResults" class="results-list"></div>
+
+    <!-- 페이지네이션 -->
+    <div id="pagination" class="pagination-container"></div>
+  </div>
+
+  <script src="/js/common.js" type="module"></script>
+  <script src="/js/main/search.js" type="module"></script>
+</body>
+</html>

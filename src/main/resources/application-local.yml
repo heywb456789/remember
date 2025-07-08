@@ -1,0 +1,72 @@
+# =======================================================
+# 토마토리멤버 로컬 개발환경 설정 (기존 설정 기반)
+# =======================================================
+
+server:
+  port: ${SERVER_PORT:8080}  # 기존 8032 → 표준 8080으로 변경
+
+spring:
+  # =======================================================
+  # JPA 설정 (로컬 개발용)
+  # =======================================================
+  jpa:
+    hibernate:
+      ddl-auto: create-drop  # 로컬에서는 매번 새로 생성
+    show-sql: true          # 로컬에서는 SQL 로그 활성화
+
+  # =======================================================
+  # 데이터소스 설정 (기존 설정 기반)
+  # =======================================================
+  datasource:
+    url: ${DB_URL:jdbc:log4jdbc:mariadb://localhost:3307/remember}  # DB명 변경
+    driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
+    username: ${DB_ID:root}
+    password: ${DB_PW:root}
+    hikari:
+      connection-timeout: 30000
+      maximum-pool-size: 10
+      minimum-idle: 1
+      connection-test-query: SELECT 1
+      idle-timeout: 600000
+      pool-name: ${spring.application.name}-pool
+
+  # =======================================================
+  # 파일 업로드/표시 설정 (기존 FTP → 로컬 파일시스템)
+  # =======================================================
+  app:
+    display: https://image.newstomato.com/newstomato/club
+    upload:
+      root: /test
+      ftp:
+        host: 1.201.174.63
+        port: 21
+        user: tomatochain
+        password: tomatochain1!
+      # FTP 설정 제거 (로컬에서는 불필요)
+
+# =======================================================
+# Google 서비스 설정 (기존 설정 유지)
+# =======================================================
+google:
+  key-path:
+    console: ${GOOGLE_CONSOLE_KEY:/google/pc-api-6501066511374588335-380-1ad7a0f489f4.json}
+    firebase: ${GOOGLE_FIREBASE_KEY:/firebase/dev-bread-4908a-firebase-adminsdk-cp247-2bc9dd1010.json}
+
+# =======================================================
+# 로컬 개발용 로깅 (상세 로그)
+# =======================================================
+logging:
+  level:
+    com.tomato.remember: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+
+# =======================================================
+# 로컬 개발 전용 설정
+# =======================================================
+inbound-logging: true
+
+# 복제 설정 (기존 설정 유지)
+original:
+  replication: false  # 로컬은 복제 비활성화

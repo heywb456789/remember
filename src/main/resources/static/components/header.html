@@ -1,0 +1,43 @@
+<!-- components/header.html -->
+<div class="header">
+  <button class="menu-button">
+    <i class="fas fa-bars"></i>
+  </button>
+  <a href="/main/main.html" class="logo">
+    <img src="/images/logo.svg" alt="로고"/>
+    <span>나라 걱정 클럽</span>
+  </a>
+
+  <div class="right-icons">
+    <button class="search-button">
+      <i class="fas fa-search"></i>
+    </button>
+    <button class="profile-button">
+      <i class="fas fa-user"></i>
+    </button>
+  </div>
+</div>
+
+<!-- 검색 필터 패널 (초기 hidden) -->
+<div class="header-search-panel" style="display: none;">
+  <select id="filter-section">
+    <option value="all">전체</option>
+    <option value="video">동영상</option>
+    <option value="shorts">쇼츠</option>
+    <option value="article">뉴스</option>
+    <option value="board">자유게시판</option>
+    <option value="vote">투표광장</option>
+  </select>
+
+  <select id="filter-field">
+    <option value="all">전체</option>
+    <option value="title">제목</option>
+    <option value="content">내용</option>
+    <option value="author">작성자</option>
+  </select>
+
+  <input type="text" id="header-search-input" placeholder="검색어 입력…"/>
+  <button id="header-search-submit">
+    <i class="fas fa-arrow-right"></i>
+  </button>
+</div>

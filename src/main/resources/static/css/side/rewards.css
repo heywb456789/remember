@@ -1,0 +1,110 @@
+:root {
+      --primary-color: #e74c3c; /* 토마토 레드 컬러로 변경 */
+      --secondary-color: #6c757d;
+      --success-color: #0acf97;
+      --light-yellow: #fff6e5;
+      --border-color: #e5e9f2;
+    }
+
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background-color: #f8f9fa;
+      color: #3c4858;
+      line-height: 1.6;
+    }
+
+    .reward-container {
+      max-width: 100%;
+      padding: 0;
+      background-color: #fff;
+      min-height: calc(100vh - 120px); /* 헤더 및 탭 높이 고려 */
+      margin-top: 10px;
+    }
+
+    .reward-header {
+      background-color: var(--light-yellow);
+      padding: 25px 20px;
+      text-align: center;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .policy-title {
+      color: #3c4858;
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .policy-subtitle {
+      color: var(--primary-color);
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 18px;
+    }
+
+    .policy-description {
+      color: #707070;
+      font-size: 14px;
+      line-height: 1.5;
+      margin-bottom: 0;
+      text-align: left;
+      padding: 0 10px;
+    }
+
+    .reward-content {
+      padding: 0;
+    }
+
+    .reward-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .reward-table th {
+      background-color: #f5f7fa;
+      padding: 12px;
+      text-align: center;
+      border: 1px solid var(--border-color);
+      font-weight: 600;
+      color: #3c4858;
+    }
+
+    .reward-table td {
+      padding: 12px;
+      text-align: center;
+      border: 1px solid var(--border-color);
+      background-color: #fff;
+    }
+
+    .reward-value {
+      color: var(--primary-color);
+      font-weight: 700;
+      font-size: 16px;
+    }
+
+    .note-section {
+      padding: 20px;
+      background-color: #f8f9fa;
+      border-top: 1px solid var(--border-color);
+      margin-top: 20px;
+    }
+
+    .note-title {
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: #3c4858;
+    }
+
+    .note-content {
+      font-size: 14px;
+      color: #707070;
+      padding-left: 20px;
+    }
+
+    .note-content li {
+      margin-bottom: 8px;
+    }
+
+    .main-container {
+      position: relative;
+    }

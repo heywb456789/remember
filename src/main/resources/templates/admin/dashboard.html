@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{admin/layout/default :: html(
+        ~{::title},
+        ~{::section},
+        ~{::customCSS},
+        ~{::customJS},
+        'dashboards',
+        'default'
+      )}">
+<head>
+    <title>대시보드 - 나라걱정 관리자</title>
+
+    <!-- Custom CSS -->
+    <customCSS>
+        <link th:href="@{/assets/admin/css/dashboard.css}" rel="stylesheet">
+    </customCSS>
+</head>
+<body>
+<section>
+    <!-- Welcome Section -->
+<!--    <div class="welcome-section">-->
+<!--        <h2>Welcome back, <span th:text="${userName} ?: 'Linda'">Linda</span>!</h2>-->
+<!--        <p>You have <span th:text="${newMsgCount} ?: '24'">24</span> new messages and <span th:text="${notificationCount} ?: '5'">5</span> new notifications.</p>-->
+<!--    </div>-->
+
+    <!-- Dashboard Cards Row -->
+<!--    <div class="row mt-4">-->
+<!--        &lt;!&ndash; Recent Movement Card &ndash;&gt;-->
+<!--        <div class="col-md-6 col-lg-6 mb-4">-->
+<!--            <div class="card card-chart">-->
+<!--                <div class="card-header">-->
+<!--                    <div class="card-title">Recent Movement</div>-->
+<!--                    <div class="card-actions">-->
+<!--                        <button class="btn btn-link refresh-btn"><i class="fas fa-sync-alt"></i></button>-->
+<!--                        <button class="btn btn-link toggle-btn"><i class="fas fa-ellipsis-v"></i></button>-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--                <div class="card-body">-->
+<!--                    <div style="height: 300px; position: relative;">-->
+<!--                        <canvas id="movementChart"></canvas>-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--        </div>-->
+
+<!--        &lt;!&ndash; Stats Cards &ndash;&gt;-->
+<!--        <div class="col-md-6 col-lg-6 mb-4">-->
+<!--            <div class="row h-100">-->
+<!--                &lt;!&ndash; Sales Today &ndash;&gt;-->
+<!--                <div class="col-md-6 mb-4">-->
+<!--                    <div class="card card-stat">-->
+<!--                        <div class="card-header">-->
+<!--                            <div class="card-title">Sales Today</div>-->
+<!--                            <div class="card-icon bg-info">-->
+<!--                                <i class="fas fa-dollar-sign"></i>-->
+<!--                            </div>-->
+<!--                        </div>-->
+<!--                        <div class="card-body">-->
+<!--                            <h3 class="card-value">2,562</h3>-->
+<!--                            <p class="card-stat-change negative">-2.65% Less sales than usual</p>-->
+<!--                        </div>-->
+<!--                    </div>-->
+<!--                </div>-->
+
+<!--                &lt;!&ndash; Total Earnings &ndash;&gt;-->
+<!--                <div class="col-md-6 mb-4">-->
+<!--                    <div class="card card-stat">-->
+<!--                        <div class="card-header">-->
+<!--                            <div class="card-title">Total Earnings</div>-->
+<!--                            <div class="card-icon bg-success">-->
+<!--                                <i class="fas fa-sack-dollar"></i>-->
+<!--                            </div>-->
+<!--                        </div>-->
+<!--                        <div class="card-body">-->
+<!--                            <h3 class="card-value">$24,300</h3>-->
+<!--                            <p class="card-stat-change positive">8.35% More earnings than usual</p>-->
+<!--                        </div>-->
+<!--                    </div>-->
+<!--                </div>-->
+
+<!--                &lt;!&ndash; Visitors Today &ndash;&gt;-->
+<!--                <div class="col-md-6 mb-4">-->
+<!--                    <div class="card card-stat">-->
+<!--                        <div class="card-header">-->
+<!--                            <div class="card-title">Visitors Today</div>-->
+<!--                            <div class="card-icon bg-warning">-->
+<!--                                <i class="fas fa-users"></i>-->
+<!--                            </div>-->
+<!--                        </div>-->
+<!--                        <div class="card-body">-->
+<!--                            <h3 class="card-value">17,212</h3>-->
+<!--                            <p class="card-stat-change positive">5.50% More visitors than usual</p>-->
+<!--                        </div>-->
+<!--                    </div>-->
+<!--                </div>-->
+
+<!--                &lt;!&ndash; Pending Orders &ndash;&gt;-->
+<!--                <div class="col-md-6 mb-4">-->
+<!--                    <div class="card card-stat">-->
+<!--                        <div class="card-header">-->
+<!--                            <div class="card-title">Pending Orders</div>-->
+<!--                            <div class="card-icon bg-danger">-->
+<!--                                <i class="fas fa-shopping-cart"></i>-->
+<!--                            </div>-->
+<!--                        </div>-->
+<!--                        <div class="card-body">-->
+<!--                            <h3 class="card-value">43</h3>-->
+<!--                            <p class="card-stat-change negative">-4.25% Less orders than usual</p>-->
+<!--                        </div>-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--        </div>-->
+<!--    </div>-->
+
+    <!-- Second Row -->
+<!--    <div class="row">-->
+<!--        &lt;!&ndash; Calendar Card &ndash;&gt;-->
+<!--        <div class="col-md-4 mb-4">-->
+<!--            <div class="card">-->
+<!--                <div class="card-header">-->
+<!--                    <div class="card-title">Calendar</div>-->
+<!--                    <div class="card-actions">-->
+<!--                        <button class="btn btn-link refresh-btn"><i class="fas fa-sync-alt"></i></button>-->
+<!--                        <button class="btn btn-link toggle-btn"><i class="fas fa-ellipsis-v"></i></button>-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--                <div class="card-body">-->
+<!--                    <div class="calendar-header">-->
+<!--                        <button class="prev-month"><i class="fas fa-chevron-left"></i></button>-->
+<!--                        <h5 class="month-name">April 2025</h5>-->
+<!--                        <button class="next-month"><i class="fas fa-chevron-right"></i></button>-->
+<!--                    </div>-->
+
+<!--                    <table class="calendar-table">-->
+<!--                        <thead>-->
+<!--                        <tr>-->
+<!--                            <th>Su</th>-->
+<!--                            <th>Mo</th>-->
+<!--                            <th>Tu</th>-->
+<!--                            <th>We</th>-->
+<!--                            <th>Th</th>-->
+<!--                            <th>Fr</th>-->
+<!--                            <th>Sa</th>-->
+<!--                        </tr>-->
+<!--                        </thead>-->
+<!--                        <tbody>-->
+<!--                        <tr>-->
+<!--                            <td class="prev-month">30</td>-->
+<!--                            <td class="prev-month">31</td>-->
+<!--                            <td>1</td>-->
+<!--                            <td>2</td>-->
+<!--                            <td>3</td>-->
+<!--                            <td>4</td>-->
+<!--                            <td>5</td>-->
+<!--                        </tr>-->
+<!--                        <tr>-->
+<!--                            <td>6</td>-->
+<!--                            <td>7</td>-->
+<!--                            <td>8</td>-->
+<!--                            <td>9</td>-->
+<!--                            <td>10</td>-->
+<!--                            <td>11</td>-->
+<!--                            <td>12</td>-->
+<!--                        </tr>-->
+<!--                        <tr>-->
+<!--                            <td>13</td>-->
+<!--                            <td>14</td>-->
+<!--                            <td>15</td>-->
+<!--                            <td>16</td>-->
+<!--                            <td>17</td>-->
+<!--                            <td>18</td>-->
+<!--                            <td>19</td>-->
+<!--                        </tr>-->
+<!--                        <tr>-->
+<!--                            <td>20</td>-->
+<!--                            <td>21</td>-->
+<!--                            <td>22</td>-->
+<!--                            <td>23</td>-->
+<!--                            <td>24</td>-->
+<!--                            <td>25</td>-->
+<!--                            <td>26</td>-->
+<!--                        </tr>-->
+<!--                        <tr>-->
+<!--                            <td class="today">27</td>-->
+<!--                            <td>28</td>-->
+<!--                            <td>29</td>-->
+<!--                            <td>30</td>-->
+<!--                            <td class="next-month">1</td>-->
+<!--                            <td class="next-month">2</td>-->
+<!--                            <td class="next-month">3</td>-->
+<!--                        </tr>-->
+<!--                        </tbody>-->
+<!--                    </table>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--        </div>-->
+
+<!--        &lt;!&ndash; Current Visitors &ndash;&gt;-->
+<!--        <div class="col-md-4 mb-4">-->
+<!--            <div class="card">-->
+<!--                <div class="card-header">-->
+<!--                    <div class="card-title">Current Visitors</div>-->
+<!--                    <div class="card-actions">-->
+<!--                        <button class="btn btn-link refresh-btn"><i class="fas fa-sync-alt"></i></button>-->
+<!--                        <button class="btn btn-link toggle-btn"><i class="fas fa-ellipsis-v"></i></button>-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--                <div class="card-body">-->
+<!--                    <div class="visitors-map" id="visitorsMap"></div>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--        </div>-->
+
+<!--        &lt;!&ndash; Browser Usage &ndash;&gt;-->
+<!--        <div class="col-md-4 mb-4">-->
+<!--            <div class="card">-->
+<!--                <div class="card-header">-->
+<!--                    <div class="card-title">Browser Usage</div>-->
+<!--                    <div class="card-actions">-->
+<!--                        <button class="btn btn-link refresh-btn"><i class="fas fa-sync-alt"></i></button>-->
+<!--                        <button class="btn btn-link toggle-btn"><i class="fas fa-ellipsis-v"></i></button>-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--                <div class="card-body">-->
+<!--                    <div class="browser-chart-container" style="height: 200px; position: relative;">-->
+<!--                        <canvas id="browserChart"></canvas>-->
+<!--                    </div>-->
+<!--                    <div class="browser-stats mt-3">-->
+<!--                        <div class="browser-stat-item">-->
+<!--                            <div class="browser-name">-->
+<!--                                <span class="browser-icon chrome"></span>-->
+<!--                                <span>Chrome</span>-->
+<!--                            </div>-->
+<!--                            <div class="browser-count">4401</div>-->
+<!--                        </div>-->
+<!--                        &lt;!&ndash; Additional browser stats would go here &ndash;&gt;-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--        </div>-->
+<!--    </div>-->
+</section>
+
+<!-- Custom JS -->
+<customJS>
+    <script th:src="@{/assets/admin/js/dashboard.js}"></script>
+</customJS>
+</body>
+</html>

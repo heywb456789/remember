@@ -1,0 +1,257 @@
+/* 게시글 상세 페이지 스타일 정리 */
+
+/* 상세 헤더 */
+.detail-header {
+  display: flex;
+  align-items: center;
+  padding: 15px;
+  background-color: #fff;
+  border-bottom: 1px solid #eee;
+}
+.detail-title {
+  flex: 1;
+  margin: 0 35px 0 0;
+  font-size: 18px;
+  font-weight: bold;
+  text-align: center;
+}
+
+/* 게시글 컨테이너 */
+.post-container {
+  padding: 15px;
+  background-color: #fff;
+  position: relative; /* 댓글 wrapper 절대위치 기준 */
+}
+
+/* 게시글 헤더 */
+.post-header {
+  margin-bottom: 15px;
+}
+.post-title {
+  margin: 0 0 10px;
+  font-size: 18px;
+  font-weight: bold;
+  line-height: 1.5;
+}
+
+/* 상호작용 버튼 */
+.post-actions {
+  display: flex;
+  gap: 15px;
+  padding: 10px 0;
+  border-bottom: 1px solid #eee;
+  margin-bottom: 15px;
+}
+.action-button {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 14px;
+  color: #868e96;
+  cursor: pointer;
+}
+.action-button i {
+  font-size: 16px;
+}
+.action-button.active {
+  color: #e03131;
+}
+.share-button {
+  margin-left: auto;
+}
+
+.content {
+  margin: 5px 0;
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap; /* 줄바꿈 유지 */
+  word-break: break-word; /* 단어가 길어도 줄바꿈 */
+}
+
+/* 콘텐츠 */
+.post-content {
+  margin-bottom: 20px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.post-content p {
+  margin-bottom: 15px;
+}
+
+/* 이미지 */
+.post-image-container {
+  margin: 15px 0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.post-image {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* 작성자 정보 */
+.post-author-info {
+  margin-bottom: 20px;
+  font-size: 12px;
+  color: #868e96;
+}
+
+/* 섹션 구분선 */
+.section-divider {
+  position: relative;
+  text-align: center;
+  margin: 30px 0;
+}
+.section-divider::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background-color: #eee;
+  z-index: 1;
+}
+.section-divider span {
+  position: relative;
+  background-color: #fff;
+  padding: 0 10px;
+  font-size: 14px;
+  color: #868e96;
+  z-index: 2;
+}
+
+/* 댓글 섹션 */
+.comments-wrapper {
+  position: relative; /* sticky 대신 relative로 변경 */
+  max-height: 400px; /* 고정 높이 설정 */
+  overflow-y: auto; /* 스크롤 가능하도록 */
+  padding: 0 8px;
+  margin-bottom: 70px; /* 댓글 입력창 높이 + 여백 */
+}
+
+.comments-container {
+  padding-bottom: 10px; /* 마지막 댓글 아래 여백 추가 */
+}
+
+.comment-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 8px; /* 상하 패딩 증가 */
+  border-bottom: 1px solid #e0e0e0;
+  width: 100%; /* 너비 확보 */
+}
+
+/* 댓글 내용 영역 */
+.comment-item > div:first-child {
+  flex: 1; /* 공간 확보 */
+  min-width: 0; /* 텍스트 오버플로우 방지 */
+}
+
+
+.comment-content {
+  margin: 0 0 5px;
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap; /* 줄바꿈 유지 */
+  word-break: break-word; /* 단어가 길어도 줄바꿈 */
+}
+.comment-info {
+  display: flex;
+  gap: 10px;
+  font-size: 12px;
+  color: #868e96;
+}
+.comment-author {
+  font-weight: bold;
+}
+.no-comments {
+  padding: 30px 0;
+  text-align: center;
+  font-size: 14px;
+  color: #adb5bd;
+}
+.no-comments p {
+  margin: 5px 0;
+}
+/* 댓글 액션 버튼 */
+.comment-actions {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-left: 10px;
+}
+
+.comment-actions i {
+  cursor: pointer;
+  color: #adb5bd;
+  padding: 5px;
+}
+
+.comment-actions i:hover {
+  color: #495057;
+}
+
+/* 댓글 입력영역 */
+.comment-input-container {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 10px 15px;
+  display: flex;
+  gap: 8px;
+  background-color: #fff;
+  border-top: 1px solid #eee;
+  z-index: 10;
+  box-shadow: 0 -2px 5px rgba(0,0,0,0.05); /* 그림자 추가 */
+}
+
+.comment-input {
+  flex: 1;
+  padding: 12px 15px;
+  font-size: 14px;
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+}
+.comment-input:focus {
+  outline: none;
+  border-color: #4263eb;
+  background-color: #fff;
+}
+
+/* 공유 모달 버튼 크기·정렬 */
+.share-modal-btn {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 5px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.share-modal-btn:hover {
+  background-color: #e9ecef;
+}
+.share-modal-btn img {
+  pointer-events: none; /* 클릭 버블링 방지 */
+}
+/* 텍스트 라벨(style from voteDetail.css) */
+.share-label {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #495057;
+}
+/* 모달 전체 모양 약간 둥글게 */
+#shareModal .modal-content {
+  border-radius: 12px;
+}

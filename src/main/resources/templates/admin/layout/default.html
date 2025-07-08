@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="ko"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:fragment="html(title, content, customCSS, customJS, activeMenu, activeSubmenu)">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title th:replace="${title}">Spark Admin</title>
+
+  <!-- Bootstrap core CSS -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css"
+        rel="stylesheet">
+  <!-- Icons -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        rel="stylesheet">
+  <!-- Custom CSS -->
+  <link th:href="@{/assets/admin/css/common.css}" rel="stylesheet">
+  <link th:href="@{/assets/admin/css/notification.css}" rel="stylesheet">
+
+  <!-- 모바일 사이드바 스타일 추가 -->
+  <style>
+    /* 모바일 사이드바 관련 추가 CSS */
+    @media (max-width: 768px) {
+      /* 모바일 활성화 상태 */
+      .sidebar.mobile-active {
+        margin-left: 0 !important;
+        z-index: 1050;
+      }
+
+      /* 사이드바 오버레이 */
+      .sidebar-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1040;
+      }
+
+      /* 사이드바 위치 고정 */
+      .sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        height: 100%;
+        overflow-y: auto;
+        transition: margin-left 0.3s ease;
+      }
+
+      /* 기본 상태는 화면 밖으로 숨김 */
+      .sidebar.collapsed {
+        margin-left: -240px;
+      }
+
+      /* 모바일에서 컨텐츠 영역을 항상 전체 너비로 */
+      #content {
+        margin-left: 0 !important;
+        width: 100%;
+      }
+
+      /* 검색바 모바일에서 숨김 */
+      .search-bar {
+        display: none;
+      }
+
+      /* 사이드바 높이 조정 (iOS Safari에서 100vh 이슈 대응) */
+      .sidebar {
+        height: 100%;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      /* 사이드바 스크롤 최적화 */
+      .sidebar::-webkit-scrollbar {
+        width: 4px;
+      }
+
+      .sidebar::-webkit-scrollbar-thumb {
+        background-color: rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+      }
+    }
+  </style>
+
+  <!-- Page specific CSS -->
+  <th:block th:replace="${customCSS} ?: ~{}"></th:block>
+</head>
+<body>
+<div style="display: none">
+    <p th:text="${'activeMenu: ' + activeMenu}"></p>
+    <p th:text="${'activeSubmenu: ' + activeSubmenu}"></p>
+</div>
+<div class="wrapper">
+  <!-- Sidebar -->
+  <nav id="sidebar" class="sidebar">
+    <div class="sidebar-header">
+      <div class="app-brand">
+        <a href="/admin/dashboard" class="d-flex align-items-center">
+          <div class="brand-logo me-2">
+            <img src="/images/logo.svg" class="img-fluid" style="max-height: 30px;" alt="로고"/>
+          </div>
+          <span class="brand-name">나라걱정 클럽</span>
+        </a>
+      </div>
+
+      <div class="user-profile mt-3 p-3 d-flex align-items-center">
+        <div class="user-avatar me-3">
+          <img th:src="${userAvatar} ?: @{/assets/admin/images/user_default.png}" alt="User Avatar"
+               class="rounded-circle" style="width: 50px; height: 50px; object-fit: cover;">
+        </div>
+        <div class="user-details">
+          <h6 class="user-name mb-1" th:text="${userName} ?: 'User'"></h6>
+          <span class="user-role-badge"
+                th:classappend="${userRole != null} ? 'role-badge-' + ${userRole} : ''"
+                th:text="${userRoleDisplay} ?: 'Admin'"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-menu">
+      <h6 class="menu-category">Main</h6>
+      <ul class="nav flex-column">
+        <!--대시보드 모든 관리자 보임 -->
+        <li class="nav-item" sec:authorize="isAuthenticated()">
+          <a class="nav-link" th:classappend="${activeMenu == 'dashboards'} ? 'active'"
+             href="javascript:void(0);" data-bs-toggle="collapse" data-bs-target="#dashboardSubmenu"
+             aria-expanded="${activeMenu == 'dashboards'} ? 'true' : 'false'">
+            <i class="fas fa-home menu-icon"></i>
+            <span>Dashboards</span>
+            <i class="fas fa-chevron-down menu-arrow"></i>
+          </a>
+          <ul class="submenu collapse" id="dashboardSubmenu"
+              th:classappend="${activeMenu == 'dashboards'} ? 'show'">
+            <li><a th:classappend="${activeSubmenu == 'default'} ? 'active'"
+                   href="/admin/dashboard">대시보드</a></li>
+            <!--<li><a th:classappend="${activeSubmenu == 'analytics'} ? 'active'" href="/admin/dashboard/analytics">Analytics</a></li>-->
+            <!--<li><a th:classappend="${activeSubmenu == 'ecommerce'} ? 'active'" href="/admin/dashboard/ecommerce">E-commerce</a></li>-->
+          </ul>
+        </li>
+
+        <!-- 사용자 관리 -->
+        <li class="nav-item" sec:authorize="hasAnyRole('SUPER_ADMIN', 'OPERATOR')">
+          <a class="nav-link" th:classappend="${activeMenu == 'users'} ? 'active'"
+             href="javascript:void(0);" data-bs-toggle="collapse" data-bs-target="#usersSubmenu"
+             aria-expanded="${activeMenu == 'users'} ? 'true' : 'false'">
+            <i class="fas fa-users menu-icon"></i>
+            <span>사용자 관리</span>
+            <i class="fas fa-chevron-down menu-arrow"></i>
+          </a>
+          <ul class="submenu collapse" id="usersSubmenu"
+              th:classappend="${activeMenu == 'users'} ? 'show'">
+            <li>
+              <a th:classappend="${activeSubmenu == 'app'} ? 'active'"
+                 href="/admin/users/app/user-list">유저 관리</a>
+            </li>
+            <li sec:authorize="hasAnyRole('SUPER_ADMIN')">
+              <a th:classappend="${activeSubmenu == 'admin'} ? 'active'"
+                 href="/admin/users/admin/user-list">관리자 관리</a>
+            </li>
+          </ul>
+        </li>
+
+        <!--포인트 관리-->
+        <li class="nav-item" sec:authorize="hasAnyRole('SUPER_ADMIN', 'OPERATOR')">
+          <a class="nav-link" th:classappend="${activeMenu == 'points'} ? 'active'"
+             href="javascript:void(0);" data-bs-toggle="collapse" data-bs-target="#pointsSubmenu"
+             th:aria-expanded="${activeMenu == 'points'} ? 'true' : 'false'">
+            <i class="fas fa-coins menu-icon"></i>
+            <span>포인트 관리</span>
+            <i class="fas fa-chevron-down menu-arrow"></i>
+          </a>
+          <ul class="submenu collapse" id="pointsSubmenu"
+              th:classappend="${activeMenu == 'points'} ? 'show'">
+            <li>
+              <a th:classappend="${activeSubmenu == 'pointList'} ? 'active'"
+                 href="/admin/points/list">포인트 내역 목록</a>
+            </li>
+
+            <li>
+              <a th:classappend="${activeSubmenu == 'activity'} ? 'active'"
+                 href="/admin/activity/list">유저 활동 내역 심사</a>
+            </li>
+          </ul>
+        </li>
+
+        <!--자유 게시판 -->
+        <li class="nav-item" sec:authorize="hasAnyRole('SUPER_ADMIN', 'OPERATOR')">
+          <a class="nav-link" th:classappend="${activeMenu == 'board'} ? 'active'"
+             href="javascript:void(0);" data-bs-toggle="collapse" data-bs-target="#boardSubmenu"
+             aria-expanded="${activeMenu == 'board'} ? 'true' : 'false'">
+            <i class="fas fa-clipboard menu-icon"></i>
+            <span>Board</span>
+            <i class="fas fa-chevron-down menu-arrow"></i>
+          </a>
+          <ul class="submenu collapse" id="boardSubmenu"
+              th:classappend="${activeMenu == 'board'} ? 'show'">
+            <li><a th:classappend="${activeSubmenu == 'boardList'} ? 'active'"
+                   href="/admin/board/list">자유게시판 리스트</a></li>
+          </ul>
+        </li>
+
+        <!--오리지널 - 뉴스 -->
+        <li class="nav-item" sec:authorize="isAuthenticated()">
+          <a class="nav-link" th:classappend="${activeMenu == 'news'} ? 'active'"
+             href="javascript:void(0);" data-bs-toggle="collapse" data-bs-target="#newsSubmenu"
+             aria-expanded="${activeMenu == 'news'} ? 'true' : 'false'">
+            <i class="fas fa-newspaper menu-icon"></i>
+            <span>News</span>
+            <i class="fas fa-chevron-down menu-arrow"></i>
+          </a>
+          <ul class="submenu collapse" id="newsSubmenu"
+              th:classappend="${activeMenu == 'news'} ? 'show'">
+            <li><a th:classappend="${activeSubmenu == 'newsList'} ? 'active'"
+                   href="/admin/original/news/list">뉴스 리스트</a></li>
+            <li><a th:classappend="${activeSubmenu == 'newsCreate'} ? 'active'"
+                   href="/admin/original/news/create">뉴스 작성</a></li>
+          </ul>
+        </li>
+
+        <!--오리지널 - 비디오-->
+        <li class="nav-item" sec:authorize="isAuthenticated()">
+          <a class="nav-link" th:classappend="${activeMenu == 'video'} ? 'active'"
+             href="javascript:void(0);" data-bs-toggle="collapse" data-bs-target="#videoSubmenu"
+             aria-expanded="${activeMenu == 'video'} ? 'true' : 'false'">
+            <i class="fas fa-video menu-icon"></i>
+            <span>Video</span>
+            <i class="fas fa-chevron-down menu-arrow"></i>
+          </a>
+          <ul class="submenu collapse" id="videoSubmenu"
+              th:classappend="${activeMenu == 'video'} ? 'show'">
+            <li><a th:classappend="${activeSubmenu == 'videoList'} ? 'active'"
+                   href="/admin/original/video/list">비디오 리스트</a></li>
+            <li><a th:classappend="${activeSubmenu == 'videoCreate'} ? 'active'"
+                   href="/admin/original/video/create">비디오 업로드</a></li>
+          </ul>
+        </li>
+
+        <!-- 투표 -->
+        <li class="nav-item" sec:authorize="hasRole('SUPER_ADMIN')">
+          <a class="nav-link" th:classappend="${activeMenu == 'vote'} ? 'active'"
+             href="javascript:void(0);" data-bs-toggle="collapse" data-bs-target="#voteSubmenu"
+             aria-expanded="${activeMenu == 'vote'} ? 'true' : 'false'">
+            <i class="fas fa-vote-yea menu-icon"></i>
+            <span>Vote</span>
+            <i class="fas fa-chevron-down menu-arrow"></i>
+          </a>
+          <ul class="submenu collapse" id="voteSubmenu"
+              th:classappend="${activeMenu == 'vote'} ? 'show'">
+            <li><a th:classappend="${activeSubmenu == 'voteList'} ? 'active'"
+                   href="/admin/vote/list">투표 리스트</a></li>
+            <li><a th:classappend="${activeSubmenu == 'voteCreate'} ? 'active'"
+                   href="/admin/vote/create">투표 작성</a></li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Page Content -->
+  <div id="content">
+    <!-- Topbar -->
+    <nav class="navbar navbar-expand navbar-light topbar">
+      <div class="container-fluid">
+        <button type="button" id="sidebarCollapse" class="btn">
+          <i class="fas fa-bars"></i>
+        </button>
+
+<!--        <div class="search-bar">-->
+<!--          <div class="input-group">-->
+<!--            <input type="text" class="form-control" placeholder="Search projects...">-->
+<!--            <span class="input-group-text"><i class="fas fa-search"></i></span>-->
+<!--          </div>-->
+<!--        </div>-->
+
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item">
+            <a class="nav-link" th:href="@{/admin/auth/logout}" title="Logout">
+              <i class="fas fa-sign-out-alt"></i>
+            </a>
+          </li>
+        </ul>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <th:block th:replace="${content}"></th:block>
+    </div>
+  </div>
+</div>
+
+<!-- Core JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script
+    src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+
+<!-- Custom JS -->
+<script th:src="@{/assets/admin/js/common.js}"></script>
+<script th:src="@{/assets/admin/js/notification.js}"></script>
+
+<!-- Page specific JS -->
+<th:block th:replace="${customJS} ?: ~{}"></th:block>
+</body>
+</html>

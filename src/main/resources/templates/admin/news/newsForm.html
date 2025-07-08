@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{admin/layout/default :: html(
+        ~{::title},
+        ~{::section},
+        ~{::customCSS},
+        ~{::customJS},
+        'news',
+        ${mode == 'create' ? 'newsCreate' : 'newsUpdate'}
+      )}">
+<head>
+  <title th:text="${mode == 'create' ? '뉴스 작성' : '뉴스 수정'} + ' - 관리자'">뉴스 작성/수정 - 관리자</title>
+
+  <!-- Custom CSS -->
+  <customCSS>
+    <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
+    <link th:href="@{/assets/admin/css/newsForm.css}" rel="stylesheet">
+    <link th:href="@{/assets/admin/css/newsEditor.css}" rel="stylesheet">
+    <!-- 한글 글꼴 추가 -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Nanum+Gothic:wght@400;700&display=swap" rel="stylesheet">
+  </customCSS>
+</head>
+<body>
+<section>
+  <!-- Page Title & Actions -->
+  <div class="page-header d-flex justify-content-between align-items-center mb-4">
+    <div class="page-title-wrapper">
+      <h4 class="page-title" th:text="${mode == 'create' ? '뉴스 작성' : '뉴스 수정'}">뉴스 작성/수정</h4>
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+          <li class="breadcrumb-item"><a href="/admin/dashboard">대시보드</a></li>
+          <li class="breadcrumb-item"><a href="/admin/original/news/list">뉴스 관리</a></li>
+          <li class="breadcrumb-item active" aria-current="page" th:text="${mode == 'create' ? '뉴스 작성' : '뉴스 수정'}">뉴스 작성/수정</li>
+        </ol>
+      </nav>
+    </div>
+    <div class="page-actions">
+<!--      <button id="btnPreview" class="btn btn-info me-2">-->
+<!--        <i class="uil uil-eye"></i> 미리보기-->
+<!--      </button>-->
+      <a href="/admin/original/news/list" class="btn btn-secondary me-2">
+        <i class="uil uil-times"></i> 취소
+      </a>
+<!--      <button id="btnSaveDraft" class="btn btn-outline-primary me-2">-->
+<!--        <i class="uil uil-save"></i> 임시저장-->
+<!--      </button>-->
+      <button id="btnPublish" class="btn btn-primary">
+        <i class="uil uil-paper-plane"></i> 발행
+      </button>
+    </div>
+  </div>
+
+  <!-- Form & Preview Container -->
+  <div class="row news-editor-container">
+    <!-- Left Column: Form -->
+    <div class="col-lg-8">
+      <div class="card mb-4">
+        <div class="card-body">
+          <form id="newsForm" th:object="${newsForm}" method="post" class="needs-validation" novalidate>
+            <input type="hidden" id="newsId" th:value="${news != null ? news.id : ''}" />
+            <input type="hidden" id="mode" th:value="${mode}" />
+
+            <!-- 기본 정보 섹션 -->
+            <div class="card-header pt-0 ps-0">
+              <h5 class="mb-0">기본 정보</h5>
+            </div>
+
+            <div class="mb-3">
+              <label for="title" class="form-label">제목 <span class="text-danger">*</span></label>
+              <input type="text" class="form-control form-control-lg" id="title" name="title"
+                     th:value="${news != null ? news.title : ''}" required placeholder="뉴스 제목을 입력하세요">
+              <div class="invalid-feedback">제목을 입력해주세요.</div>
+            </div>
+
+            <div class="mb-3">
+              <label for="subtitle" class="form-label">소제목</label>
+              <input type="text" class="form-control" id="subtitle" name="subtitle"
+                     th:value="${news != null ? news.subTitle : ''}" placeholder="소제목을 입력하세요 (선택사항)">
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="category" class="form-label">카테고리 <span class="text-danger">*</span></label>
+                <select class="form-select" id="category" name="category" required>
+                  <option value="">카테고리 선택</option>
+                  <option th:each="cat : ${categories}" th:value="${cat}"
+                          th:text="${cat.displayName}"
+                          th:selected="${news != null && news.category == cat}">
+                    카테고리 이름
+                  </option>
+                </select>
+                <div class="invalid-feedback">카테고리를 선택해주세요.</div>
+              </div>
+              <div class="col-md-6">
+                <label for="author" class="form-label">작성자 <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="author" name="author"
+                       th:value="${news != null ? news.author.getName() : userName}" required>
+                <div class="invalid-feedback">작성자를 입력해주세요.</div>
+              </div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="publishDate" class="form-label">발행일</label>
+                <div class="input-group">
+                  <input type="text" class="form-control" id="publishDate" name="publishDate"
+                         th:value="${news != null && news.publishedAt != null ? #temporals.format(news.publishedAt, 'yyyy-MM-dd HH:mm') : ''}"
+                         placeholder="발행일 선택">
+                  <span class="input-group-text"><i class="uil uil-calendar-alt"></i></span>
+                </div>
+                <small class="form-text text-muted">비워두면 발행 시점으로 설정됩니다.</small>
+              </div>
+<!--              <div class="col-md-6">-->
+<!--                <label for="tags" class="form-label">태그</label>-->
+<!--                <input type="text" class="form-control" id="tags" name="tags"-->
+<!--                       th:value="${news != null ? news.tags : ''}" placeholder="쉼표로 구분 (예: 경제,금융,투자)">-->
+<!--              </div>-->
+            </div>
+
+            <div class="row mb-4">
+              <div class="col-md-4">
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="isPublic" name="isPublic"
+                         th:checked="${news != null ? news.isPublic : false}">
+                  <label class="form-check-label" for="isPublic">공개 여부</label>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="isHot" name="isHot"
+                         th:checked="${news != null ? news.isHot : false}">
+                  <label class="form-check-label" for="isHot">핫 뉴스로 표시</label>
+                </div>
+              </div>
+            </div>
+
+            <!-- 썸네일 섹션 -->
+            <div class="card-header pt-0 ps-0 mt-2">
+              <h5 class="mb-0">썸네일 이미지</h5>
+            </div>
+
+            <div class="mb-4">
+              <div class="input-group mb-2">
+                <input type="text" class="form-control" id="thumbnailUrl" name="thumbnailUrl"
+                       th:value="${news != null ? news.thumbnailUrl : ''}" readonly>
+                <button class="btn btn-outline-secondary" type="button" id="btnUploadThumbnail">
+                  <i class="uil uil-image-upload"></i> 이미지 선택
+                </button>
+              </div>
+
+              <div class="thumbnail-preview-container mt-2" id="thumbnailPreviewContainer">
+                <img id="thumbnailPreview" class="thumbnail-preview"
+                     th:src="${news != null ? news.thumbnailUrl : ''}"
+                     th:style="${news != null && news.thumbnailUrl != null ? 'display:block' : 'display:none'}"
+                     alt="썸네일 미리보기">
+                <div class="thumbnail-placeholder" id="thumbnailPlaceholder"
+                     th:style="${news == null || news.thumbnailUrl == null ? 'display:flex' : 'display:none'}">
+                  <i class="uil uil-image"></i>
+                  <span>썸네일 이미지 없음</span>
+                </div>
+              </div>
+              <small class="form-text text-muted">권장 크기: 1200 x 675px (16:9 비율)</small>
+            </div>
+
+            <!-- 내용 섹션 -->
+            <div class="card-header pt-0 ps-0 mt-2">
+              <h5 class="mb-0">내용 <span class="text-danger">*</span></h5>
+            </div>
+
+            <!-- TinyMCE 에디터 -->
+            <div class="mb-3">
+              <textarea id="content-editor" name="content" style="height: 400px;"
+                       th:text="${news != null ? news.content : ''}"></textarea>
+              <div class="invalid-feedback editor-feedback">내용을 입력해주세요.</div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Preview -->
+    <div class="col-lg-4">
+      <div class="preview-container-wrapper">
+        <div class="card sticky-preview">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">실시간 미리보기</h5>
+<!--            <div class="preview-controls">-->
+<!--              <button class="btn btn-sm btn-primary active w-100" id="btnMobileView">-->
+<!--                <i class="uil uil-mobile-android"></i> 미리보기-->
+<!--              </button>-->
+<!--            </div>-->
+          </div>
+          <div class="card-body p-0">
+            <!-- 모바일 미리보기 -->
+            <div class="mobile-frame" id="mobilePreview">
+              <div class="mobile-status-bar"></div>
+              <div class="mobile-content">
+                <div class="news-preview" id="newsPreview">
+                  <div class="preview-loading" id="previewLoading">
+                    <div class="spinner-border text-primary" role="status">
+                      <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p>미리보기 준비 중...</p>
+                  </div>
+                  <div class="preview-header">
+                    <div class="preview-category" id="previewCategory">카테고리</div>
+                    <h1 class="preview-title" id="previewTitle">뉴스 제목</h1>
+                    <div class="preview-subtitle" id="previewSubtitle">뉴스 소제목</div>
+                    <div class="preview-meta">
+                      <span class="preview-author" id="previewAuthor">작성자</span>
+                      <span class="preview-date" id="previewDate">2023-01-01</span>
+                    </div>
+                    <div class="preview-tags" id="previewTags">
+                      <!-- 태그 들어갈 자리 -->
+                    </div>
+                  </div>
+                  <div class="preview-image-container" id="previewImageContainer" style="display: none;">
+                    <img id="previewImage" class="preview-image" src="" alt="미리보기 썸네일">
+                  </div>
+                  <div class="preview-content" id="previewContent">
+                    <!-- 미리보기 내용 -->
+                  </div>
+                </div>
+              </div>
+              <div class="mobile-home-button"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upload Thumbnail Modal -->
+  <div class="modal fade" id="uploadThumbnailModal" tabindex="-1" aria-labelledby="uploadThumbnailModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="uploadThumbnailModalLabel">썸네일 이미지 업로드</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="thumbnailUploadForm">
+            <div class="mb-3">
+              <label for="thumbnailFile" class="form-label">이미지 선택</label>
+              <input class="form-control" type="file" id="thumbnailFile" accept="image/*">
+              <div class="form-text">권장 크기: 1200 x 675px (16:9 비율)</div>
+            </div>
+            <div class="thumbnail-preview-container mt-3" id="uploadPreviewContainer">
+              <img id="uploadPreview" class="thumbnail-upload-preview" style="display: none;" alt="업로드 이미지 미리보기">
+              <div class="thumbnail-placeholder" id="uploadPlaceholder">
+                <i class="uil uil-image"></i>
+                <span>이미지를 선택해주세요</span>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+          <button type="button" class="btn btn-primary" id="btnConfirmUpload" disabled>업로드</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirmation Modal -->
+  <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="confirmModalLabel">확인</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p id="confirmModalMessage">정말로 이 작업을 진행하시겠습니까?</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+          <button type="button" class="btn btn-primary" id="btnConfirmAction">확인</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Save Progress Modal -->
+  <div class="modal fade" id="saveProgressModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="saveProgressModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="saveProgressModalLabel">저장 중...</h5>
+        </div>
+        <div class="modal-body">
+          <div class="progress">
+            <div id="saveProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%"></div>
+          </div>
+          <p id="saveProgressStatus" class="mt-2">준비 중...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Custom JS -->
+<customJS>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ko.js"></script>
+  <script src="/assets/admin/tinymce/tinymce.min.js"></script>
+  <script th:src="@{/assets/admin/js/newsForm.js}" type="module"></script>
+</customJS>
+</body>
+</html>

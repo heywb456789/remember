@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>뉴스 관리 - 나라 걱정 클럽 관리자</title>
+</head>
+<body>
+
+<th:block th:fragment="content">
+    <!-- 뉴스 리스트 페이지 내용 -->
+    
+    <!-- 버튼 및 필터 -->
+    <div class="row mb-2">
+        <div class="col-sm-4">
+            <a th:href="@{/admin/news/create}" class="btn btn-danger mb-2">
+                <i class="mdi mdi-plus-circle me-1"></i> 새 뉴스 작성
+            </a>
+        </div>
+        <div class="col-sm-8">
+            <div class="text-sm-end">
+                <div class="input-group">
+                    <input type="text" class="form-control" placeholder="제목 검색..." aria-label="제목 검색">
+                    <button class="btn btn-primary" type="button">검색</button>
+                    <button type="button" class="btn btn-light">
+                        <i class="mdi mdi-filter-variant"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 테이블 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-centered table-striped dt-responsive nowrap w-100" id="news-datatable">
+                            <thead>
+                                <tr>
+                                    <th style="width: 20px;">
+                                        <div class="form-check">
+                                            <input type="checkbox" class="form-check-input" id="checkAll">
+                                            <label class="form-check-label" for="checkAll">&nbsp;</label>
+                                        </div>
+                                    </th>
+                                    <th>ID</th>
+                                    <th>썸네일</th>
+                                    <th>제목</th>
+                                    <th>카테고리</th>
+                                    <th>상태</th>
+                                    <th>작성자</th>
+                                    <th>발행일</th>
+                                    <th>조회수</th>
+                                    <th style="width: 85px;">관리</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- 실제 데이터 -->
+                                <tr th:each="news : ${newsList}" th:if="${newsList != null}">
+                                    <td>
+                                        <div class="form-check">
+                                            <input type="checkbox" class="form-check-input" th:id="'news-' + ${news.id}">
+                                            <label class="form-check-label" th:for="'news-' + ${news.id}">&nbsp;</label>
+                                        </div>
+                                    </td>
+                                    <td th:text="${news.id}">1</td>
+                                    <td>
+                                        <img th:if="${news.thumbnailUrl != null}" th:src="${news.thumbnailUrl}" alt="썸네일" class="rounded" width="48">
+                                        <span th:unless="${news.thumbnailUrl != null}" class="badge bg-secondary">이미지 없음</span>
+                                    </td>
+                                    <td th:text="${news.title}">국회, 예산안 처리 놓고 충돌 예고</td>
+                                    <td th:text="${news.category}">정치</td>
+                                    <td>
+                                        <span th:if="${news.status == 'PUBLISHED'}" class="badge bg-success-lighten text-success">발행됨</span>
+                                        <span th:if="${news.status == 'DRAFT'}" class="badge bg-warning-lighten text-warning">임시저장</span>
+                                    </td>
+                                    <td th:text="${news.author}">관리자</td>
+                                    <td th:text="${#temporals.format(news.publishedAt, 'yyyy-MM-dd')}">2025-04-22</td>
+                                    <td th:text="${news.viewCount}">5,784</td>
+                                    <td>
+                                        <a th:href="@{/admin/news/{id}/edit(id=${news.id})}" class="action-icon"> <i class="mdi mdi-square-edit-outline"></i></a>
+                                        <a th:href="@{/admin/news/{id}/delete(id=${news.id})}" class="action-icon delete-confirm"> <i class="mdi mdi-delete"></i></a>
+                                    </td>
+                                </tr>
+                                
+                                <!-- 샘플 데이터 -->
+                                <tr>
+                                    <td>
+                                        <div class="form-check">
+                                            <input type="checkbox" class="form-check-input" id="news-1">
+                                            <label class="form-check-label" for="news-1">&nbsp;</label>
+                                        </div>
+                                    </td>
+                                    <td>1</td>
+                                    <td>
+                                        <img src="/assets/images/news-thumb-1.jpg" alt="썸네일" class="rounded" width="48">
+                                    </td>
+                                    <td>국회, 예산안 처리 놓고 충돌 예고</td>
+                                    <td>정치</td>
+                                    <td>
+                                        <span class="badge bg-success-lighten text-success">발행됨</span>
+                                    </td>
+                                    <td>관리자</td>
+                                    <td>2025-04-22</td>
+                                    <td>5,784</td>
+                                    <td>
+                                        <a href="javascript:void(0);" class="action-icon"> <i class="mdi mdi-square-edit-outline"></i></a>
+                                        <a href="javascript:void(0);" class="action-icon delete-confirm"> <i class="mdi mdi-delete"></i></a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="form-check">
+                                            <input type="checkbox" class="form-check-input" id="news-2">
+                                            <label class="form-check-label" for="news-2">&nbsp;</label>
+                                        </div>
+                                    </td>
+                                    <td>2</td>
+                                    <td>
+                                        <img src="/assets/images/news-thumb-2.jpg" alt="썸네일" class="rounded" width="48">
+                                    </td>
+                                    <td>새 법안 발의, 부동산 규제 완화 논란</td>
+                                    <td>부동산</td>
+                                    <td>
+                                        <span class="badge bg-success-lighten text-success">발행됨</span>
+                                    </td>
+                                    <td>관리자</td>
+                                    <td>2025-04-21</td>
+                                    <td>4,523</td>
+                                    <td>
+                                        <a href="javascript:void(0);" class="action-icon"> <i class="mdi mdi-square-edit-outline"></i></a>
+                                        <a href="javascript:void(0);" class="action-icon delete-confirm"> <i class="mdi mdi-delete"></i></a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="form-check">
+                                            <input type="checkbox" class="form-check-input" id="news-3">
+                                            <label class="form-check-label" for="news-3">&nbsp;</label>
+                                        </div>
+                                    </td>
+                                    <td>3</td>
+                                    <td>
+                                        <img src="/assets/images/news-thumb-3.jpg" alt="썸네일" class="rounded" width="48">
+                                    </td>
+                                    <td>국방부, 핵무장 논의 재점화 관련 입장 발표</td>
+                                    <td>안보</td>
+                                    <td>
+                                        <span class="badge bg-success-lighten text-success">발행됨</span>
+                                    </td>
+                                    <td>편집자</td>
+                                    <td>2025-04-22</td>
+                                    <td>3,856</td>
+                                    <td>
+                                        <a href="javascript:void(0);" class="action-icon"> <i class="mdi mdi-square-edit-outline"></i></a>
+                                        <a href="javascript:void(0);" class="action-icon delete-confirm"> <i class="mdi mdi-delete"></i></a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="form-check">
+                                            <input type="checkbox" class="form-check-input" id="news-4">
+                                            <label class="form-check-label" for="news-4">&nbsp;</label>
+                                        </div>
+                                    </td>
+                                    <td>4</td>
+                                    <td>
+                                        <img src="/assets/images/news-thumb-4.jpg" alt="썸네일" class="rounded" width="48">
+                                    </td>
+                                    <td>미국의 핵무장 정책과 한반도 안보</td>
+                                    <td>국제</td>
+                                    <td>
+                                        <span class="badge bg-success-lighten text-success">발행됨</span>
+                                    </td>
+                                    <td>편집자</td>
+                                    <td>2025-04-18</td>
+                                    <td>3,642</td>
+                                    <td>
+                                        <a href="javascript:void(0);" class="action-icon"> <i class="mdi mdi-square-edit-outline"></i></a>
+                                        <a href="javascript:void(0);" class="action-icon delete-confirm"> <i class="mdi mdi-delete"></i></a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="form-check">
+                                            <input type="checkbox" class="form-check-input" id="news-5">
+                                            <label class="form-check-label" for="news-5">&nbsp;</label>
+                                        </div>
+                                    </td>
+                                    <td>5</td>
+                                    <td>
+                                        <img src="/assets/images/news-thumb-5.jpg" alt="썸네일" class="rounded" width="48">
+                                    </td>
+                                    <td>청년 일자리 지원 정책 발표, 실효성 논란</td>
+                                    <td>경제</td>
+                                    <td>
+                                        <span class="badge bg-warning-lighten text-warning">임시저장</span>
+                                    </td>
+                                    <td>편집자</td>
+                                    <td>2025-04-19</td>
+                                    <td>3,154</td>
+                                    <td>
+                                        <a href="javascript:void(0);" class="action-icon"> <i class="mdi mdi-square-edit-outline"></i></a>
+                                        <a href="javascript:void(0);" class="action-icon delete-confirm"> <i class="mdi mdi-delete"></i></a>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div> <!-- end card-body-->
+            </div> <!-- end card-->
+        </div> <!-- end col -->
+    </div>
+    <!-- end row -->
+
+    <!-- 페이지네이션 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="pagination justify-content-center">
+                <nav>
+                    <ul class="pagination pagination-rounded">
+                        <li class="page-item">
+                            <a class="page-link" href="javascript: void(0);" aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        </li>
+                        <li class="page-item active"><a class="page-link" href="javascript: void(0);">1</a></li>
+                        <li class="page-item"><a class="page-link" href="javascript: void(0);">2</a></li>
+                        <li class="page-item"><a class="page-link" href="javascript: void(0);">3</a></li>
+                        <li class="page-item"><a class="page-link" href="javascript: void(0);">4</a></li>
+                        <li class="page-item"><a class="page-link" href="javascript: void(0);">5</a></li>
+                        <li class="page-item">
+                            <a class="page-link" href="javascript: void(0);" aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+    <!-- end pagination -->
+    
+</th:block>
+
+<th:block th:fragment="scripts">
+    <!-- Datatable js -->
+    <script th:src="@{/assets/admin/js/vendor/jquery.dataTables.min.js}"></script>
+    <script th:src="@{/assets/admin/js/vendor/dataTables.bootstrap5.min.js}"></script>
+    <script th:src="@{/assets/admin/js/vendor/dataTables.responsive.min.js}"></script>
+    
+    <!-- Datatable Init js -->
+    <script>
+        $(document).ready(function() {
+            // 데이터테이블 초기화
+            $('#news-datatable').DataTable({
+                responsive: true,
+                info: false,
+                ordering: true,
+                paging: false,
+                language: {
+                    search: "검색:",
+                    zeroRecords: "검색 결과가 없습니다.",
+                }
+            });
+            
+            // 전체 선택 체크박스
+            $("#checkAll").click(function() {
+                $('.form-check-input').prop('checked', this.checked);
+            });
+            
+            // 삭제 확인 다이얼로그
+            $(".delete-confirm").click(function(e) {
+                e.preventDefault();
+                if (confirm("정말 이 뉴스를 삭제하시겠습니까?")) {
+                    // 삭제 처리 로직
+                    console.log("삭제 처리");
+                }
+            });
+        });
+    </script>
+</th:block>
+
+</body>
+</html>

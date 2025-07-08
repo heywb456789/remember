@@ -1,0 +1,175 @@
+body {
+      background-color: #fff;
+      color: #333;
+      min-height: 100vh;
+      font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+    }
+
+    .container {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 20px;
+      width: 100%;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .back-button {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      margin-right: 20px;
+    }
+
+    .title {
+      font-size: 18px;
+      font-weight: bold;
+      text-align: center;
+      flex-grow: 1;
+      margin-right: 44px; /* To balance the back button width */
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: #666;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .phone-input-container {
+      display: flex;
+      gap: 0;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .country-code {
+      width: 70px;
+      padding: 12px;
+      text-align: center;
+      font-size: 14px;
+      border: none;
+      border-right: 1px solid #ddd;
+      background-color: #f9f9f9;
+    }
+
+    .phone-input {
+      flex: 1;
+      border: none;
+      padding: 12px;
+      font-size: 14px;
+      outline: none;
+    }
+
+    .password-container {
+      position: relative;
+    }
+
+    .password-container input {
+      padding: 12px;
+      font-size: 14px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      width: 100%;
+    }
+
+    .verify-button {
+      width: 100%;
+      background-color: #ffcccc;
+      color: #333;
+      border: none;
+      border-radius: 4px;
+      padding: 14px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .verify-button:hover {
+      background-color: #ffbbbb;
+    }
+
+    .verify-button:disabled {
+      background-color: #ffdddd;
+      color: #999;
+      cursor: not-allowed;
+    }
+
+    .form-check-input:checked {
+      background-color: #f06060;
+      border-color: #f06060;
+    }
+
+    .form-check-label {
+      font-size: 14px;
+      color: #666;
+    }
+
+    .divider {
+      display: flex;
+      align-items: center;
+      margin: 30px 0;
+      color: #888;
+      font-size: 14px;
+    }
+
+    .divider::before,
+    .divider::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background-color: #eee;
+    }
+
+    .divider::before {
+      margin-right: 15px;
+    }
+
+    .divider::after {
+      margin-left: 15px;
+    }
+
+    .register-button {
+      width: 100%;
+      background-color: #fff;
+      color: #f06060;
+      border: 1px solid #f06060;
+      border-radius: 4px;
+      padding: 14px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .register-button:hover {
+      background-color: #fff5f5;
+    }
+
+    /* 반응형 디자인 */
+    @media (max-width: 480px) {
+      .container {
+        padding: 15px;
+        width: 100%;
+      }
+    }
+
+    @media (max-width: 320px) {
+      .title {
+        font-size: 16px;
+      }
+
+      .phone-input-container, .password-container input {
+        font-size: 13px;
+      }
+
+      .verify-button, .register-button {
+        font-size: 14px;
+        padding: 12px;
+      }
+    }

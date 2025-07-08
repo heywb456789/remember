@@ -1,0 +1,427 @@
+/* ======= 동영상 업로드/수정 페이지 스타일 ======= */
+
+/* Page Header */
+.page-header {
+  margin-bottom: 1.5rem;
+}
+
+.page-title {
+  margin-bottom: 0;
+  font-weight: 600;
+  color: var(--dark-color);
+}
+
+.page-actions .btn {
+  margin-left: 0.5rem;
+}
+
+/* Card Styles */
+.card {
+  border: none;
+  box-shadow: 0 0 35px 0 rgba(154, 161, 171, 0.15);
+  margin-bottom: 24px;
+  border-radius: 0.375rem;
+}
+
+.card-body {
+  padding: 1.5rem;
+}
+
+/* Form Sections */
+.form-group-section {
+  padding-bottom: 1.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.form-group-section:last-child {
+  padding-bottom: 0;
+  margin-bottom: 0;
+  border-bottom: none;
+}
+
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--primary-color);
+  margin-bottom: 1.25rem;
+}
+
+/* Form Elements */
+.form-label {
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: var(--dark-color);
+}
+
+.form-control, .form-select {
+  border-radius: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #ced4da;
+  transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.form-control:focus, .form-select:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 0.2rem rgba(44, 123, 229, 0.25);
+}
+
+.form-control:disabled,
+.form-control[readonly] {
+  background-color: #f8f9fa;
+  opacity: 1;
+}
+
+.form-text {
+  color: #6c757d;
+  font-size: 0.875rem;
+}
+
+/* Input Groups */
+.input-group-text {
+  background-color: #f8f9fa;
+  border: 1px solid #ced4da;
+  color: #495057;
+}
+
+/* Switch Controls */
+.form-switch .form-check-input {
+  width: 2.5em;
+  height: 1.25em;
+  margin-top: 0.1em;
+}
+
+.form-check-input:checked {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.form-check-input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 0.2rem rgba(44, 123, 229, 0.25);
+}
+
+/* Video Uploader */
+.video-upload-container, .thumbnail-upload-container {
+  border: 2px dashed #ced4da;
+  border-radius: 0.5rem;
+  padding: 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-bottom: 1rem;
+}
+
+.video-upload-container:hover, .thumbnail-upload-container:hover {
+  border-color: var(--primary-color);
+  background-color: rgba(44, 123, 229, 0.05);
+}
+
+.video-upload-container.dragover, .thumbnail-upload-container.dragover {
+  border-color: var(--primary-color);
+  background-color: rgba(44, 123, 229, 0.1);
+}
+
+.upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.upload-placeholder i {
+  font-size: 3rem;
+  color: #adb5bd;
+  margin-bottom: 1rem;
+}
+
+.upload-placeholder p {
+  margin-bottom: 0.5rem;
+  color: #495057;
+  font-weight: 500;
+}
+
+.upload-placeholder span {
+  font-size: 0.875rem;
+}
+
+.upload-preview {
+  width: 100%;
+}
+
+.preview-info {
+  padding: 0.5rem 0;
+}
+
+/* Video Preview */
+#videoPreview {
+  border-radius: 0.375rem;
+  background-color: #000;
+  max-height: 250px;
+}
+
+/* Thumbnail Preview */
+#thumbnailImage {
+  border-radius: 0.375rem;
+  max-height: 230px;
+  object-fit: contain;
+}
+
+.current-thumbnail-container {
+  padding: 0.5rem;
+  background-color: #f8f9fa;
+  border-radius: 0.375rem;
+  border: 1px solid #ced4da;
+}
+
+.current-thumbnail-container img {
+  border-radius: 0.25rem;
+}
+
+/* Upload Type Tabs */
+.upload-type-tabs .nav-tabs {
+  border-bottom: 1px solid #dee2e6;
+}
+
+.upload-type-tabs .nav-link {
+  border: 1px solid transparent;
+  border-top-left-radius: 0.375rem;
+  border-top-right-radius: 0.375rem;
+  padding: 0.75rem 1.25rem;
+  font-weight: 500;
+  color: #495057;
+}
+
+.upload-type-tabs .nav-link.active {
+  border-color: #dee2e6 #dee2e6 #fff;
+  color: var(--primary-color);
+}
+
+.upload-type-tabs .nav-link:hover:not(.active) {
+  border-color: #e9ecef #e9ecef #dee2e6;
+  color: var(--primary-color);
+}
+
+.upload-type-tabs .nav-link i {
+  margin-right: 0.5rem;
+}
+
+.upload-type-tabs .tab-content {
+  border: 1px solid #dee2e6;
+  border-top: none;
+  border-bottom-left-radius: 0.375rem;
+  border-bottom-right-radius: 0.375rem;
+}
+
+/* YouTube Preview */
+.youtube-preview-container {
+  margin-top: 1rem;
+  border-radius: 0.375rem;
+  overflow: hidden;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Flatpickr */
+.flatpickr-input {
+  background-color: #fff !important;
+}
+
+.flatpickr-day.selected,
+.flatpickr-day.startRange,
+.flatpickr-day.endRange,
+.flatpickr-day.selected.inRange,
+.flatpickr-day.startRange.inRange,
+.flatpickr-day.endRange.inRange,
+.flatpickr-day.selected:focus,
+.flatpickr-day.startRange:focus,
+.flatpickr-day.endRange:focus,
+.flatpickr-day.selected:hover,
+.flatpickr-day.startRange:hover,
+.flatpickr-day.endRange:hover,
+.flatpickr-day.selected.prevMonthDay,
+.flatpickr-day.startRange.prevMonthDay,
+.flatpickr-day.endRange.prevMonthDay,
+.flatpickr-day.selected.nextMonthDay,
+.flatpickr-day.startRange.nextMonthDay,
+.flatpickr-day.endRange.nextMonthDay {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+/* Video Info Table */
+.table-sm th {
+  font-weight: 600;
+  color: #495057;
+  padding-left: 0;
+}
+
+.table-borderless th,
+.table-borderless td {
+  border: none;
+}
+
+/* URL 타입 힌트 스타일 */
+.url-hint {
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    display: inline-block;
+    margin-top: 0.25rem;
+}
+
+.url-hint.shorts {
+    background-color: rgba(255, 193, 7, 0.1);
+    color: #856404;
+    border: 1px solid rgba(255, 193, 7, 0.3);
+}
+
+.url-hint.video {
+    background-color: rgba(13, 202, 240, 0.1);
+    color: #055160;
+    border: 1px solid rgba(13, 202, 240, 0.3);
+}
+
+.url-hint.id {
+    background-color: rgba(25, 135, 84, 0.1);
+    color: #0f5132;
+    border: 1px solid rgba(25, 135, 84, 0.3);
+}
+
+.url-hint.invalid {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: #842029;
+    border: 1px solid rgba(220, 53, 69, 0.3);
+}
+
+/* 비디오 포맷 안내 스타일 */
+.video-format-notice {
+    text-align: center;
+    padding: 1rem;
+    border-radius: 0.375rem;
+    margin-top: 0.5rem;
+}
+
+.video-format-notice i {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+/* YouTube 미리보기 개선 */
+.youtube-preview-container {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+/* YouTube Shorts 전용 스타일 */
+.youtube-shorts-container {
+    max-width: 315px;
+    margin: 0 auto;
+}
+
+.youtube-shorts-container .ratio {
+    aspect-ratio: 9/16 !important;
+}
+
+/* 일반 YouTube 비디오 스타일 */
+.youtube-video-container .ratio {
+    aspect-ratio: 16/9 !important;
+}
+
+/* 폼 검증 상태 개선 */
+.form-control.is-valid:focus {
+    border-color: #198754;
+    box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25);
+}
+
+.form-control.is-invalid:focus {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+/* 업로드 영역 개선 */
+.video-upload-container.dragover,
+.thumbnail-upload-container.dragover {
+    transform: scale(1.02);
+    transition: all 0.2s ease;
+}
+
+/* 탭 전환 애니메이션 */
+.tab-pane {
+    transition: opacity 0.15s linear;
+}
+
+.tab-pane.fade:not(.show) {
+    opacity: 0;
+}
+
+.tab-pane.fade.show {
+    opacity: 1;
+}
+
+/* 버튼 로딩 상태 */
+.btn:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+.fa-spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 알림 메시지 스타일 */
+.alert-info {
+    background-color: rgba(13, 202, 240, 0.1);
+    border-color: rgba(13, 202, 240, 0.2);
+    color: #055160;
+}
+
+/* 반응형 개선 */
+@media (max-width: 576px) {
+    .url-hint {
+        font-size: 0.75rem;
+        padding: 0.2rem 0.4rem;
+    }
+
+    .upload-type-tabs .nav-link {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+    }
+}
+
+
+/* Responsive Adjustments */
+@media (max-width: 991.98px) {
+  .upload-placeholder i {
+    font-size: 2.5rem;
+  }
+
+  .video-upload-container, .thumbnail-upload-container {
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .page-actions {
+    margin-top: 1rem;
+  }
+
+  .upload-placeholder i {
+    font-size: 2rem;
+  }
+
+  .video-upload-container, .thumbnail-upload-container {
+    padding: 1rem;
+  }
+}

@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{admin/layout/default :: html(
+        ~{::title},
+        ~{::section},
+        ~{::customCSS},
+        ~{::customJS},
+        'news',
+        'newsList'
+      )}">
+<head>
+  <title>뉴스 목록 - 관리자</title>
+
+  <!-- Custom CSS -->
+  <customCSS>
+    <link th:href="@{/assets/admin/css/newsList.css}" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css"
+          rel="stylesheet">
+    <link th:href="@{/assets/admin/css/dateRange.css}" rel="stylesheet">
+  </customCSS>
+</head>
+<body>
+<section>
+  <!-- Page Title & Actions -->
+  <div class="page-header d-flex justify-content-between align-items-center mb-4">
+    <h4 class="page-title">뉴스 목록</h4>
+    <div class="page-actions">
+      <a href="/admin/original/news/create" class="btn btn-primary">
+        <i class="fas fa-plus"></i> 뉴스 작성
+      </a>
+    </div>
+  </div>
+
+  <!-- Filter Card -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <form id="searchForm" method="get" action="/admin/original/news/list">
+        <input type="hidden" name="size" value="10">
+        <div class="row g-3">
+          <div class="col-md-3">
+            <label for="searchType" class="form-label">검색 유형</label>
+            <select class="form-select" id="searchType" name="searchType">
+              <option value="ARTICLE_TITLE"
+                      th:selected="${searchRequest.searchType?.name() == 'ARTICLE_TITLE'}">제목
+              </option>
+              <option value="ARTICLE_CONTENT"
+                      th:selected="${searchRequest.searchType?.name() == 'ARTICLE_CONTENT'}">내용
+              </option>
+              <option value="ARTICLE_AUTHOR"
+                      th:selected="${searchRequest.searchType?.name() == 'ARTICLE_AUTHOR'}">작성자
+              </option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label for="searchText" class="form-label">검색어</label>
+            <input type="text" class="form-control" id="searchText" name="searchText"
+                   th:value="${searchRequest.searchText}" placeholder="검색어를 입력하세요">
+          </div>
+          <div class="col-md-3">
+            <label for="category" class="form-label">카테고리</label>
+            <select class="form-select" id="category" name="category">
+              <option value="" th:selected="${searchRequest.category == null}">전체</option>
+              <option th:each="cat : ${categories}"
+                      th:value="${cat.name()}"
+                      th:text="${cat.displayName}"
+                      th:selected="${searchRequest.category == cat}">
+              </option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label for="publishStatus" class="form-label">공개 상태</label>
+            <select class="form-select" id="publishStatus" name="publishStatus">
+              <option value="" th:selected="${searchRequest.publishStatus == null}">전체</option>
+              <option value="true" th:selected="${searchRequest.publishStatus == true}">공개</option>
+              <option value="false" th:selected="${searchRequest.publishStatus == false}">비공개
+              </option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label for="isHot" class="form-label">핫 뉴스</label>
+            <select class="form-select" id="isHot" name="isHot">
+              <option value="" th:selected="${searchRequest.isHot == null}">전체</option>
+              <option value="true" th:selected="${searchRequest.isHot == true}">핫 뉴스만</option>
+              <option value="false" th:selected="${searchRequest.isHot == false}">일반 뉴스만</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label for="sortType" class="form-label">정렬 기준</label>
+            <select class="form-select" id="sortType" name="sortType">
+              <option value="PUBLISHED"
+                      th:selected="${searchRequest.sortType?.name() == 'PUBLISHED' || searchRequest.sortType?.name() == null}">
+                공개일
+              </option>
+              <option value="LATEST" th:selected="${searchRequest.sortType?.name() == 'LATEST'}">등록일
+              </option>
+              <option value="POPULAR" th:selected="${searchRequest.sortType?.name() == 'POPULAR'}">조회수
+              </option>
+              <option value="TITLE" th:selected="${searchRequest.sortType?.name() == 'TITLE'}">제목</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label for="sortDirection" class="form-label">정렬 방향</label>
+            <select class="form-select" id="sortDirection" name="sortDirection">
+              <option value="DESC"
+                      th:selected="${searchRequest.sortDirection?.name() == 'DESC' || searchRequest.sortDirection?.name() == null}">
+                내림차순
+              </option>
+              <option value="ASC" th:selected="${searchRequest.sortDirection?.name() == 'ASC'}">오름차순
+              </option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label for="dateRange" class="form-label">등록일 범위</label>
+            <div class="input-group date-range-input-group">
+              <span class="input-group-text"><i class="fas fa-calendar"></i></span>
+              <input type="text" class="form-control" id="dateRange" name="dateRange"
+                     th:value="${searchRequest.dateRange}" placeholder="날짜 범위 선택">
+            </div>
+          </div>
+          <div class="col-md-6 d-flex align-items-end">
+            <div class="d-grid w-100">
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-search"></i> 검색
+              </button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Results Card -->
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <div>
+        <h5 class="card-title mb-0 d-inline-block">
+          총 <span th:text="${#numbers.formatInteger(totalCount, 0, 'COMMA')}">0</span>개의 뉴스
+        </h5>
+        <span class="text-muted ms-2">
+          (페이지 <span th:text="${currentPage}">1</span>/<span th:text="${totalPages}">1</span>)
+        </span>
+      </div>
+      <div class="header-actions">
+        <div class="btn-group">
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="btnViewGrid">
+            <i class="fas fa-th-large"></i>
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-secondary active" id="btnViewList">
+            <i class="fas fa-list"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- List View (Default) -->
+    <div class="table-responsive" id="listView">
+      <table class="table table-hover align-middle">
+        <thead class="table-light">
+        <tr>
+          <th style="width: 50px;">#</th>
+          <th style="width: 120px;">썸네일</th>
+          <th>제목</th>
+          <th style="width: 100px;">상태</th>
+          <th style="width: 100px;">조회수</th>
+          <th style="width: 160px;">등록일</th>
+          <th style="width: 120px;">작업</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:if="${newsList.empty}">
+          <td colspan="7" class="text-center py-5">
+            <i class="fas fa-newspaper fa-3x text-muted mb-3"></i>
+            <p class="mb-0">조건에 맞는 뉴스가 없습니다.</p>
+          </td>
+        </tr>
+        <tr th:unless="${newsList.empty}" th:each="news : ${newsList}">
+          <td th:text="${news.articleId}">1</td>
+          <td>
+            <div class="thumbnail-wrapper">
+              <img th:src="${news.thumbnailUrl}" class="thumbnail-img" alt="썸네일">
+            </div>
+          </td>
+          <td>
+            <a th:href="@{/admin/original/news/{id}(id=${news.articleId})}" class="news-title-link"
+               th:text="${news.title}">뉴스 제목</a>
+            <div class="news-meta text-muted">
+              <small th:if="${news.isHot}" class="ms-2">
+                <i class="fas fa-fire text-warning"></i> 핫 뉴스
+              </small>
+              <small class="ms-2">
+                <i class="fas fa-user"></i> <span th:text="${news.authorName}">작성자</span>
+              </small>
+            </div>
+          </td>
+          <td>
+            <span class="badge rounded-pill"
+                  th:classappend="${news.isPublic ? 'bg-success' : 'bg-secondary'}"
+                  th:text="${news.isPublic ? '공개' : '비공개'}">공개 상태</span>
+          </td>
+          <td>
+            <span th:text="${#numbers.formatInteger(news.viewCount, 0, 'COMMA')}">0</span>
+          </td>
+          <td>
+            <span th:text="${#temporals.format(news.createdAt, 'yyyy-MM-dd HH:mm')}">2023-01-01 00:00</span>
+          </td>
+          <td>
+            <div class="btn-group">
+              <a th:href="@{/admin/original/news/{id}(id=${news.articleId})}"
+                 class="btn btn-sm btn-outline-primary">
+                <i class="fas fa-eye"></i>
+              </a>
+              <a th:href="@{/admin/original/news/update/{id}(id=${news.articleId})}"
+                 class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-edit"></i>
+              </a>
+              <button th:data-news-id="${news.articleId}"
+                      class="btn btn-sm btn-outline-danger btn-delete">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Grid View (Alternative) -->
+    <div class="card-body d-none" id="gridView">
+      <div class="row" th:if="${!newsList.empty}">
+        <div class="col-sm-6 col-md-4 col-xl-3 mb-4" th:each="news : ${newsList}">
+          <div class="news-card">
+            <div class="news-thumbnail">
+              <img th:src="${news.thumbnailUrl}" class="w-100" alt="썸네일">
+            </div>
+            <div class="news-info p-3">
+              <h6 class="news-grid-title">
+                <a th:href="@{/admin/original/news/{id}(id=${news.articleId})}"
+                   th:text="${news.title}">뉴스 제목</a>
+              </h6>
+              <div class="news-grid-meta d-flex justify-content-between align-items-center">
+                <div class="text-muted">
+                  <small>
+                    <i class="fas fa-eye"></i> <span
+                      th:text="${#numbers.formatInteger(news.viewCount, 0, 'COMMA')}">0</span>
+                  </small>
+                  <small class="ms-2">
+                    <i class="fas fa-user"></i> <span th:text="${news.authorName}">작성자</span>
+                  </small>
+                </div>
+                <div>
+                  <span class="badge"
+                        th:classappend="${news.isPublic ? 'bg-success' : 'bg-secondary'}"
+                        th:text="${news.isPublic ? '공개' : '비공개'}">공개 상태</span>
+                </div>
+              </div>
+              <div class="news-grid-actions mt-2 d-flex justify-content-between">
+                <small class="text-muted"
+                       th:text="${#temporals.format(news.createdAt, 'yyyy-MM-dd')}">2023-01-01</small>
+                <div class="btn-group btn-group-sm">
+                  <a th:href="@{/admin/original/news/{id}(id=${news.articleId})}"
+                     class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-eye"></i>
+                  </a>
+                  <a th:href="@{/admin/original/news/update/{id}(id=${news.articleId})}"
+                     class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-edit"></i>
+                  </a>
+                  <button th:data-news-id="${news.articleId}"
+                          class="btn btn-sm btn-outline-danger btn-delete">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="text-center py-5" th:if="${newsList.empty}">
+        <i class="fas fa-newspaper fa-3x text-muted mb-3"></i>
+        <p class="mb-0">조건에 맞는 뉴스가 없습니다.</p>
+      </div>
+    </div>
+
+    <!-- Pagination -->
+    <div class="card-footer d-flex justify-content-between align-items-center" th:if="${totalPages > 0}">
+      <div class="text-muted">
+        총 <span th:text="${#numbers.formatInteger(totalCount, 0, 'COMMA')}">0</span>개
+        (<span th:text="${currentPage}">1</span>/<span th:text="${totalPages}">1</span> 페이지)
+      </div>
+
+      <nav aria-label="Page navigation">
+        <ul class="pagination mb-0">
+          <!-- First Page -->
+          <li class="page-item" th:classappend="${!hasPrevious ? 'disabled' : ''}">
+            <a class="page-link"
+               th:href="@{/admin/original/news/list(page=0, size=10, searchType=${searchRequest.searchType}, searchText=${searchRequest.searchText}, category=${searchRequest.category}, publishStatus=${searchRequest.publishStatus}, isHot=${searchRequest.isHot}, sortType=${searchRequest.sortType}, sortDirection=${searchRequest.sortDirection}, dateRange=${searchRequest.dateRange})}"
+               aria-label="First">
+              <span aria-hidden="true">&laquo;&laquo;</span>
+            </a>
+          </li>
+
+          <!-- Previous Page -->
+          <li class="page-item" th:classappend="${!hasPrevious ? 'disabled' : ''}">
+            <a class="page-link"
+               th:href="@{/admin/original/news/list(page=${currentPageZeroIndex - 1}, size=10, searchType=${searchRequest.searchType}, searchText=${searchRequest.searchText}, category=${searchRequest.category}, publishStatus=${searchRequest.publishStatus}, isHot=${searchRequest.isHot}, sortType=${searchRequest.sortType}, sortDirection=${searchRequest.sortDirection}, dateRange=${searchRequest.dateRange})}"
+               aria-label="Previous">
+              <span aria-hidden="true">&laquo;</span>
+            </a>
+          </li>
+
+          <!-- Page Numbers -->
+          <li class="page-item"
+              th:each="pageNumber : ${#numbers.sequence(startPage, endPage)}"
+              th:classappend="${pageNumber == currentPage ? 'active' : ''}">
+            <a class="page-link"
+               th:href="@{/admin/original/news/list(page=${pageNumber - 1}, size=10, searchType=${searchRequest.searchType}, searchText=${searchRequest.searchText}, category=${searchRequest.category}, publishStatus=${searchRequest.publishStatus}, isHot=${searchRequest.isHot}, sortType=${searchRequest.sortType}, sortDirection=${searchRequest.sortDirection}, dateRange=${searchRequest.dateRange})}"
+               th:text="${pageNumber}">1</a>
+          </li>
+
+          <!-- Next Page -->
+          <li class="page-item" th:classappend="${!hasNext ? 'disabled' : ''}">
+            <a class="page-link"
+               th:href="@{/admin/original/news/list(page=${currentPageZeroIndex + 1}, size=10, searchType=${searchRequest.searchType}, searchText=${searchRequest.searchText}, category=${searchRequest.category}, publishStatus=${searchRequest.publishStatus}, isHot=${searchRequest.isHot}, sortType=${searchRequest.sortType}, sortDirection=${searchRequest.sortDirection}, dateRange=${searchRequest.dateRange})}"
+               aria-label="Next">
+              <span aria-hidden="true">&raquo;</span>
+            </a>
+          </li>
+
+          <!-- Last Page -->
+          <li class="page-item" th:classappend="${!hasNext ? 'disabled' : ''}">
+            <a class="page-link"
+               th:href="@{/admin/original/news/list(page=${totalPages - 1}, size=10, searchType=${searchRequest.searchType}, searchText=${searchRequest.searchText}, category=${searchRequest.category}, publishStatus=${searchRequest.publishStatus}, isHot=${searchRequest.isHot}, sortType=${searchRequest.sortType}, sortDirection=${searchRequest.sortDirection}, dateRange=${searchRequest.dateRange})}"
+               aria-label="Last">
+              <span aria-hidden="true">&raquo;&raquo;</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div class="modal fade" id="deleteConfirmModal" tabindex="-1"
+       aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="deleteConfirmModalLabel">뉴스 삭제</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"
+                  aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>정말로 이 뉴스를 삭제하시겠습니까?</p>
+          <p class="text-danger">이 작업은 되돌릴 수 없으며, 모든 관련 데이터가 삭제됩니다.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+          <button type="button" id="btnConfirmDelete" class="btn btn-danger">삭제</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Custom JS -->
+<customJS>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/l10n/ko.min.js"></script>
+  <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/plugins/rangePlugin.min.js"></script>
+  <script th:src="@{/assets/admin/js/newsList.js}" type="module"></script>
+</customJS>
+</body>
+</html>

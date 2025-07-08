@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>회원가입 - 나라걱정 클럽 관리자</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link th:href="@{/assets/admin/css/login.css}" rel="stylesheet">
+</head>
+<body>
+    <div class="background-effect">
+        <div class="shape shape1"></div>
+        <div class="shape shape2"></div>
+        <div class="shape shape3"></div>
+    </div>
+
+    <div class="container">
+        <div class="register-container">
+            <div class="card shadow-lg">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <img th:src="@{/assets/admin/images/logo.svg}" alt="나라걱정 클럽 로고" class="logo img-fluid mb-3">
+                        <h3 class="fw-bold">나라걱정 클럽 관리자</h3>
+                        <p class="text-muted">관리자 계정을 생성하세요</p>
+                    </div>
+
+                    <!-- 회원가입 폼 -->
+                    <form id="registerForm">
+                        <!-- 오류 메시지 표시 -->
+                        <div id="errorMsg" class="alert alert-danger d-none" role="alert"></div>
+
+                        <!-- 이름 입력 -->
+                        <div class="form-group mb-3">
+                            <label for="name" class="form-label">이름</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                <input type="text" id="name" name="name" class="form-control" placeholder="이름을 입력하세요" required>
+                            </div>
+                        </div>
+
+                        <!-- 아이디 입력 -->
+                        <div class="form-group mb-3">
+                            <label for="username" class="form-label">아이디</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-id-card"></i></span>
+                                <input type="text" id="username" name="username" class="form-control" placeholder="사용할 아이디를 입력하세요" required>
+                                <button type="button" class="btn btn-outline-secondary" id="checkUsername">중복확인</button>
+                            </div>
+                            <div id="usernameResult" class="form-text"></div>
+                        </div>
+
+                        <!-- 비밀번호 입력 -->
+                        <div class="form-group mb-3">
+                            <label for="password" class="form-label">비밀번호</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                <input type="password" id="password" name="password" class="form-control" placeholder="비밀번호를 입력하세요" required>
+                                <button type="button" class="btn btn-outline-secondary toggle-password" tabindex="-1">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="form-text">영문, 숫자, 특수문자를 포함하여 8자 이상으로 입력해주세요.</div>
+                        </div>
+
+                        <!-- 비밀번호 확인 -->
+                        <div class="form-group mb-3">
+                            <label for="confirmPassword" class="form-label">비밀번호 확인</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                <input type="password" id="confirmPassword" name="confirmPassword" class="form-control" placeholder="비밀번호를 다시 입력하세요" required>
+                                <button type="button" class="btn btn-outline-secondary toggle-password" tabindex="-1">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div id="passwordMatch" class="form-text"></div>
+                        </div>
+
+                        <!-- 휴대폰 번호 입력 -->
+                        <div class="form-group mb-3">
+                            <label for="phoneNumber" class="form-label">휴대폰 번호</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-mobile-alt"></i></span>
+                                <input type="tel" id="phoneNumber" name="phoneNumber" class="form-control" placeholder="010-1234-5678" required>
+                            </div>
+                        </div>
+
+                        <!-- 이메일 입력 -->
+                        <div class="form-group mb-4">
+                            <label for="email" class="form-label">이메일</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                                <input type="email" id="email" name="email" class="form-control" placeholder="이메일을 입력하세요" required>
+                            </div>
+                        </div>
+
+                        <!-- 개인정보 수집 동의 -->
+                        <div class="form-check mb-4">
+                            <input type="checkbox" id="agree" name="agree" class="form-check-input" required>
+                            <label for="agree" class="form-check-label">개인정보 수집 및 이용에 동의합니다</label>
+                        </div>
+
+                        <!-- 가입하기 버튼 -->
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg" id="registerButton" disabled>가입하기</button>
+                            <a th:href="@{/admin/auth/login}" class="btn btn-outline-secondary">로그인 페이지로 돌아가기</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <!-- Register JS Module -->
+    <script type="module" src="/assets/admin/js/register.js"></script>
+</body>
+</html>

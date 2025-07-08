@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{admin/layout/default :: html(
+        ~{::title},
+        ~{::section},
+        ~{::customCSS},
+        ~{::customJS},
+        'vote',
+        'detail'
+      )}">
+<head>
+    <title>투표 상세 - 나라걱정 관리자</title>
+
+    <!-- Custom CSS -->
+    <customCSS>
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css" rel="stylesheet">
+        <link th:href="@{/assets/admin/css/voteDetail.css}" rel="stylesheet">
+    </customCSS>
+</head>
+<body>
+<section>
+    <!-- Page Title -->
+    <div class="page-header d-flex justify-content-between align-items-center mb-4">
+        <h4 class="page-title">투표 상세</h4>
+        <div class="page-actions">
+            <a th:href="@{/admin/vote/update/{id}(id=${vote.votePostId})}" class="btn btn-outline-primary me-2">
+                <i class="fas fa-edit"></i> 수정
+            </a>
+            <a href="/admin/vote/list" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> 목록으로
+            </a>
+        </div>
+    </div>
+
+    <!-- Vote Info Card -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <h5 class="mb-3 text-primary">기본 정보</h5>
+                    <table class="table table-sm table-borderless mb-0">
+                        <tbody>
+                            <tr>
+                                <th class="ps-0" style="width: 120px;">투표 ID</th>
+                                <td th:text="${vote.votePostId}">1</td>
+                            </tr>
+                            <tr>
+                                <th class="ps-0">투표 제목</th>
+                                <td th:text="${vote.question}">투표 제목이 표시됩니다</td>
+                            </tr>
+                            <tr>
+                                <th class="ps-0">투표 기간</th>
+                                <td>
+                                    <span th:text="${#temporals.format(vote.startDate, 'yyyy-MM-dd')}">2023-01-01</span>
+                                    ~
+                                    <span th:text="${#temporals.format(vote.endDate, 'yyyy-MM-dd')}">2023-01-31</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th class="ps-0">총 참여자</th>
+                                <td>
+                                    <span th:text="${vote.voteCount}">100</span>명
+                                </td>
+                            </tr>
+<!--                            <tr>-->
+<!--                                <th class="ps-0">상태</th>-->
+<!--                                <td>-->
+<!--                                    <span th:if="${#temporals.createNow().isBefore(vote.startDate)}" class="badge bg-warning">예정됨</span>-->
+<!--                                    <span th:if="${#temporals.createNow().isAfter(vote.startDate) && #temporals.createNow().isBefore(vote.endDate)}" class="badge bg-success">진행중</span>-->
+<!--                                    <span th:if="${#temporals.createNow().isAfter(vote.endDate)}" class="badge bg-secondary">종료됨</span>-->
+<!--                                </td>-->
+<!--                            </tr>-->
+                            <tr>
+                                <th class="ps-0">등록일</th>
+                                <td th:text="${#temporals.format(vote.createdAt, 'yyyy-MM-dd HH:mm')}">2023-01-01 00:00</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="col-md-4">
+                    <div class="vote-stats-card">
+                        <div class="text-center mb-3">
+                            <h5 class="mb-1">투표 참여 현황</h5>
+                            <div class="vote-status-period" th:text="${#temporals.format(vote.startDate, 'yyyy-MM-dd')} + ' ~ ' + ${#temporals.format(vote.endDate, 'yyyy-MM-dd')}">2023-01-01 ~ 2023-01-31</div>
+                        </div>
+                        <div class="vote-progress-container">
+                            <!-- Progress Bar Visualization -->
+                            <div class="vote-progress-bar" th:style="'width: ' + ${dayPercentage} + '%'"></div>
+                        </div>
+                        <div class="d-flex justify-content-between mt-2 vote-progress-labels">
+                            <div>0%</div>
+                            <div>진행률: <span th:text="${dayPercentage} + '%'">50%</span></div>
+                            <div>100%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vote Results Card -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">투표 결과</h5>
+            <div>
+                <button id="btnRefresh" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-sync-alt"></i> 새로고침
+                </button>
+<!--                <button id="btnExportCSV" class="btn btn-sm btn-outline-secondary ms-2">-->
+<!--                    <i class="fas fa-download"></i> CSV 내보내기-->
+<!--                </button>-->
+            </div>
+        </div>
+        <div class="card-body">
+            <!-- Vote Results Table -->
+            <div class="table-responsive mb-4">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 60px;" class="text-center">순위</th>
+                            <th>선택지</th>
+                            <th style="width: 120px;" class="text-center">득표수</th>
+                            <th style="width: 180px;" class="text-center">비율</th>
+                        </tr>
+                    </thead>
+                    <tbody id="voteResultsBody">
+                        <tr th:each="option, optStat : ${vote.voteOptions}">
+                            <td class="text-center">
+                                <span class="badge bg-primary" th:if="${optStat.index < 3}" th:text="${optStat.index + 1}">1</span>
+                                <span class="text-muted" th:unless="${optStat.index < 3}" th:text="${optStat.index + 1}">4</span>
+                            </td>
+                            <td th:text="${option.optionName}">선택지 1</td>
+                            <td class="text-center" th:text="${option.voteCount}">42</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="progress flex-grow-1 me-2" style="height: 8px;">
+                                        <div class="progress-bar" th:style="'width: ' + ${option.percentage} + '%'" style="width: 65%;"></div>
+                                    </div>
+                                    <span class="text-muted" th:text="${option.percentage} + '%'">65%</span>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Vote Results Chart -->
+            <div class="row">
+                <div class="col-lg-8 offset-lg-2">
+                    <div class="vote-chart-container">
+                        <canvas id="voteResultsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Custom JS -->
+<customJS>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/l10n/ko.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script th:src="@{/assets/admin/js/voteDetail.js}" type="module"></script>
+</customJS>
+</body>
+</html>

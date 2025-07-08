@@ -1,0 +1,870 @@
+/* ======================================= */
+/* 정기구독 통합 스타일 */
+/* ======================================= */
+
+/* === 공통 컨테이너 === */
+.subscription-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 1rem;
+  min-height: 100vh;
+  background-color: #fff;
+  flex: 1;
+}
+
+/* === 공통 애니메이션 === */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spinner-border {
+  to { transform: rotate(360deg); }
+}
+
+.subscription-section {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+/* === 공통 스피너 === */
+.spinner-border {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  vertical-align: text-bottom;
+  border: 0.2em solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spinner-border 0.75s linear infinite;
+  margin-right: 6px;
+}
+
+.loading-spinner .spinner-border {
+  width: 3rem;
+  height: 3rem;
+}
+
+/* ======================================= */
+/* STEP1, STEP2 페이지 스타일 */
+/* ======================================= */
+
+/* 단계 표시기 */
+.step-indicator {
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.step-indicator h4 {
+  font-size: 16px;
+  font-weight: bold;
+  color: #0f4c81;
+  margin: 0;
+}
+
+/* Step 폼 스타일 */
+.subscription-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+.required {
+  color: #dc3545;
+}
+
+.form-control {
+  display: block;
+  width: 100%;
+  height: 48px;
+  padding: 8px 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #333;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.form-control:focus {
+  border-color: #0f4c81;
+  outline: 0;
+}
+
+/* Step2 체크박스 그룹 */
+.terms-group {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+.form-check {
+  display: flex;
+  align-items: center;
+}
+
+.form-check-input {
+  margin-right: 8px;
+}
+
+.form-check-label {
+  font-size: 14px;
+  margin-bottom: 0;
+}
+
+.terms-link {
+  font-size: 13px;
+  color: #666;
+  text-decoration: none;
+}
+
+.terms-link:hover {
+  color: #0f4c81;
+  text-decoration: underline;
+}
+
+.terms-link i {
+  font-size: 10px;
+  margin-left: 2px;
+}
+
+/* Step 버튼 스타일 */
+.form-action {
+  margin-top: 20px;
+}
+
+.btn-submit {
+  display: block;
+  width: 100%;
+  height: 50px;
+  background-color: #ccc;
+  color: #666;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: not-allowed;
+  transition: all 0.2s;
+}
+
+.btn-submit:not([disabled]) {
+  background-color: #0f4c81;
+  color: #fff;
+  cursor: pointer;
+}
+
+.btn-submit:not([disabled]):hover {
+  background-color: #0d3d6b;
+}
+
+.btn-blue {
+  background-color: #0f4c81;
+  color: #fff;
+}
+
+/* Step2 결제 정보 박스 */
+.payment-info-box {
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  padding: 15px;
+  margin-bottom: 20px;
+}
+
+.price-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.payment-label {
+  font-weight: 600;
+  color: #333;
+}
+
+.price-value {
+  font-weight: 700;
+  font-size: 18px;
+  color: #0f4c81;
+}
+
+.payment-details {
+  margin-top: 10px;
+}
+
+.detail-title {
+  font-weight: 600;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.detail-list {
+  padding-left: 20px;
+  margin-bottom: 0;
+}
+
+.detail-list li {
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+.detail-list li:last-child {
+  margin-bottom: 0;
+}
+
+/* ======================================= */
+/* 구독 랜딩 페이지 스타일 */
+/* ======================================= */
+
+/* === 로딩 섹션 === */
+.loading-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  text-align: center;
+}
+
+/* === 비구독자 섹션 === */
+
+/* 히어로 섹션 */
+.subscription-hero {
+  text-align: center;
+  padding: 2rem 0;
+  margin-bottom: 2rem;
+}
+
+.hero-icon {
+  margin-bottom: 1rem;
+}
+
+.hero-icon i {
+  font-size: 4rem;
+  color: #ffd700;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.hero-title {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.hero-subtitle {
+  font-size: 1.1rem;
+  color: #666;
+  margin: 0;
+}
+
+/* 혜택 섹션 */
+.subscription-benefits {
+  margin-bottom: 2rem;
+}
+
+.benefits-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.benefits-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.benefit-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.benefit-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.benefit-icon {
+  flex-shrink: 0;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 50%;
+  color: white;
+}
+
+.benefit-icon i {
+  font-size: 1.5rem;
+}
+
+.benefit-content h4 {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.benefit-content p {
+  font-size: 0.9rem;
+  color: #666;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* 랜딩 가격 섹션 */
+.subscription-pricing {
+  margin-bottom: 2rem;
+}
+
+.pricing-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 2rem;
+  border-radius: 16px;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+}
+
+.price-header h3 {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
+
+.price {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+}
+
+.price .amount {
+  font-size: 3rem;
+  font-weight: bold;
+}
+
+.price .currency {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.price .period {
+  font-size: 1.2rem;
+  opacity: 0.8;
+}
+
+.price-description p {
+  opacity: 0.9;
+  margin: 0;
+}
+
+/* 구독 액션 */
+.subscription-action {
+  text-align: center;
+}
+
+.btn-subscribe {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  font-size: 1.2rem;
+  font-weight: bold;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+  width: 100%;
+  max-width: 300px;
+}
+
+.btn-subscribe:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(255, 107, 107, 0.6);
+}
+
+.btn-subscribe:active {
+  transform: translateY(0);
+}
+
+.action-note {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+/* === 구독자 섹션 === */
+
+/* 환영 메시지 */
+.subscriber-welcome {
+  text-align: center;
+  padding: 2rem 0;
+  margin-bottom: 2rem;
+}
+
+.welcome-icon i {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.welcome-title {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.welcome-subtitle {
+  font-size: 1rem;
+  color: #666;
+  margin: 0;
+}
+
+/* 구독 상태 카드 */
+.subscription-status-card {
+  background: white;
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.status-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #eee;
+}
+
+.status-header h3 {
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: #333;
+  margin: 0;
+}
+
+.status-badge {
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-badge.active {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-badge.paused {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.status-badge.cancelled {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.status-badge.expired {
+  background: #e2e3e5;
+  color: #495057;
+}
+
+.status-info {
+  display: grid;
+  gap: 1rem;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.info-label {
+  font-weight: 500;
+  color: #555;
+}
+
+.info-value {
+  font-weight: 600;
+  color: #333;
+}
+
+/* 결제 히스토리 섹션 */
+.payment-history-section {
+  background: white;
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #eee;
+}
+
+.history-header h3 {
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: #333;
+  margin: 0;
+}
+
+.btn-refresh {
+  background: none;
+  border: none;
+  color: #667eea;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.btn-refresh:hover {
+  background: rgba(102, 126, 234, 0.1);
+  transform: rotate(180deg);
+}
+
+.history-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  color: #666;
+}
+
+.history-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.history-item {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: 1rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  align-items: center;
+}
+
+.history-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.history-date {
+  font-weight: 600;
+  color: #333;
+  font-size: 0.95rem;
+}
+
+.history-method {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.history-amount .amount {
+  font-weight: 600;
+  color: #333;
+}
+
+.payment-status {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.payment-status.success {
+  background: #d4edda;
+  color: #155724;
+}
+
+.payment-status.failed {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.payment-status.cancelled {
+  background: #e2e3e5;
+  color: #495057;
+}
+
+.payment-status.refunded {
+  background: #d1ecf1;
+  color: #0c5460;
+}
+
+.btn-receipt {
+  background: none;
+  border: none;
+  color: #667eea;
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.btn-receipt:hover {
+  background: rgba(102, 126, 234, 0.1);
+}
+
+.history-empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #666;
+}
+
+.history-empty i {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+/* 구독 액션 버튼들 */
+.subscription-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.btn-secondary {
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background: #5a6fd8;
+  transform: translateY(-1px);
+}
+
+.btn-outline {
+  background: transparent;
+  color: #667eea;
+  border: 2px solid #667eea;
+  padding: 1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-outline:hover {
+  background: #667eea;
+  color: white;
+  transform: translateY(-1px);
+}
+
+/* === 오류 섹션 === */
+.error-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+}
+
+.error-content {
+  text-align: center;
+  max-width: 400px;
+}
+
+.error-icon {
+  margin-bottom: 1.5rem;
+}
+
+.error-icon i {
+  font-size: 4rem;
+  color: #ff6b6b;
+}
+
+.error-content h3 {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 1rem;
+}
+
+.error-content p {
+  color: #666;
+  margin-bottom: 2rem;
+  line-height: 1.5;
+}
+
+.btn-retry {
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-retry:hover {
+  background: #5a6fd8;
+  transform: translateY(-1px);
+}
+
+/* === 모달 스타일 === */
+.manage-options {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.option-item {
+  padding: 1rem;
+  border: 1px solid #eee;
+  border-radius: 8px;
+}
+
+.option-item h6 {
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.option-item p {
+  color: #666;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+/* === 토스트 알림 === */
+.toast-container {
+  z-index: 1050;
+}
+
+.toast-container .alert {
+  min-width: 300px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+/* ======================================= */
+/* 반응형 디자인 */
+/* ======================================= */
+
+@media (max-width: 768px) {
+  .subscription-container {
+    padding: 0.5rem;
+  }
+
+  /* 랜딩 페이지 모바일 */
+  .hero-title {
+    font-size: 1.5rem;
+  }
+
+  .hero-subtitle {
+    font-size: 1rem;
+  }
+
+  .price .amount {
+    font-size: 2.5rem;
+  }
+
+  .benefit-item {
+    padding: 1rem;
+  }
+
+  .history-item {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+    text-align: center;
+  }
+
+  .subscription-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .status-header {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 360px) {
+  .subscription-container {
+    padding: 12px;
+  }
+
+  /* Step 페이지 모바일 */
+  .form-control {
+    height: 44px;
+    font-size: 14px;
+  }
+
+  .btn-submit {
+    height: 48px;
+    font-size: 15px;
+  }
+
+  .detail-list li {
+    font-size: 13px;
+  }
+
+  /* 랜딩 페이지 초소형 화면 */
+  .hero-icon i {
+    font-size: 3rem;
+  }
+
+  .welcome-icon i {
+    font-size: 3rem;
+  }
+}

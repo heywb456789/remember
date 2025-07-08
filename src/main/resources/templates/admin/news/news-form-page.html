@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>뉴스 작성/수정 - 나라 걱정 클럽 관리자</title>
+</head>
+<body>
+
+<th:block th:fragment="content">
+    <!-- 뉴스 작성/수정 폼 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form th:action="${news != null && news.id != null} ? @{/admin/news/{id}/update(id=${news.id})} : @{/admin/news/store}" 
+                          method="post" 
+                          enctype="multipart/form-data" 
+                          id="newsForm">
+                        
+                        <div class="row">
+                            <!-- 뉴스 기본 정보 -->
+                            <div class="col-xl-8 col-lg-7">
+                                <!-- 제목 -->
+                                <div class="mb-3">
+                                    <label for="newsTitle" class="form-label">제목 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="newsTitle" name="title"
+                                           th:value="${news != null} ? ${news.title} : ''" 
+                                           placeholder="뉴스 제목을 입력하세요" required>
+                                </div>
+
+                                <!-- 부제목 -->
+                                <div class="mb-3">
+                                    <label for="newsSubtitle" class="form-label">부제목</label>
+                                    <input type="text" class="form-control" id="newsSubtitle" name="subtitle"
+                                           th:value="${news != null} ? ${news.subtitle} : ''" 
+                                           placeholder="뉴스 부제목을 입력하세요">
+                                </div>
+
+                                <!-- 내용 에디터 -->
+                                <div class="mb-3">
+                                    <label for="newsContent" class="form-label">뉴스 내용 <span class="text-danger">*</span></label>
+                                    <div id="quill-editor" style="height: 300px;"></div>
+                                    <textarea id="newsContent" name="content" class="d-none" required
+                                             th:text="${news != null} ? ${news.content} : ''"></textarea>
+                                </div>
+                                
+                                <!-- 태그 -->
+                                <div class="mb-3">
+                                    <label for="newsTags" class="form-label">태그</label>
+                                    <select class="form-control select2-multiple" id="newsTags" name="tags[]" data-toggle="select2" multiple>
+                                        <option value="정치" th:selected="${news != null && news.tags != null && news.tags.contains('정치')}">정치</option>
+                                        <option value="경제" th:selected="${news != null && news.tags != null && news.tags.contains('경제')}">경제</option>
+                                        <option value="사회" th:selected="${news != null && news.tags != null && news.tags.contains('사회')}">사회</option>
+                                        <option value="안보" th:selected="${news != null && news.tags != null && news.tags.contains('안보')}">안보</option>
+                                        <option value="외교" th:selected="${news != null && news.tags != null && news.tags.contains('외교')}">외교</option>
+                                        <option value="교육" th:selected="${news != null && news.tags != null && news.tags.contains('교육')}">교육</option>
+                                        <option value="문화" th:selected="${news != null && news.tags != null && news.tags.contains('문화')}">문화</option>
+                                    </select>
+                                    <small class="text-muted">관련 태그를 선택하세요</small>
+                                </div>
+                                
+                                <!-- 출처 정보 -->
+                                <div class="mb-3">
+                                    <label for="newsSource" class="form-label">출처</label>
+                                    <input type="text" class="form-control" id="newsSource" name="source"
+                                           th:value="${news != null} ? ${news.source} : ''" 
+                                           placeholder="뉴스 출처를 입력하세요">
+                                    <small class="text-muted">예: 연합뉴스, 자체 제작 등</small>
+                                </div>
+                            </div>
+                            
+                            <!-- 사이드바 설정 -->
+                            <div class="col-xl-4 col-lg-5">
+                                <!-- 상태 및 게시 설정 -->
+                                <div class="card border">
+                                    <div class="card-body">
+                                        <h5 class="text-uppercase bg-light p-2 mt-0 mb-3">게시 설정</h5>
+
+                                        <!-- 상태 -->
+                                        <div class="mb-3">
+                                            <label for="newsStatus" class="form-label">상태</label>
+                                            <select class="form-select" id="newsStatus" name="status">
+                                                <option value="PUBLISHED" th:selected="${news != null && news.status == 'PUBLISHED'}">발행</option>
+                                                <option value="DRAFT" th:selected="${news != null && news.status == 'DRAFT'}">임시저장</option>
+                                            </select>
+                                        </div>
+
+                                        <!-- 카테고리 -->
+                                        <div class="mb-3">
+                                            <label for="newsCategory" class="form-label">카테고리</label>
+                                            <select class="form-select" id="newsCategory" name="category">
+                                                <option value="정치" th:selected="${news != null && news.category == '정치'}">정치</option>
+                                                <option value="경제" th:selected="${news != null && news.category == '경제'}">경제</option>
+                                                <option value="사회" th:selected="${news != null && news.category == '사회'}">사회</option>
+                                                <option value="국제" th:selected="${news != null && news.category == '국제'}">국제</option>
+                                                <option value="문화" th:selected="${news != null && news.category == '문화'}">문화</option>
+                                                <option value="스포츠" th:selected="${news != null && news.category == '스포츠'}">스포츠</option>
+                                                <option value="IT" th:selected="${news != null && news.category == 'IT'}">IT</option>
+                                                <option value="부동산" th:selected="${news != null && news.category == '부동산'}">부동산</option>
+                                                <option value="안보" th:selected="${news != null && news.category == '안보'}">안보</option>
+                                                <option value="환경" th:selected="${news != null && news.category == '환경'}">환경</option>
+                                            </select>
+                                        </div>
+
+                                        <!-- 작성자 -->
+                                        <div class="mb-3">
+                                            <label for="newsAuthor" class="form-label">작성자</label>
+                                            <input type="text" class="form-control" id="newsAuthor" name="author"
+                                                   th:value="${news != null} ? ${news.author} : ${#authentication.name}" 
+                                                   placeholder="작성자 이름">
+                                        </div>
+
+                                        <!-- 공개 여부 -->
+                                        <div class="mb-3">
+                                            <div class="form-check form-switch">
+                                                <input type="checkbox" class="form-check-input" id="newsVisibility" name="visibility" 
+                                                       th:checked="${news == null || news.visibility}" checked>
+                                                <label class="form-check-label" for="newsVisibility">공개</label>
+                                            </div>
+                                        </div>
+
+                                        <!-- 발행 날짜 -->
+                                        <div class="mb-3">
+                                            <label for="publishDate" class="form-label">발행 날짜</label>
+                                            <input type="datetime-local" class="form-control" id="publishDate" name="publishDate"
+                                                   th:value="${news != null && news.publishDate != null} ? ${#temporals.format(news.publishDate, 'yyyy-MM-dd''T''HH:mm')} : ${#temporals.format(#temporals.createNow(), 'yyyy-MM-dd''T''HH:mm')}">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 썸네일 설정 -->
+                                <div class="card border">
+                                    <div class="card-body">
+                                        <h5 class="text-uppercase bg-light p-2 mt-0 mb-3">썸네일</h5>
+
+                                        <div class="mb-3">
+                                            <label for="thumbnailFile" class="form-label d-block">썸네일 업로드</label>
+                                            <div class="text-center border p-3 mb-3">
+                                                <img th:if="${news != null && news.thumbnailUrl != null}" 
+                                                     th:src="${news.thumbnailUrl}" 
+                                                     id="thumbnailPreview" 
+                                                     src="/assets/images/placeholder.jpg" 
+                                                     alt="썸네일 미리보기" 
+                                                     class="img-fluid rounded" 
+                                                     style="max-height: 150px;">
+                                                <img th:unless="${news != null && news.thumbnailUrl != null}" 
+                                                     src="/assets/images/placeholder.jpg" 
+                                                     id="thumbnailPreview" 
+                                                     alt="썸네일 미리보기" 
+                                                     class="img-fluid rounded" 
+                                                     style="max-height: 150px;">
+                                            </div>
+                                            <input type="file" class="form-control" id="thumbnailFile" name="thumbnailFile" accept="image/*">
+                                            <small class="text-muted">권장 크기: 1200 x 628px (소셜 미디어 최적화)</small>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <div class="form-check form-switch">
+                                                <input type="checkbox" class="form-check-input" id="useFirstImage" name="useFirstImage" checked>
+                                                <label class="form-check-label" for="useFirstImage">썸네일이 없으면 첫 이미지 사용</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- SEO 설정 -->
+                                <div class="card border">
+                                    <div class="card-body">
+                                        <h5 class="text-uppercase bg-light p-2 mt-0 mb-3">SEO 설정</h5>
+
+                                        <!-- 메타 설명 -->
+                                        <div class="mb-3">
+                                            <label for="metaDescription" class="form-label">메타 설명</label>
+                                            <textarea class="form-control" id="metaDescription" name="metaDescription" rows="3"
+                                                     placeholder="검색 엔진용 설명" th:text="${news != null} ? ${news.metaDescription} : ''"></textarea>
+                                            <small class="text-muted">150-160자 내외로 작성하세요</small>
+                                        </div>
+
+                                        <!-- 메타 키워드 -->
+                                        <div class="mb-3">
+                                            <label for="metaKeywords" class="form-label">메타 키워드</label>
+                                            <input type="text" class="form-control" id="metaKeywords" name="metaKeywords"
+                                                   th:value="${news != null} ? ${news.metaKeywords} : ''" 
+                                                   placeholder="키워드1, 키워드2, ...">
+                                            <small class="text-muted">쉼표로 구분하세요</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 저장 버튼 -->
+                        <div class="row mt-3">
+                            <div class="col-12 text-center">
+                                <button type="button" class="btn btn-light me-2" onclick="history.back()">취소</button>
+                                <button type="button" class="btn btn-info me-2" id="previewBtn">미리보기</button>
+                                <button type="submit" class="btn btn-success" id="saveBtn">저장</button>
+                                <button type="submit" class="btn btn-primary" id="publishBtn" name="publish" value="true">발행</button>
+                            </div>
+                        </div>
+                    </form>
+                </div> <!-- end card-body-->
+            </div> <!-- end card-->
+        </div> <!-- end col -->
+    </div>
+    <!-- end row -->
+
+    <!-- 미리보기 모달 -->
+    <div class="modal fade" id="previewModal" tabindex="-1" role="dialog" aria-labelledby="previewModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title" id="previewModalLabel">뉴스 미리보기</h4>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-hidden="true"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="preview-header mb-3">
+                        <h2 id="preview-title"></h2>
+                        <p id="preview-subtitle" class="text-muted"></p>
+                        <div class="d-flex align-items-center text-muted small mb-2">
+                            <span id="preview-date"></span>
+                            <span class="mx-2">|</span>
+                            <span id="preview-author"></span>
+                        </div>
+                    </div>
+                    <div id="preview-thumbnail" class="text-center mb-3">
+                        <img src="/assets/images/placeholder.jpg" class="img-fluid rounded" alt="뉴스 썸네일">
+                    </div>
+                    <div id="preview-content" class="mb-3"></div>
+                    <div id="preview-tags" class="d-flex flex-wrap gap-1 mb-3">
+                        <!-- 태그들이 여기에 들어갑니다 -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">닫기</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</th:block>
+
+<th:block th:fragment="links">
+    <!-- Select2 css -->
+    <link th:href="@{/assets/admin/css/vendor/select2.min.css}" rel="stylesheet" type="text/css" />
+    <!-- Quill css -->
+    <link th:href="@{/assets/admin/css/vendor/quill.core.css}" rel="stylesheet" type="text/css" />
+    <link th:href="@{/assets/admin/css/vendor/quill.snow.css}" rel="stylesheet" type="text/css" />
+</th:block>
+
+<th:block th:fragment="scripts">
+    <!-- Select2 js -->
+    <script th:src="@{/assets/admin/js/vendor/select2.min.js}"></script>
+    <!-- Quill js -->
+    <script th:src="@{/assets/admin/js/vendor/quill.min.js}"></script>
+    
+    <!-- Form validation and editor setup -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Select2 초기화
+            $('.select2-multiple').select2({
+                placeholder: "태그를 선택하세요",
+                allowClear: true,
+                tags: true
+            });
+            
+            // Quill 에디터 초기화
+            var quill = new Quill('#quill-editor', {
+                theme: 'snow',
+                modules: {
+                    toolbar: [
+                        [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+                        ['bold', 'italic', 'underline', 'strike'],
+                        ['blockquote', 'code-block'],
+                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                        [{ 'indent': '-1'}, { 'indent': '+1' }],
+                        [{ 'align': [] }],
+                        ['link', 'image', 'video'],
+                        ['clean']
+                    ]
+                },
+                placeholder: '뉴스 내용을 작성하세요...'
+            });
+            
+            // 초기 내용 설정
+            var initialContent = document.getElementById('newsContent').value;
+            if (initialContent) {
+                quill.root.innerHTML = initialContent;
+            }
+            
+            // 컨텐츠 변경 시 hidden textarea에 저장
+            quill.on('text-change', function() {
+                document.getElementById('newsContent').value = quill.root.innerHTML;
+            });
+            
+            // 썸네일 미리보기
+            $('#thumbnailFile').change(function() {
+                const file = this.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        $('#thumbnailPreview').attr('src', e.target.result);
+                    }
+                    reader.readAsDataURL(file);
+                }
+            });
+            
+            // 폼 제출 전 검증
+            $('#newsForm').on('submit', function(e) {
+                const title = $('#newsTitle').val().trim();
+                const content = quill.root.innerHTML.trim();
+                
+                if (!title) {
+                    e.preventDefault();
+                    alert('제목을 입력해주세요.');
+                    $('#newsTitle').focus();
+                    return false;
+                }
+                
+                if (!content || content === '<p><br></p>') {
+                    e.preventDefault();
+                    alert('뉴스 내용을 입력해주세요.');
+                    quill.focus();
+                    return false;
+                }
+                
+                // hidden textarea에 현재 에디터 내용 저장
+                document.getElementById('newsContent').value = content;
+                
+                return true;
+            });
+            
+            // 미리보기 버튼
+            $('#previewBtn').click(function() {
+                const title = $('#newsTitle').val().trim();
+                const subtitle = $('#newsSubtitle').val().trim();
+                const content = quill.root.innerHTML;
+                const author = $('#newsAuthor').val().trim();
+                const publishDate = $('#publishDate').val();
+                
+                // 미리보기 모달에 내용 채우기
+                $('#preview-title').text(title || '제목 없음');
+                $('#preview-subtitle').text(subtitle || '');
+                $('#preview-author').text(author || '작성자 없음');
+                
+                // 날짜 포맷팅
+                const formattedDate = publishDate ? 
+                    new Date(publishDate).toLocaleString('ko-KR', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }) : 
+                    new Date().toLocaleString('ko-KR', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                $('#preview-date').text(formattedDate);
+                
+                // 썸네일 미리보기
+                const thumbnailSrc = $('#thumbnailPreview').attr('src');
+                $('#preview-thumbnail img').attr('src', thumbnailSrc);
+                
+                // 내용 미리보기
+                $('#preview-content').html(content || '<p>내용 없음</p>');
+                
+                // 태그 미리보기
+                const tags = $('#newsTags').val() || [];
+                $('#preview-tags').empty();
+                if (tags.length > 0) {
+                    tags.forEach(tag => {
+                        $('#preview-tags').append(`<span class="badge bg-light text-dark">#${tag}</span>`);
+                    });
+                } else {
+                    $('#preview-tags').append('<span class="text-muted">태그 없음</span>');
+                }
+                
+                // 모달 열기
+                $('#previewModal').modal('show');
+            });
+            
+            // 발행 버튼
+            $('#publishBtn').click(function() {
+                $('#newsStatus').val('PUBLISHED');
+            });
+        });
+    </script>
+</th:block>
+
+</body>
+</html>

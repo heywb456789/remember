@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{admin/layout/default :: html(
+        ~{::title},
+        ~{::section},
+        ~{::customCSS},
+        ~{::customJS},
+        'video',
+        'detail'
+      )}">
+<head>
+    <title>동영상 상세 - 나라걱정 관리자</title>
+
+    <!-- Custom CSS -->
+    <customCSS>
+        <link th:href="@{/assets/admin/css/videoDetail.css}" rel="stylesheet">
+    </customCSS>
+</head>
+<body>
+<section>
+    <!-- Page Title -->
+    <div class="page-header d-flex justify-content-between align-items-center mb-4">
+        <h4 class="page-title">동영상 상세</h4>
+        <div class="page-actions">
+            <a th:href="@{/admin/original/video/update/{id}(id=${video.id})}" class="btn btn-outline-primary me-2">
+                <i class="fas fa-edit"></i> 수정
+            </a>
+            <button id="btnTogglePublic" class="btn me-2" th:classappend="${video.isPublic ? 'btn-outline-warning' : 'btn-outline-success'}">
+                <i class="fas" th:classappend="${video.isPublic ? 'fa-eye-slash' : 'fa-eye'}"></i>
+                <span th:text="${video.isPublic ? '비공개로 전환' : '공개로 전환'}">공개 상태 변경</span>
+            </button>
+            <a href="/admin/original/video/list" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> 목록으로
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Content Row -->
+    <div class="row">
+        <!-- Left Column: Video Player & Details -->
+        <div class="col-xl-8 mb-4">
+            <!-- Video Player Card -->
+            <div class="card mb-4">
+                <div class="card-body p-0">
+                    <div class="video-player-container">
+                        <!-- YouTube Player -->
+                        <div th:if="${video.youtubeId != null && !video.youtubeId.isEmpty()}" class="ratio ratio-16x9">
+                            <iframe th:src="'https://www.youtube.com/embed/' + ${video.youtubeId}"
+                                    title="YouTube video player" frameborder="0"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                    allowfullscreen></iframe>
+                        </div>
+
+                        <!-- HTML5 Video Player -->
+                        <div th:unless="${video.youtubeId != null && !video.youtubeId.isEmpty()}" class="ratio ratio-16x9">
+                            <video controls th:if="${video.videoUrl != null}">
+                                <source th:src="${video.videoUrl}" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Video Details Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">동영상 정보</h5>
+                </div>
+                <div class="card-body">
+                    <div class="video-title-section mb-4">
+                        <h4 class="video-title" th:text="${video.title}">동영상 제목</h4>
+                        <div class="video-meta d-flex flex-wrap align-items-center text-muted">
+                            <span class="me-3">
+                                <i class="fas fa-eye me-1"></i>
+                                <span th:text="${#numbers.formatInteger(video.viewCount, 0, 'COMMA')}">0</span> 조회
+                            </span>
+                            <span class="me-3">
+                                <i class="fas fa-comment me-1"></i>
+                                <span th:text="${#numbers.formatInteger(video.commentCount, 0, 'COMMA')}">0</span> 댓글
+                            </span>
+                            <span class="me-3">
+                                <i class="fas fa-calendar me-1"></i>
+                                <span th:text="${#temporals.format(video.publishedAt, 'yyyy-MM-dd HH:mm')}">2023-01-01 00:00</span>
+                            </span>
+                            <span>
+                                <i class="fas fa-clock me-1"></i>
+                                <span th:text="${T(java.time.Duration).ofSeconds(video.durationSec).toMinutes() + '분 ' + (video.durationSec % 60) + '초'}">3분 0초</span>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="video-badges mb-4">
+                        <span class="badge rounded-pill" th:classappend="${video.isPublic ? 'bg-success' : 'bg-secondary'}" th:text="${video.isPublic ? '공개' : '비공개'}">공개 상태</span>
+                        <span class="badge rounded-pill bg-primary" th:if="${video.isHot}">핫 콘텐츠</span>
+                        <span class="badge rounded-pill bg-info" th:if="${video.type != null}" th:text="${video.type.displayName}">타입</span>
+                        <span class="badge rounded-pill bg-dark" th:if="${video.category != null}" th:text="${video.category.displayName}">카테고리</span>
+                    </div>
+
+                    <div class="video-description mb-4" th:if="${video.description != null && !video.description.isEmpty()}">
+                        <h6 class="section-subtitle">설명</h6>
+                        <p class="description-text" th:text="${video.description}">동영상 설명 텍스트가 여기에 표시됩니다.</p>
+                    </div>
+
+                    <div class="video-technical-info">
+                        <h6 class="section-subtitle">기술 정보</h6>
+                        <table class="table table-sm">
+                            <tbody>
+                                <tr>
+                                    <th style="width: 150px;">동영상 ID</th>
+                                    <td th:text="${video.id}">1</td>
+                                </tr>
+                                <tr th:if="${video.youtubeId != null && !video.youtubeId.isEmpty()}">
+                                    <th>YouTube ID</th>
+                                    <td th:text="${video.youtubeId}">dQw4w9WgXcQ</td>
+                                </tr>
+                                <tr>
+                                    <th>공개 시간</th>
+                                    <td th:text="${#temporals.format(video.publishedAt, 'yyyy-MM-dd HH:mm:ss')}">2023-01-01 00:00:00</td>
+                                </tr>
+                                <tr>
+                                    <th>등록 시간</th>
+                                    <td th:text="${#temporals.format(video.createdAt, 'yyyy-MM-dd HH:mm:ss')}">2023-01-01 00:00:00</td>
+                                </tr>
+                                <tr>
+                                    <th>최종 수정 시간</th>
+                                    <td th:text="${#temporals.format(video.updatedAt, 'yyyy-MM-dd HH:mm:ss')}">2023-01-01 00:00:00</td>
+                                </tr>
+                                <tr>
+                                    <th>등록자</th>
+                                    <td th:text="${video.author != null ? video.author.username : '알 수 없음'}">관리자</td>
+                                </tr>
+                                <tr th:if="${video.videoUrl != null && !video.videoUrl.isEmpty()}">
+                                    <th>동영상 URL</th>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <input type="text" class="form-control form-control-sm copy-input" readonly th:value="${video.videoUrl}">
+                                            <button class="btn btn-sm btn-outline-primary ms-2 btn-copy" data-clipboard-target="#videoUrl">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr th:if="${video.thumbnailUrl != null && !video.thumbnailUrl.isEmpty()}">
+                                    <th>썸네일 URL</th>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <input type="text" class="form-control form-control-sm copy-input" readonly th:value="${video.thumbnailUrl}">
+                                            <button class="btn btn-sm btn-outline-primary ms-2 btn-copy" data-clipboard-target="#thumbnailUrl">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Stats & Info -->
+        <div class="col-xl-4">
+            <!-- Stats Card -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">통계</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-0">
+                        <div class="col-6 text-center p-3 border-end">
+                            <h2 class="mb-1" th:text="${#numbers.formatInteger(video.viewCount, 0, 'COMMA')}">0</h2>
+                            <p class="text-muted mb-0">총 조회수</p>
+                        </div>
+                        <div class="col-6 text-center p-3">
+                            <h2 class="mb-1" th:text="${#numbers.formatInteger(video.commentCount, 0, 'COMMA')}">0</h2>
+                            <p class="text-muted mb-0">총 댓글수</p>
+                        </div>
+                    </div>
+                    <hr class="my-3">
+                    <div class="view-trend-chart">
+                        <canvas id="viewTrendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Thumbnail Card -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">썸네일</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="thumbnail-container">
+                        <img th:src="${video.thumbnailUrl}" class="w-100" alt="썸네일 이미지">
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="d-grid">
+                        <a th:href="${video.thumbnailUrl}" class="btn btn-sm btn-outline-primary" download target="_blank">
+                            <i class="fas fa-download me-1"></i> 썸네일 다운로드
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Comments Card -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">댓글</h5>
+<!--                    <a href="#" class="btn btn-sm btn-link text-muted">모든 댓글 보기</a>-->
+                </div>
+                <div class="card-body p-0">
+                    <div class="comment-list">
+                        <div th:if="${comments != null && !comments.isEmpty()}" th:each="comment : ${comments}" class="comment-item p-3 border-bottom">
+                            <div class="d-flex">
+                                <div class="comment-avatar me-3">
+                                    <div class="avatar-placeholder">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                </div>
+                                <div class="comment-content">
+                                    <div class="d-flex justify-content-between">
+                                        <h6 class="mb-1" th:text="${comment.authorName}">사용자명</h6>
+                                        <small class="text-muted" th:text="${#temporals.format(comment.createdAt, 'yyyy-MM-dd HH:mm')}">2023-01-01 00:00</small>
+                                    </div>
+                                    <p class="mb-0" th:text="${comment.content}">댓글 내용이 여기에 표시됩니다.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div th:if="${comments == null || comments.isEmpty()}" class="p-4 text-center text-muted">
+                            <i class="fas fa-comment-slash fa-2x mb-2"></i>
+                            <p class="mb-0">아직 댓글이 없습니다.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteConfirmModalLabel">동영상 삭제</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>정말로 이 동영상을 삭제하시겠습니까?</p>
+                    <p class="text-danger">이 작업은 되돌릴 수 없으며, 모든 관련 데이터(댓글 포함)가 삭제됩니다.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                    <button type="button" id="btnConfirmDelete" class="btn btn-danger">삭제</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Custom JS -->
+<customJS>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.8/clipboard.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script th:src="@{/assets/admin/js/videoDetail.js}" type="module"></script>
+</customJS>
+</body>
+</html>

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+  <title>토마토 One-ID</title>
+  <link href="/bootstrap/css/bootstrap.css" rel="stylesheet"/>
+  <script src="/bootstrap/js/bootstrap.bundle.js"></script>
+  <link href="/assets/mobile/css/login.css" rel="stylesheet"/>
+  <script src="/assets/mobile/js/login.js" type="module"></script>
+  <!-- 토스트 CSS 추가 -->
+  <style>
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+    }
+    .custom-toast {
+      background-color: rgba(255, 255, 255, 0.95);
+      border-left: 4px solid #ff9999;
+    }
+
+    /* 비밀번호 토글 스타일 */
+    .password-container {
+      position: relative;
+    }
+
+    .password-toggle {
+      position: absolute;
+      right: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #6c757d;
+      padding: 0;
+      z-index: 10;
+    }
+
+    .password-toggle:hover {
+      color: #495057;
+    }
+
+    .password-toggle svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    /* 입력 필드 오른쪽 패딩 추가 (아이콘 공간 확보) */
+    .password-container input {
+      padding-right: 45px;
+    }
+  </style>
+</head>
+<body class="d-flex align-items-start justify-content-center py-5">
+<div class="container">
+  <div class="header">
+    <div class="back-button">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M15 18l-6-6 6-6" />
+      </svg>
+    </div>
+    <h1 class="title">토마토 One-ID</h1>
+  </div>
+
+  <p class="subtitle">토마토 One-ID를 이용하세요!</p>
+
+  <form id="loginForm">
+    <div class="phone-input-container mb-3">
+      <div class="country-code">+82</div>
+      <input type="tel" class="phone-input" id="phoneNumber" placeholder="01012345678" maxlength="11" />
+    </div>
+
+    <div class="password-container mb-3">
+      <input type="password" class="form-control" id="password" placeholder="비밀번호" />
+      <button type="button" class="password-toggle" id="passwordToggle">
+        <!-- 숨김 아이콘 (기본) -->
+        <svg id="eyeHidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+          <line x1="1" y1="1" x2="23" y2="23"/>
+        </svg>
+        <!-- 보임 아이콘 -->
+        <svg id="eyeVisible" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="form-check mb-3">
+      <input class="form-check-input" type="checkbox" id="autoLogin">
+      <label class="form-check-label" for="autoLogin">
+        One-ID 자동로그인
+      </label>
+    </div>
+
+    <button type="button" class="verify-button mb-4" id="verifyButton">로그인</button>
+
+    <div class="divider">아직 계정이 없으시다면</div>
+
+    <button type="button" class="register-button" id="registerButton">회원가입</button>
+  </form>
+
+  <!-- 초대 코드 입력 모달 -->
+  <div class="modal fade" id="inviteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">초대 코드를 입력해주세요</h5>
+        </div>
+        <div class="modal-body">
+          <input type="text" id="inviteCodeInput" class="form-control" placeholder="7자리 코드" maxlength="7">
+          <div id="inviteError" class="text-danger small mt-2" style="display:none;">
+            올바른 코드가 아닙니다.
+          </div>
+          <!-- "초대코드가 없습니까?" 링크 추가 -->
+          <p class="text-center mt-2">
+            <a href="#" id="noInviteLink">초대코드가 없습니까?</a>
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="inviteCancelBtn" data-bs-dismiss="modal">취소</button>
+          <button type="button" class="btn btn-primary" id="inviteSubmitBtn">확인</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 토스트 메시지 컨테이너 -->
+  <div class="toast-container">
+    <div id="inviteCodeToast" class="toast custom-toast" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="toast-header">
+        <strong class="me-auto">알림</strong>
+        <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+      <div class="toast-body">
+        초대 코드가 확인되었습니다. 로그인 후 자동으로 적용됩니다.
+      </div>
+    </div>
+  </div>
+</div>
+
+
+</body>
+</html>

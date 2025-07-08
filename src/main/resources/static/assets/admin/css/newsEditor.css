@@ -1,0 +1,360 @@
+/* newsEditor.css - TinyMCE 에디터용 스타일 */
+
+/* 에디터 메인 스타일 */
+.tox-tinymce {
+  border-radius: 0.25rem !important;
+  border: 1px solid #dee2e6 !important;
+  font-family: 'Noto Sans KR', sans-serif !important;
+}
+
+/* 에디터 툴바 스타일 */
+.tox .tox-toolbar__group {
+  border-color: #dee2e6 !important;
+  padding: 0 4px !important;
+}
+
+.tox .tox-tbtn {
+  border-radius: 3px !important;
+}
+
+.tox .tox-tbtn:hover {
+  background-color: #e9ecef !important;
+}
+
+.tox .tox-tbtn--enabled, .tox .tox-tbtn--enabled:hover {
+  background-color: #e2e6ea !important;
+}
+
+/* 에디터 콘텐츠 영역 */
+.tox .tox-edit-area {
+  border-top: 1px solid #dee2e6 !important;
+}
+
+/* 에디터 콘텐츠 내 이미지 스타일 */
+.tox-tinymce-aux {
+  z-index: 1500 !important; /* 부트스트랩 모달보다 높게 설정 */
+}
+
+/* 강조 상자(Callout) 스타일 */
+.news-callout {
+  background-color: rgba(114, 124, 245, 0.1);
+  border-left: 4px solid #727cf5;
+  padding: 1rem;
+  margin: 1rem 0;
+  border-radius: 0 0.25rem 0.25rem 0;
+}
+
+/* 출처 스타일 */
+.news-source {
+  color: #6c757d;
+  font-size: 0.9rem;
+  font-style: italic;
+  margin-top: 0.5rem;
+  text-align: right;
+}
+
+/* 이미지 정렬 및 크기 스타일 */
+.mce-content-body .image-align-left {
+  float: left;
+  margin-right: 1rem;
+  margin-bottom: 1rem;
+}
+
+.mce-content-body .image-align-center {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: 1rem;
+}
+
+.mce-content-body .image-align-right {
+  float: right;
+  margin-left: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* 이미지 캡션 스타일 */
+.mce-content-body .image-caption {
+  display: block;
+  text-align: center;
+  font-size: 0.9em;
+  color: #6c757d;
+  margin-top: 0.25rem;
+  font-style: italic;
+}
+
+/* 이미지 크기 클래스 */
+.mce-content-body .image-width-100 {
+  width: 100%;
+  height: auto;
+}
+
+.mce-content-body .image-width-75 {
+  width: 75%;
+  height: auto;
+}
+
+.mce-content-body .image-width-50 {
+  width: 50%;
+  height: auto;
+}
+
+.mce-content-body .image-width-33 {
+  width: 33%;
+  height: auto;
+}
+
+.mce-content-body .image-width-25 {
+  width: 25%;
+  height: auto;
+}
+
+/* 에디터 내 이미지 선택 스타일 */
+.mce-content-body img {
+  max-width: 100%;
+  height: auto;
+}
+
+.mce-content-body img[data-mce-selected] {
+  outline: 2px solid #727cf5;
+}
+
+/* 한글 글꼴 스타일 */
+.font-noto-sans {
+  font-family: 'Noto Sans KR', sans-serif !important;
+}
+
+.font-nanumgothic {
+  font-family: 'Nanum Gothic', sans-serif !important;
+}
+
+.font-malgun {
+  font-family: 'Malgun Gothic', sans-serif !important;
+}
+
+.font-gulim {
+  font-family: 'Gulim', sans-serif !important;
+}
+
+.font-batang {
+  font-family: 'Batang', serif !important;
+}
+
+.font-dotum {
+  font-family: 'Dotum', sans-serif !important;
+}
+
+/* 폰트 크기 클래스 */
+.font-size-small {
+  font-size: 0.85em !important;
+}
+
+.font-size-normal {
+  font-size: 1em !important;
+}
+
+.font-size-large {
+  font-size: 1.25em !important;
+}
+
+.font-size-xlarge {
+  font-size: 1.5em !important;
+}
+
+.font-size-xxlarge {
+  font-size: 2em !important;
+}
+
+/* 미리보기 내 이미지 스타일 */
+.preview-content img {
+  max-width: 100%; /* 기본 크기 제한 */
+  height: auto;
+}
+
+/* 오른쪽 정렬 이미지 (텍스트 감싸기) */
+.preview-content img[style*="float: right"],
+.preview-content img.image-wrap-right {
+  float: right !important;
+  margin: 0 0 10px 15px !important;
+  max-width: 50% !important;
+  clear: right;
+}
+
+/* 왼쪽 정렬 이미지 (텍스트 감싸기) */
+.preview-content img[style*="float: left"],
+.preview-content img.image-wrap-left {
+  float: left !important;
+  margin: 0 15px 10px 0 !important;
+  max-width: 50% !important;
+  clear: left;
+}
+
+
+.preview-content .image-align-left {
+  float: left;
+  margin-right: 1rem;
+  margin-bottom: 1rem;
+}
+
+.preview-content .image-align-center {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: 1rem;
+}
+
+.preview-content .image-align-right {
+  float: right;
+  margin-left: 1rem;
+  margin-bottom: 1rem;
+}
+
+.preview-content .image-caption {
+  display: block;
+  text-align: center;
+  font-size: 0.9em;
+  color: #6c757d;
+  margin-top: 0.25rem;
+  font-style: italic;
+}
+
+/* 미리보기 내 링크 스타일 */
+.preview-content a {
+  color: #727cf5;
+  text-decoration: none;
+}
+
+/* 중요: float 이후 내용이 클리어되도록 설정 */
+.preview-content::after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+/* p 태그 간격 설정 */
+.preview-content p {
+  margin: 0 0 1em 0;
+}
+
+.preview-content a:hover {
+  text-decoration: underline;
+}
+
+/* 미리보기 내 테이블 스타일 */
+.preview-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.preview-content table td,
+.preview-content table th {
+  border: 1px solid #dee2e6;
+  padding: 0.5rem;
+}
+
+.preview-content table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+}
+
+/* 미리보기 내 커스텀 스타일 적용 */
+.preview-content .news-callout {
+  background-color: rgba(114, 124, 245, 0.1);
+  border-left: 4px solid #727cf5;
+  padding: 1rem;
+  margin: 1rem 0;
+  border-radius: 0 0.25rem 0.25rem 0;
+}
+
+.preview-content .news-source {
+  color: #6c757d;
+  font-size: 0.9rem;
+  font-style: italic;
+  margin-top: 0.5rem;
+  text-align: right;
+}
+
+/* 하이라이트 배경색 스타일 */
+.highlight-yellow {
+  background-color: rgba(255, 193, 7, 0.3);
+  padding: 0 2px;
+}
+
+.highlight-green {
+  background-color: rgba(40, 167, 69, 0.3);
+  padding: 0 2px;
+}
+
+.highlight-blue {
+  background-color: rgba(0, 123, 255, 0.3);
+  padding: 0 2px;
+}
+
+.highlight-red {
+  background-color: rgba(220, 53, 69, 0.3);
+  padding: 0 2px;
+}
+
+/* 에디터 및 미리보기에서 float 사용 후 clear */
+.preview-content::after,
+.mce-content-body::after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+/* 에디터 커스텀 버튼 스타일 */
+.custom-btn {
+  display: flex;
+  align-items: center;
+  padding: 0.2rem 0.5rem;
+  background-color: #f8f9fa;
+  border: 1px solid #ced4da;
+  border-radius: 0.25rem;
+  color: #495057;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.custom-btn:hover {
+  background-color: #e9ecef;
+}
+
+.custom-btn i {
+  margin-right: 0.25rem;
+}
+
+/* 에디터 패널 스타일 오버라이드 */
+.tox .tox-dialog {
+  border-radius: 0.25rem !important;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+.tox .tox-dialog__header {
+  padding: 1rem !important;
+  background-color: #f8f9fa !important;
+  border-bottom: 1px solid #dee2e6 !important;
+}
+
+.tox .tox-dialog__footer {
+  padding: 1rem !important;
+  background-color: #f8f9fa !important;
+  border-top: 1px solid #dee2e6 !important;
+}
+
+.tox .tox-button {
+  border-radius: 0.25rem !important;
+  font-size: 0.875rem !important;
+  padding: 0.375rem 0.75rem !important;
+}
+
+.tox .tox-button--primary {
+  background-color: #727cf5 !important;
+  border-color: #727cf5 !important;
+}
+
+.tox .tox-button--secondary {
+  background-color: #6c757d !important;
+  border-color: #6c757d !important;
+}

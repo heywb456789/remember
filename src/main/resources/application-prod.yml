@@ -1,0 +1,73 @@
+# =======================================================
+# 토마토리멤버 운영환경 설정 (기존 설정 기반)
+# =======================================================
+
+server:
+  port: ${SERVER_PORT:8032}  # 기존 설정 유지
+
+spring:
+  # =======================================================
+  # JPA 설정 (운영용)
+  # =======================================================
+  jpa:
+    hibernate:
+      ddl-auto: validate  # 기존 설정 유지 (운영에서는 스키마 변경 금지)
+    show-sql: false       # 운영환경에서는 SQL 로그 비활성화
+
+  # =======================================================
+  # JWT 보안 설정 (운영용 - HTTPS 필수)
+  # =======================================================
+  security:
+    jwt:
+      cookie:
+        secure: true  # 기존 설정 유지 (HTTPS 필수)
+
+  # =======================================================
+  # 데이터소스 설정 (기존 설정 유지)
+  # =======================================================
+  datasource:
+    url: ${DB_URL:jdbc:log4jdbc:mariadb://192.168.10.12:3306/tomato_remember}  # DB명만 변경
+    driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
+    username: ${DB_ID:root}
+    password: ${DB_PW:tomato0425@!}
+    hikari:
+      connection-timeout: 30000
+      maximum-pool-size: 10
+      minimum-idle: 1
+      connection-test-query: SELECT 1
+      idle-timeout: 600000
+      pool-name: ${spring.application.name}-pool
+
+  # =======================================================
+  # 파일 업로드/표시 설정 (기존 설정 유지)
+  # =======================================================
+  app:
+    display: https://image.newstomato.com/newstomato/club
+    upload:
+      root: /test
+      ftp:
+        host: 1.201.174.63
+        port: 21
+        user: tomatochain
+        password: tomatochain1!
+
+# =======================================================
+# NICE 본인인증 설정 (기존 설정 유지)
+# =======================================================
+nice:
+  call-back: https://club1.newstomato.com/api/auth/pass/callback
+
+# =======================================================
+# 복제 설정 (기존 설정 유지)
+# =======================================================
+original:
+  replication: true
+
+# =======================================================
+# 운영환경 로깅 설정
+# =======================================================
+logging:
+  level:
+    com.tomato.remember: INFO
+    org.springframework.web: WARN
+    org.springframework.security: WARN

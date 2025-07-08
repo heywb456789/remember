@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{admin/layout/default :: html(
+        ~{::title},
+        ~{::section},
+        ~{::customCSS},
+        ~{::customJS},
+        'board',
+        'boardList'
+      )}">
+<head>
+  <title>게시글 관리 - 나라걱정 관리자</title>
+
+  <!-- Custom CSS -->
+  <customCSS>
+    <link th:href="@{/assets/admin/css/boardList.css}" rel="stylesheet">
+  </customCSS>
+</head>
+<body>
+<section>
+  <!-- Page Title and Buttons -->
+  <div class="page-header d-flex justify-content-between align-items-center mb-4">
+    <h4 class="page-title">게시글 관리</h4>
+    <div class="page-actions">
+      <button type="button" id="btnDelete" class="btn btn-danger" disabled>
+        <i class="fas fa-trash"></i> 삭제
+      </button>
+    </div>
+  </div>
+
+  <!-- Search Area -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <form id="searchForm" method="get" action="/admin/board/list">
+        <div class="row g-3 align-items-center">
+          <div class="col-auto">
+            <select id="searchType" name="searchType" class="form-select">
+              <option value="BOARD_TITLE"
+                      th:selected="${request?.searchType?.name() == 'BOARD_TITLE'}">제목
+              </option>
+              <option value="BOARD_CONTENT"
+                      th:selected="${request?.searchType?.name() == 'BOARD_CONTENT'}">내용
+              </option>
+              <option value="BOARD_AUTHOR"
+                      th:selected="${request?.searchType?.name() == 'BOARD_AUTHOR'}">작성자
+              </option>
+            </select>
+          </div>
+          <div class="col">
+            <div class="input-group">
+              <input type="text" id="searchText" name="searchText" class="form-control"
+                     th:value="${request?.searchText}" placeholder="검색어를 입력하세요">
+              <button class="btn btn-outline-secondary" type="button" id="btnSearch">
+                <i class="fas fa-search"></i> 검색
+              </button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Board List Table -->
+  <div class="card">
+    <!-- 카드 헤더 추가 -->
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <div>
+        <h5 class="card-title mb-0 d-inline-block">
+          총 <span th:text="${#numbers.formatInteger(totalCount, 0, 'COMMA')}">0</span>개의 게시글
+        </h5>
+        <span class="text-muted ms-2">
+                (페이지 <span th:text="${currentPage}">1</span>/<span th:text="${totalPages}">1</span>)
+            </span>
+      </div>
+    </div>
+
+    <div class="card-body">
+      <!-- 기존 테이블 내용... -->
+      <div class="table-responsive">
+        <table id="boardTable" class="table table-hover">
+          <thead>
+          <tr>
+            <th><input type="checkbox" id="checkAll" class="form-check-input"></th>
+            <th>번호</th>
+            <th>제목</th>
+            <th>작성자</th>
+            <th>작성일</th>
+            <th>조회수</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr th:each="board : ${boardList}" th:data-id="${board.boardId}">
+            <td>
+              <input type="checkbox" class="form-check-input row-check" th:value="${board.boardId}">
+            </td>
+            <td th:text="${board.boardId}">1</td>
+            <td class="board-title">
+              <a th:href="@{'/admin/board/' + ${board.boardId}}"
+                 th:text="${board.title}">제목</a>
+            </td>
+            <td th:text="${board.authorName}">작성자</td>
+            <td th:text="${#temporals.format(board.createdAt,'yyyy-MM-dd')}">2025-04-28</td>
+            <td th:text="${board.views}">100</td>
+          </tr>
+          <tr th:if="${#lists.isEmpty(boardList)}">
+            <td colspan="6" class="text-center py-4">등록된 게시글이 없습니다.</td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 3. 페이징 완전 수정 -->
+      <div class="d-flex justify-content-between align-items-center mt-3" th:if="${totalPages > 0}">
+        <div class="text-muted">
+          총 <span th:text="${#numbers.formatInteger(totalCount, 0, 'COMMA')}">0</span>개
+          (<span th:text="${currentPage}">1</span>/<span th:text="${totalPages}">1</span> 페이지)
+        </div>
+
+        <nav aria-label="Page navigation">
+          <ul class="pagination mb-0">
+            <!-- First Page -->
+            <li class="page-item" th:classappend="${!hasPrevious ? 'disabled' : ''}">
+              <a class="page-link"
+                 th:href="@{/admin/board/list(page=0, size=10, searchType=${request.searchType}, searchText=${request.searchText})}"
+                 aria-label="First">
+                <span aria-hidden="true">&laquo;&laquo;</span>
+              </a>
+            </li>
+
+            <!-- Previous Page -->
+            <li class="page-item" th:classappend="${!hasPrevious ? 'disabled' : ''}">
+              <a class="page-link"
+                 th:href="@{/admin/board/list(page=${currentPageZeroIndex - 1}, size=10, searchType=${request.searchType}, searchText=${request.searchText})}"
+                 aria-label="Previous">
+                <span aria-hidden="true">&laquo;</span>
+              </a>
+            </li>
+
+            <!-- Page Numbers -->
+            <li class="page-item"
+                th:each="pageNumber : ${#numbers.sequence(startPage, endPage)}"
+                th:classappend="${pageNumber == currentPage ? 'active' : ''}">
+              <a class="page-link"
+                 th:href="@{/admin/board/list(page=${pageNumber - 1}, size=10, searchType=${request.searchType}, searchText=${request.searchText})}"
+                 th:text="${pageNumber}">1</a>
+            </li>
+
+            <!-- Next Page -->
+            <li class="page-item" th:classappend="${!hasNext ? 'disabled' : ''}">
+              <a class="page-link"
+                 th:href="@{/admin/board/list(page=${currentPageZeroIndex + 1}, size=10, searchType=${request.searchType}, searchText=${request.searchText})}"
+                 aria-label="Next">
+                <span aria-hidden="true">&raquo;</span>
+              </a>
+            </li>
+
+            <!-- Last Page -->
+            <li class="page-item" th:classappend="${!hasNext ? 'disabled' : ''}">
+              <a class="page-link"
+                 th:href="@{/admin/board/list(page=${totalPages - 1}, size=10, searchType=${request.searchType}, searchText=${request.searchText})}"
+                 aria-label="Last">
+                <span aria-hidden="true">&raquo;&raquo;</span>
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirmation Modal -->
+  <div class="modal fade" id="confirmModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">삭제 확인</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          선택한 게시글을 정말 삭제하시겠습니까?
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+          <button type="button" class="btn btn-danger" id="btnConfirmDelete">삭제</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Custom JS -->
+<customJS>
+  <script th:src="@{/assets/admin/js/boardList.js}" type="module"></script>
+</customJS>
+</body>
+</html>

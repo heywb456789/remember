@@ -1,0 +1,65 @@
+/* 댓글 수정 폼 스타일 */
+.edit-comment-form {
+  margin-top: 8px;
+  width: 100%;
+}
+
+.edit-comment-form textarea {
+  width: 100%;
+  min-height: 80px;
+  resize: vertical;
+  border-radius: 0.25rem;
+  padding: 0.5rem;
+  border: 1px solid #ced4da;
+  margin-bottom: 8px;
+}
+
+.edit-comment-form textarea:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 0.2rem rgba(44, 123, 229, 0.25);
+  outline: none;
+}
+
+.edit-comment-form .btn-group {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.comment-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.comment-actions .btn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+.comment-header {
+  margin-bottom: 0.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* 모바일 화면에서의 댓글 수정 버튼 스타일 */
+@media (max-width: 576px) {
+  .comment-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .comment-actions {
+    margin-top: 8px;
+    align-self: flex-end;
+  }
+
+  .edit-comment-form .btn-group {
+    width: 100%;
+  }
+
+  .edit-comment-form .btn {
+    flex: 1;
+  }
+}

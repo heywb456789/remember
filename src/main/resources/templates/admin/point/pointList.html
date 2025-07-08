@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{admin/layout/default :: html(
+        ~{::title},
+        ~{::section},
+        ~{::customCSS},
+        ~{::customJS},
+        'points',
+        'pointList'
+      )}">
+<head>
+    <title>포인트 내역 목록 - 관리자</title>
+
+    <!-- Custom CSS -->
+    <customCSS>
+        <link th:href="@{/assets/admin/css/pointList.css}" rel="stylesheet">
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css"
+              rel="stylesheet">
+        <link th:href="@{/assets/admin/css/dateRange.css}" rel="stylesheet">
+    </customCSS>
+</head>
+<body>
+<section>
+    <!-- Page Title & Actions -->
+    <div class="page-header d-flex justify-content-between align-items-center mb-4">
+        <h4 class="page-title">포인트 내역 목록</h4>
+        <div class="page-actions">
+<!--            <button type="button" class="btn btn-success me-2" id="btnExportExcel">-->
+<!--                <i class="fas fa-download me-1"></i> Excel 내보내기-->
+<!--            </button>-->
+        </div>
+    </div>
+
+    <!-- Filter Card -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form id="searchForm" method="get" action="/admin/points/list">
+                <input type="hidden" name="size" value="10">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label for="searchType" class="form-label">검색 유형</label>
+                        <select class="form-select" id="searchType" name="searchType">
+                            <option value="USER_NAME"
+                                    th:selected="${searchRequest.searchType?.name() == 'USER_NAME'}">회원 이름
+                            </option>
+                            <option value="USER_ID"
+                                    th:selected="${searchRequest.searchType?.name() == 'USER_ID'}">회원 아이디
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="searchText" class="form-label">검색어</label>
+                        <input type="text" class="form-control" id="searchText" name="searchText"
+                               th:value="${searchRequest.searchText}" placeholder="검색어를 입력하세요">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="status" class="form-label">포인트 상태</label>
+                        <select class="form-select" id="status" name="status">
+                            <option value="" th:selected="${searchRequest.status == null}">전체</option>
+                            <option value="POINT_EARN" th:selected="${searchRequest.status?.name() == 'POINT_EARN'}">적립</option>
+                            <option value="POINT_USE" th:selected="${searchRequest.status?.name() == 'POINT_USE'}">사용</option>
+                            <option value="POINT_REVOKE" th:selected="${searchRequest.status?.name() == 'POINT_REVOKE'}">회수</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="type" class="form-label">포인트 유형</label>
+                        <select class="form-select" id="type" name="type">
+                            <option value="" th:selected="${searchRequest.type == null}">전체</option>
+                            <option value="SHARE_VOTE" th:selected="${searchRequest.type?.name() == 'SHARE_VOTE'}">투표 공유</option>
+                            <option value="SHARE_BOARD" th:selected="${searchRequest.type?.name() == 'SHARE_BOARD'}">게시판 공유</option>
+                            <option value="SHARE_NEWS" th:selected="${searchRequest.type?.name() == 'SHARE_NEWS'}">뉴스 공유</option>
+                            <option value="SHARE_VIDEO_LONG" th:selected="${searchRequest.type?.name() == 'SHARE_VIDEO_LONG'}">롱폼 공유</option>
+                            <option value="SHARE_VIDEO_SHORT" th:selected="${searchRequest.type?.name() == 'SHARE_VIDEO_SHORT'}">숏폼 공유</option>
+                            <option value="REFERRAL_CODE_ENTRY" th:selected="${searchRequest.type?.name() == 'REFERRAL_CODE_ENTRY'}">초대코드 입력 보상</option>
+                            <option value="REFERRAL_INVITER_BONUS" th:selected="${searchRequest.type?.name() == 'REFERRAL_INVITER_BONUS'}">초대코드 제공 보상</option>
+                            <option value="WRITE_BOARD" th:selected="${searchRequest.type?.name() == 'WRITE_BOARD'}">자유게시판 작성</option>
+                            <option value="WRITE_BOARD_COMMENT" th:selected="${searchRequest.type?.name() == 'WRITE_BOARD_COMMENT'}">자유게시판 댓글</option>
+                            <option value="WRITE_NEWS_COMMENT" th:selected="${searchRequest.type?.name() == 'WRITE_NEWS_COMMENT'}">뉴스 댓글</option>
+                            <option value="WRITE_VIDEO_LONG_COMMENT" th:selected="${searchRequest.type?.name() == 'WRITE_VIDEO_LONG_COMMENT'}">오리지날 롱폼 댓글</option>
+                            <option value="WRITE_VIDEO_SHORT_COMMENT" th:selected="${searchRequest.type?.name() == 'WRITE_VIDEO_SHORT_COMMENT'}">오리지날 숏폼 댓글</option>
+                            <option value="WRITE_VOTE_COMMENT" th:selected="${searchRequest.type?.name() == 'WRITE_VOTE_COMMENT'}">투표 댓글</option>
+                            <option value="APPLY_VOTE" th:selected="${searchRequest.type?.name() == 'APPLY_VOTE'}">투표 참여</option>
+                            <option value="USE_POINT" th:selected="${searchRequest.type?.name() == 'USE_POINT'}">포인트 사용</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="dateRange" class="form-label">날짜 범위</label>
+                        <div class="input-group date-range-input-group">
+                            <span class="input-group-text"><i class="fas fa-calendar"></i></span>
+                            <input type="text" class="form-control" id="dateRange" name="dateRange"
+                                   th:value="${searchRequest.dateRange}" placeholder="날짜 범위 선택">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="sortType" class="form-label">정렬 기준</label>
+                        <select class="form-select" id="sortType" name="sortType">
+                            <option value="LATEST"
+                                    th:selected="${searchRequest.sortType?.name() == 'LATEST' || searchRequest.sortType?.name() == null}">
+                                최신순
+                            </option>
+                            <option value="USER_NAME" th:selected="${searchRequest.sortType?.name() == 'USER_NAME'}">회원명순</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="sortDirection" class="form-label">정렬 방향</label>
+                        <select class="form-select" id="sortDirection" name="sortDirection">
+                            <option value="DESC"
+                                    th:selected="${searchRequest.sortDirection?.name() == 'DESC' || searchRequest.sortDirection?.name() == null}">
+                                내림차순
+                            </option>
+                            <option value="ASC" th:selected="${searchRequest.sortDirection?.name() == 'ASC'}">오름차순
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 d-flex align-items-end">
+                        <div class="d-grid w-100">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search me-1"></i> 검색
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Results Card -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+                <h5 class="card-title mb-0 d-inline-block">
+                    총 <span th:text="${#numbers.formatInteger(totalCount, 0, 'COMMA')}">0</span>개의 포인트 내역
+                </h5>
+                <span class="text-muted ms-2">
+                    (페이지 <span th:text="${currentPage}">1</span>/<span th:text="${totalPages}">1</span>)
+                </span>
+            </div>
+        </div>
+
+        <!-- List View -->
+        <div class="table-responsive">
+            <table class="table table-centered table-hover align-middle">
+                <thead class="table-light">
+                <tr>
+                    <th style="width: 50px;">seq.</th>
+                    <th style="width: 120px;">회원 ID</th>
+                    <th style="width: 120px;">회원 이름</th>
+                    <th style="width: 120px;">유형</th>
+                    <th>적립/사용 사유</th>
+                    <th style="width: 120px;">금액</th>
+                    <th style="width: 120px;">잔여 포인트</th>
+                    <th style="width: 160px;">처리일시</th>
+                    <th style="width: 80px;">상세</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:if="${pointHistoryList.empty}">
+                    <td colspan="9" class="text-center py-5">
+                        <i class="fas fa-coins fa-3x text-muted mb-3"></i>
+                        <p class="mb-0">조건에 맞는 포인트 내역이 없습니다.</p>
+                    </td>
+                </tr>
+                <tr th:unless="${pointHistoryList.empty}" th:each="point : ${pointHistoryList}">
+                    <td th:text="${point.pointId}">1</td>
+                    <td>
+                        <a href="#" class="text-dark" th:text="${point.memberId}"
+                           th:href="@{/admin/users/app/user/{id}(id=${point.memberId})}">user123</a>
+                    </td>
+                    <td>
+                        <a href="#" class="text-dark" th:text="${point.memberName}"
+                           th:href="@{/admin/users/app/user/{id}(id=${point.memberId})}">홍길동</a>
+                    </td>
+                    <td>
+                        <span class="badge"
+                              th:classappend="${point.status.name() == 'POINT_EARN' ? 'bg-success' : 'bg-primary'}"
+                              th:text="${point.type != null ? point.type.getDisplayName() : '기타'}">투표 공유</span>
+                        <span th:if="${point.status.name() == 'POINT_USE'}" class="badge bg-light text-dark ms-1">
+                            <i class="fas fa-check-circle text-primary"></i> 사용
+                        </span>
+                    </td>
+                    <td class="text-center">
+                        <span th:text="${point.reason}">투표 참여 포인트 적립</span>
+                    </td>
+                    <td>
+                        <span th:class="${point.status.name() == 'POINT_EARN' ? 'text-success' : 'text-danger'}">
+                          <i th:class="${point.status.name() == 'POINT_EARN' ? 'fas fa-plus' : 'fas fa-minus'}" th:if="${point.status.name() != 'POINT_REVOKE'}"></i>
+                          <span th:text="${#numbers.formatDecimal(point.point, 1, 3, 'COMMA')}"></span>
+                        </span>
+                    </td>
+                    <td>
+                        <span th:text="${#numbers.formatDecimal(point.memberPoint, 1, 5, 'COMMA')}">15,000</span>
+                    </td>
+                    <td>
+                        <span th:if="${point.createdAt != null}" th:text="${#temporals.format(point.createdAt, 'yyyy-MM-dd HH:mm')}">2023-01-01 00:00</span>
+                    </td>
+                    <td>
+                        <a th:href="@{/admin/points/user/{id}(id=${point.memberId})}" class="btn btn-sm btn-light" data-bs-toggle="tooltip" title="회원 포인트 상세보기">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="card-footer d-flex justify-content-between align-items-center" th:if="${totalPages > 0}">
+            <div class="text-muted">
+                총 <span th:text="${#numbers.formatInteger(totalCount, 0, 'COMMA')}">0</span>개
+                (<span th:text="${currentPage}">1</span>/<span th:text="${totalPages}">1</span> 페이지)
+            </div>
+
+            <nav aria-label="Page navigation">
+                <ul class="pagination mb-0">
+                    <!-- First Page -->
+                    <li class="page-item" th:classappend="${!hasPrevious ? 'disabled' : ''}">
+                        <a class="page-link"
+                           th:href="@{/admin/points/list(page=0, size=10, searchType=${searchRequest.searchType}, searchText=${searchRequest.searchText}, status=${searchRequest.status}, type=${searchRequest.type}, sortType=${searchRequest.sortType}, sortDirection=${searchRequest.sortDirection}, dateRange=${searchRequest.dateRange})}"
+                           aria-label="First">
+                            <span aria-hidden="true">&laquo;&laquo;</span>
+                        </a>
+                    </li>
+
+                    <!-- Previous Page -->
+                    <li class="page-item" th:classappend="${!hasPrevious ? 'disabled' : ''}">
+                        <a class="page-link"
+                           th:href="@{/admin/points/list(page=${currentPageZeroIndex - 1}, size=10, searchType=${searchRequest.searchType}, searchText=${searchRequest.searchText}, status=${searchRequest.status}, type=${searchRequest.type}, sortType=${searchRequest.sortType}, sortDirection=${searchRequest.sortDirection}, dateRange=${searchRequest.dateRange})}"
+                           aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+
+                    <!-- Page Numbers -->
+                    <li class="page-item"
+                        th:each="pageNumber : ${#numbers.sequence(startPage, endPage)}"
+                        th:classappend="${pageNumber == currentPage ? 'active' : ''}">
+                        <a class="page-link"
+                           th:href="@{/admin/points/list(page=${pageNumber - 1}, size=10, searchType=${searchRequest.searchType}, searchText=${searchRequest.searchText}, status=${searchRequest.status}, type=${searchRequest.type}, sortType=${searchRequest.sortType}, sortDirection=${searchRequest.sortDirection}, dateRange=${searchRequest.dateRange})}"
+                           th:text="${pageNumber}">1</a>
+                    </li>
+
+                    <!-- Next Page -->
+                    <li class="page-item" th:classappend="${!hasNext ? 'disabled' : ''}">
+                        <a class="page-link"
+                           th:href="@{/admin/points/list(page=${currentPageZeroIndex + 1}, size=10, searchType=${searchRequest.searchType}, searchText=${searchRequest.searchText}, status=${searchRequest.status}, type=${searchRequest.type}, sortType=${searchRequest.sortType}, sortDirection=${searchRequest.sortDirection}, dateRange=${searchRequest.dateRange})}"
+                           aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+
+                    <!-- Last Page -->
+                    <li class="page-item" th:classappend="${!hasNext ? 'disabled' : ''}">
+                        <a class="page-link"
+                           th:href="@{/admin/points/list(page=${totalPages - 1}, size=10, searchType=${searchRequest.searchType}, searchText=${searchRequest.searchText}, status=${searchRequest.status}, type=${searchRequest.type}, sortType=${searchRequest.sortType}, sortDirection=${searchRequest.sortDirection}, dateRange=${searchRequest.dateRange})}"
+                           aria-label="Last">
+                            <span aria-hidden="true">&raquo;&raquo;</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</section>
+
+<!-- Custom JS -->
+<customJS>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/l10n/ko.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/plugins/rangePlugin.min.js"></script>
+    <script th:src="@{/assets/admin/js/pointList.js}" type="module"></script>
+</customJS>
+</body>
+</html>

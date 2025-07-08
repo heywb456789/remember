@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{admin/layout/default :: html(
+        ~{::title},
+        ~{::section},
+        ~{::customCSS},
+        ~{::customJS},
+        'points',
+        'activity'
+      )}">
+<head>
+  <title>활동내역 심사 - 관리자</title>
+
+  <!-- Custom CSS -->
+  <customCSS>
+    <link th:href="@{/assets/admin/css/activityList.css}" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css"
+          rel="stylesheet">
+    <link th:href="@{/assets/admin/css/dateRange.css}" rel="stylesheet">
+  </customCSS>
+</head>
+<body>
+<section>
+  <!-- Page Title & Actions -->
+  <div class="page-header d-flex justify-content-between align-items-center mb-4">
+    <h4 class="page-title">활동내역 심사</h4>
+    <div class="page-actions">
+      <button type="button" class="btn btn-success me-2" id="btnBulkApprove">
+        <i class="fas fa-check me-1"></i> 일괄 승인
+      </button>
+      <button type="button" class="btn btn-danger me-2" id="btnBulkReject">
+        <i class="fas fa-times me-1"></i> 일괄 거절
+      </button>
+    </div>
+  </div>
+
+  <!-- Filter Card -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <form id="searchForm" method="get" action="/admin/activity/list">
+        <input type="hidden" name="size" value="10">
+        <div class="row g-3">
+          <div class="col-md-3">
+            <label for="searchType" class="form-label">검색 유형</label>
+            <select class="form-select" id="searchType" name="searchType">
+              <option value="MEMBER_NAME"
+                      th:selected="${searchRequest.searchType?.name() == 'MEMBER_NAME'}">회원 이름
+              </option>
+              <option value="MEMBER_ID"
+                      th:selected="${searchRequest.searchType?.name() == 'MEMBER_ID'}">회원 아이디
+              </option>
+              <option value="TITLE"
+                      th:selected="${searchRequest.searchType?.name() == 'TITLE'}">제목
+              </option>
+              <option value="LINK"
+                      th:selected="${searchRequest.searchType?.name() == 'LINK'}">링크
+              </option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label for="searchText" class="form-label">검색어</label>
+            <input type="text" class="form-control" id="searchText" name="searchText"
+                   th:value="${searchRequest.searchText}" placeholder="검색어를 입력하세요">
+          </div>
+          <div class="col-md-3">
+            <label for="stage" class="form-label">심사 상태</label>
+            <select class="form-select" id="stage" name="stage">
+              <option value="" th:selected="${searchRequest.stage == null}">전체</option>
+              <option value="PENDING_REVIEW"
+                      th:selected="${searchRequest.stage?.name() == 'PENDING_REVIEW'}">지급검토중
+              </option>
+              <option value="APPROVED" th:selected="${searchRequest.stage?.name() == 'APPROVED'}">
+                지급완료
+              </option>
+              <option value="REJECTED" th:selected="${searchRequest.stage?.name() == 'REJECTED'}">
+                지급거절
+              </option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label for="dateRange" class="form-label">등록일 범위</label>
+            <div class="input-group date-range-input-group">
+              <span class="input-group-text"><i class="fas fa-calendar"></i></span>
+              <input type="text" class="form-control" id="dateRange" name="dateRange"
+                     th:value="${searchRequest.dateRange}" placeholder="날짜 범위 선택">
+            </div>
+          </div>
+          <div class="col-md-3">
+            <label for="sortType" class="form-label">정렬 기준</label>
+            <select class="form-select" id="sortType" name="sortType">
+              <option value="LATEST"
+                      th:selected="${searchRequest.sortType?.name() == 'LATEST' || searchRequest.sortType?.name() == null}">
+                최신순
+              </option>
+              <option value="MEMBER_NAME"
+                      th:selected="${searchRequest.sortType?.name() == 'MEMBER_NAME'}">회원명순
+              </option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label for="sortDirection" class="form-label">정렬 방향</label>
+            <select class="form-select" id="sortDirection" name="sortDirection">
+              <option value="DESC"
+                      th:selected="${searchRequest.sortDirection?.name() == 'DESC' || searchRequest.sortDirection?.name() == null}">
+                내림차순
+              </option>
+              <option value="ASC" th:selected="${searchRequest.sortDirection?.name() == 'ASC'}">오름차순
+              </option>
+            </select>
+          </div>
+          <div class="col-md-6 d-flex align-items-end">
+            <div class="d-grid w-100">
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-search me-1"></i> 검색
+              </button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Results Card -->
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <div>
+        <h5 class="card-title mb-0 d-inline-block">
+          총 <span th:text="${#numbers.formatInteger(totalCount, 0, 'COMMA')}">0</span>개의 활동내역
+        </h5>
+        <span class="text-muted ms-2">
+          (페이지 <span th:text="${currentPage}">1</span>/<span th:text="${totalPages}">1</span>)
+        </span>
+      </div>
+      <div class="header-actions">
+        <div class="form-check d-inline-block me-2">
+          <input class="form-check-input" type="checkbox" id="selectAll">
+          <label class="form-check-label" for="selectAll">전체 선택</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- List View -->
+    <div class="table-responsive">
+      <table class="table table-centered table-hover align-middle">
+        <thead class="table-light">
+        <tr>
+          <th style="width: 40px;"></th>
+          <th style="width: 50px;">seq.</th>
+          <th style="width: 120px;">회원 ID</th>
+          <th style="width: 120px;">회원 이름</th>
+          <th>제목</th>
+          <th style="width: 120px;">심사 상태</th>
+          <th style="width: 160px;">등록일시</th>
+          <th style="width: 180px;">작업</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:if="${activityList.empty}">
+          <td colspan="8" class="text-center py-5">
+            <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+            <p class="mb-0">조건에 맞는 활동내역이 없습니다.</p>
+          </td>
+        </tr>
+        <tr th:unless="${activityList.empty}" th:each="activity : ${activityList}">
+          <td>
+            <div class="form-check">
+              <input type="checkbox" class="form-check-input activity-select"
+                     th:id="${'select-' + activity.activityId}"
+                     th:data-id="${activity.activityId}"
+                     th:data-stage="${activity.stage.name()}"
+                     th:disabled="${activity.stage.name() != 'PENDING_REVIEW'}">
+              <label class="form-check-label" th:for="${'select-' + activity.activityId}"></label>
+            </div>
+          </td>
+          <td th:text="${activity.activityId}">1</td>
+          <td>
+            <a href="#" class="text-dark" th:text="${activity.memberId}"
+               th:href="@{/admin/users/app/user/{id}(id=${activity.memberId})}">user123</a>
+          </td>
+          <td>
+            <a href="#" class="text-dark" th:text="${activity.memberName}"
+               th:href="@{/admin/users/app/user/{id}(id=${activity.memberId})}">홍길동</a>
+          </td>
+          <td class="text-start">
+            <a th:href="${activity.shareLink}" target="_blank" class="activity-title-link">
+              <span th:text="${activity.title}">활동 제목</span>
+              <i class="fas fa-external-link-alt ms-1 small"></i>
+            </a>
+          </td>
+          <td>
+                        <span class="badge"
+                              th:classappend="${activity.stage.name() == 'PENDING_REVIEW' ? 'bg-warning' : (activity.stage.name() == 'APPROVED' ? 'bg-success' : 'bg-danger')}"
+                              th:text="${activity.stage.displayName}">지급검토중</span>
+          </td>
+          <td>
+            <span th:if="${activity.createdAt != null}"
+                  th:text="${#temporals.format(activity.createdAt, 'yyyy-MM-dd HH:mm')}">2023-01-01 00:00</span>
+          </td>
+          <td>
+            <div class="d-flex justify-content-center gap-2">
+              <button th:if="${activity.stage.name() == 'PENDING_REVIEW'}"
+                      class="btn btn-sm btn-outline-success btn-approve"
+                      th:data-id="${activity.activityId}" data-bs-toggle="tooltip" title="승인">
+                <i class="fas fa-check"></i>
+              </button>
+              <button th:if="${activity.stage.name() == 'PENDING_REVIEW'}"
+                      class="btn btn-sm btn-outline-danger btn-reject"
+                      th:data-id="${activity.activityId}" data-bs-toggle="tooltip" title="거절">
+                <i class="fas fa-times"></i>
+              </button>
+              <button class="btn btn-sm btn-outline-primary btn-view"
+                      th:data-id="${activity.activityId}"
+                      th:data-link="${activity.shareLink}"
+                      th:data-title="${activity.title}"
+                      data-bs-toggle="tooltip" title="미리보기">
+                <i class="fas fa-eye"></i>
+              </button>
+              <!--              <a th:href="@{/admin/activities/{id}(id=${activity.activityId})}" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" title="상세보기">-->
+              <!--                <i class="fas fa-info-circle"></i>-->
+              <!--              </a>-->
+            </div>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="card-footer d-flex justify-content-between align-items-center"
+         th:if="${totalPages > 0}">
+      <div class="text-muted">
+        총 <span th:text="${#numbers.formatInteger(totalCount, 0, 'COMMA')}">0</span>개
+        (<span th:text="${currentPage}">1</span>/<span th:text="${totalPages}">1</span> 페이지)
+      </div>
+
+      <nav aria-label="Page navigation">
+        <ul class="pagination mb-0">
+          <!-- First Page -->
+          <li class="page-item" th:classappend="${!hasPrevious ? 'disabled' : ''}">
+            <a class="page-link"
+               th:href="@{/admin/activity/list(page=0, size=10, searchType=${searchRequest.searchType}, searchText=${searchRequest.searchText}, stage=${searchRequest.stage}, sortType=${searchRequest.sortType}, sortDirection=${searchRequest.sortDirection}, dateRange=${searchRequest.dateRange})}"
+               aria-label="First">
+              <span aria-hidden="true">&laquo;&laquo;</span>
+            </a>
+          </li>
+
+          <!-- Previous Page -->
+          <li class="page-item" th:classappend="${!hasPrevious ? 'disabled' : ''}">
+            <a class="page-link"
+               th:href="@{/admin/activity/list(page=${currentPageZeroIndex - 1}, size=10, searchType=${searchRequest.searchType}, searchText=${searchRequest.searchText}, stage=${searchRequest.stage}, sortType=${searchRequest.sortType}, sortDirection=${searchRequest.sortDirection}, dateRange=${searchRequest.dateRange})}"
+               aria-label="Previous">
+              <span aria-hidden="true">&laquo;</span>
+            </a>
+          </li>
+
+          <!-- Page Numbers -->
+          <li class="page-item"
+              th:each="pageNumber : ${#numbers.sequence(startPage, endPage)}"
+              th:classappend="${pageNumber == currentPage ? 'active' : ''}">
+            <a class="page-link"
+               th:href="@{/admin/activity/list(page=${pageNumber - 1}, size=10, searchType=${searchRequest.searchType}, searchText=${searchRequest.searchText}, stage=${searchRequest.stage}, sortType=${searchRequest.sortType}, sortDirection=${searchRequest.sortDirection}, dateRange=${searchRequest.dateRange})}"
+               th:text="${pageNumber}">1</a>
+          </li>
+
+          <!-- Next Page -->
+          <li class="page-item" th:classappend="${!hasNext ? 'disabled' : ''}">
+            <a class="page-link"
+               th:href="@{/admin/activity/list(page=${currentPageZeroIndex + 1}, size=10, searchType=${searchRequest.searchType}, searchText=${searchRequest.searchText}, stage=${searchRequest.stage}, sortType=${searchRequest.sortType}, sortDirection=${searchRequest.sortDirection}, dateRange=${searchRequest.dateRange})}"
+               aria-label="Next">
+              <span aria-hidden="true">&raquo;</span>
+            </a>
+          </li>
+
+          <!-- Last Page -->
+          <li class="page-item" th:classappend="${!hasNext ? 'disabled' : ''}">
+            <a class="page-link"
+               th:href="@{/admin/activity/list(page=${totalPages - 1}, size=10, searchType=${searchRequest.searchType}, searchText=${searchRequest.searchText}, stage=${searchRequest.stage}, sortType=${searchRequest.sortType}, sortDirection=${searchRequest.sortDirection}, dateRange=${searchRequest.dateRange})}"
+               aria-label="Last">
+              <span aria-hidden="true">&raquo;&raquo;</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </div>
+
+  <!-- Activity Preview Modal -->
+  <div class="modal fade" id="activityPreviewModal" tabindex="-1"
+       aria-labelledby="activityPreviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="activityPreviewModalTitle">활동 미리보기</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"
+                  aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">공유 링크:</label>
+            <div class="input-group">
+              <input type="text" class="form-control" id="previewLink" readonly>
+              <button class="btn btn-outline-secondary" type="button" id="btnCopyLink">
+                <i class="fas fa-copy"></i>
+              </button>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">새 창에서 열기:</label>
+            <div>
+              <a href="#" class="btn btn-sm btn-primary" id="btnOpenLink" target="_blank">
+                <i class="fas fa-external-link-alt me-1"></i> 링크 열기
+              </a>
+            </div>
+          </div>
+          <div class="preview-container mt-3">
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle me-2"></i>
+              링크를 확인하려면 '링크 열기' 버튼을 클릭하세요. 미리보기가 제한될 수 있습니다.
+            </div>
+            <div class="embed-responsive mb-3" id="previewContainer">
+              <!-- 미리보기가 여기에 표시됩니다 -->
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-success" id="btnApproveInModal">승인</button>
+          <button type="button" class="btn btn-danger" id="btnRejectInModal">거절</button>
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">닫기</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bulk Approve Modal -->
+  <div class="modal fade" id="bulkApproveModal" tabindex="-1"
+       aria-labelledby="bulkApproveModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="bulkApproveModalLabel">일괄 승인</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"
+                  aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>선택한 <span id="approveSelectedCount" class="fw-bold">0</span>개의 활동을 승인하시겠습니까?</p>
+
+          <!-- 포인트 유형 선택 드롭다운 추가 -->
+          <div class="mb-3">
+            <label for="pointType" class="form-label">포인트 유형:</label>
+            <select class="form-select" id="pointType">
+              <option value="SHARE_VOTE">투표 공유</option>
+              <option value="SHARE_BOARD">자유게시판 공유</option>
+              <option value="SHARE_NEWS">뉴스 공유</option>
+              <option value="SHARE_VIDEO_LONG">롱폼 공유</option>
+              <option value="SHARE_VIDEO_SHORT">숏폼 공유</option>
+            </select>
+          </div>
+
+          <p>승인 시 해당 회원에게 선택한 유형의 포인트가 지급됩니다.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">취소</button>
+          <button type="button" class="btn btn-success" id="btnConfirmBulkApprove">
+            <i class="fas fa-check me-1"></i> 승인
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bulk Reject Modal -->
+  <div class="modal fade" id="bulkRejectModal" tabindex="-1" aria-labelledby="bulkRejectModalLabel"
+       aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="bulkRejectModalLabel">일괄 거절</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"
+                  aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>선택한 <span id="rejectSelectedCount" class="fw-bold">0</span>개의 활동을 거절하시겠습니까?</p>
+          <div class="mb-3">
+            <label for="bulkRejectReason" class="form-label">거절 사유:</label>
+            <select class="form-select" id="bulkRejectReason">
+              <option value="INVALID_LINK">유효하지 않은 링크</option>
+              <option value="DUPLICATE_SUBMISSION">중복 제출</option>
+              <option value="INAPPROPRIATE_CONTENT">부적절한 내용</option>
+              <option value="OTHER">기타</option>
+            </select>
+          </div>
+          <div class="mb-3" id="otherReasonContainer" style="display: none;">
+            <label for="otherRejectReason" class="form-label">기타 사유:</label>
+            <textarea class="form-control" id="otherRejectReason" rows="3"
+                      placeholder="기타 거절 사유를 입력하세요"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">취소</button>
+          <button type="button" class="btn btn-danger" id="btnConfirmBulkReject">
+            <i class="fas fa-times me-1"></i> 거절
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Single Approve Modal -->
+  <div class="modal fade" id="singleApproveModal" tabindex="-1"
+       aria-labelledby="singleApproveModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="singleApproveModalLabel">활동 승인</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"
+                  aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>이 활동을 승인하시겠습니까?</p>
+
+          <!-- 포인트 유형 선택 드롭다운 -->
+          <div class="mb-3">
+            <label for="singlePointType" class="form-label">포인트 유형:</label>
+            <select class="form-select" id="singlePointType">
+              <option value="SHARE_VOTE">투표 공유</option>
+              <option value="SHARE_BOARD">자유게시판 공유</option>
+              <option value="SHARE_NEWS">뉴스 공유</option>
+              <option value="SHARE_VIDEO_LONG">롱폼 공유</option>
+              <option value="SHARE_VIDEO_SHORT">숏폼 공유</option>
+            </select>
+          </div>
+
+          <p>승인 시 해당 회원에게 선택한 유형의 포인트가 지급됩니다.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">취소</button>
+          <button type="button" class="btn btn-success" id="btnConfirmSingleApprove">
+            <i class="fas fa-check me-1"></i> 승인
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<!-- Custom JS -->
+<customJS>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/l10n/ko.min.js"></script>
+  <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/plugins/rangePlugin.min.js"></script>
+  <script th:src="@{/assets/admin/js/activityList.js}" type="module"></script>
+</customJS>
+</body>
+</html>

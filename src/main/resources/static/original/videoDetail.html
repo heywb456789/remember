@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>동영상 상세 - 뉴스토마토</title>
+  <link href="/bootstrap/css/bootstrap.css" rel="stylesheet"/>
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="/css/common.css" rel="stylesheet"/>
+  <link href="/css/original/videoDetail.css" rel="stylesheet"/>
+  <script src="/bootstrap/js/bootstrap.bundle.js"></script>
+  <script src="/js/common.js" type="module"></script>
+  <script src="/js/original/videoDetail.js" type="module"></script>
+  <script
+      src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.5/kakao.min.js"
+      integrity="sha384-dok87au0gKqJdxs7msEdBPNnKSRT+/mhTVzq+qOhcL464zXwvcrpjeWvyj1kCdq6"
+      crossorigin="anonymous">
+
+    Kakao.init('277f475e199d62bca2ac85a09b0d3045');
+    console.log('Kakao SDK initialized:', Kakao.isInitialized());
+  </script>
+</head>
+<body>
+<!-- 공통 컴포넌트 컨테이너 -->
+<div id="side-menu-container"></div>
+
+<div class="main-container">
+  <!-- 공통 헤더 컨테이너 -->
+  <div id="header-container"></div>
+
+  <!-- 공통 탭 메뉴 컨테이너 -->
+  <div id="tab-menu-container"></div>
+
+  <!-- 상세 헤더 -->
+  <div class="detail-header">
+    <button class="back-button" id="backButton">
+      <i class="fas fa-arrow-left"></i>
+    </button>
+    <h1 class="detail-title">뉴스토마토 오리지널</h1>
+  </div>
+
+  <!-- 비디오 컨테이너 -->
+  <div class="video-container">
+    <div class="video-wrapper" id="videoWrapper">
+      <!-- 비디오 썸네일 및 재생 버튼 -->
+      <div class="video-thumbnail-container" id="thumbnailContainer">
+        <img src="" alt="비디오 썸네일" class="video-thumbnail" id="videoThumbnail">
+        <div class="play-button" id="playButton">
+          <i class="fas fa-play"></i>
+        </div>
+      </div>
+
+      <!-- 비디오 플레이어 -->
+      <video id="videoPlayer" class="video-player" controls preload="metadata">
+        <source src="" type="video/mp4">
+        브라우저가 비디오 재생을 지원하지 않습니다.
+      </video>
+
+      <!-- 비디오 컨트롤 -->
+      <div class="video-controls" id="videoControls">
+        <div class="progress-container">
+          <div class="progress-bar" id="progressBar">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+        </div>
+        <div class="controls-buttons">
+          <button class="control-button" id="playPauseButton">
+            <i class="fas fa-play"></i>
+          </button>
+          <div class="volume-container">
+            <button class="control-button" id="muteButton">
+              <i class="fas fa-volume-up"></i>
+            </button>
+            <div class="volume-slider-container">
+              <input type="range" class="volume-slider" id="volumeSlider" min="0" max="1" step="0.1"
+                     value="1">
+            </div>
+          </div>
+          <div class="time-display">
+            <span id="currentTime">00:00</span>
+            <span>/</span>
+            <span id="totalTime">00:00</span>
+          </div>
+          <button class="control-button fullscreen-button" id="fullscreenButton">
+            <i class="fas fa-expand"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 비디오 정보 -->
+  <div class="video-info-container">
+    <h2 class="video-title" id="videoTitle"></h2>
+
+    <!-- 비디오 메타 정보 -->
+    <div class="video-meta">
+      <span class="video-date" id="videoDate"></span>
+      <div class="video-stats">
+        <div class="stat-item">
+          <i class="far fa-eye"></i>
+          <span id="viewCount">0</span>
+        </div>
+        <div class="stat-item">
+          <i class="far fa-comment"></i>
+          <span id="commentCount">0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 상호작용 버튼 -->
+    <div class="video-actions">
+      <!--        <button class="action-button like-button" id="likeButton">-->
+      <!--          <i class="far fa-heart"></i>-->
+      <!--          <span>좋아요</span>-->
+      <!--        </button>-->
+      <button class="action-button share-button" id="shareButton">
+        <i class="fas fa-share-alt"></i>
+        <span>공유</span>
+      </button>
+    </div>
+
+    <!-- 비디오 설명 -->
+    <div class="video-description-container">
+      <p class="video-description" id="videoDescription"></p>
+      <button class="more-button" id="moreButton">더보기</button>
+    </div>
+  </div>
+
+  <!-- 댓글 섹션 -->
+  <div class="comments-section">
+    <div class="section-divider">
+      <span>댓글</span>
+    </div>
+
+    <!-- 댓글 작성 -->
+    <div class="comment-input-container">
+      <input type="text" class="comment-input" id="commentInput" placeholder="댓글을 입력하세요...">
+      <button class="btn btn-primary" id="commentSubmitButton">등록</button>
+    </div>
+
+    <!-- 댓글 목록 -->
+    <div class="comments-container" id="commentsContainer">
+      <!-- 댓글 없음 메시지 -->
+      <div class="no-comments" id="noComments">
+        <p>아직 댓글이 없습니다.</p>
+        <p>첫 댓글을 작성해보세요!</p>
+      </div>
+      <!-- 댓글 목록이 JavaScript로 추가됩니다 -->
+    </div>
+  </div>
+</div>
+
+<!-- 공유모달 -->
+<div id="shareModal" class="modal fade" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-3">
+      <div class="modal-body text-center">
+        <div class="d-flex justify-content-around mb-3">
+          <!-- 카카오톡 공유 버튼 컨테이너 -->
+          <div id="kakaotalk-sharing-btn" class="share-modal-btn">
+            <img src="/images/kakao.svg" alt="카카오톡" width="32"/>
+            <span class="share-label">카카오톡</span>
+          </div>
+
+          <!-- 통통 공유 버튼 -->
+          <div id="shareTongtong" class="share-modal-btn">
+            <img src="/images/tongtong_icon.png" alt="통통" width="32"/>
+            <span class="share-label">통통</span>
+          </div>
+
+          <!--X (구 트위터) -->
+          <div id="shareX" class="share-modal-btn">
+            <img src="/images/twitter.png" alt="X" width="32"/>
+            <span class="share-label">X</span>
+          </div>
+
+          <!-- URL 복사 버튼 -->
+          <div id="copyUrl" class="share-modal-btn">
+            <img src="/images/copy.svg" alt="URL 복사" width="32"/>
+            <span class="share-label">URL 복사</span>
+          </div>
+        </div>
+        <button class="btn btn-secondary w-100" data-bs-dismiss="modal">취소</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

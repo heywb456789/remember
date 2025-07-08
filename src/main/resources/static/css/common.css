@@ -1,0 +1,193 @@
+/* 공통 스타일 (헤더, 사이드바, 탭 메뉴) */
+
+/* 기본 스타일 */
+body {
+  font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  background-color: #f8f9fa;
+  color: #333;
+  margin: 0;
+  padding: 0;
+}
+
+.main-container {
+  max-width: 480px;
+  margin: 0 auto;
+  background-color: white;
+  min-height: 100vh;
+  position: relative;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+}
+
+/* 사이드 메뉴 관련 스타일 */
+.menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 998;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.menu-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.side-menu {
+  position: fixed;
+  top: 0;
+  left: -280px; /* 초기에는 화면 밖에 위치 */
+  width: 280px;
+  height: 100%;
+  background-color: white;
+  z-index: 999;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+  transition: left 0.3s ease;
+  overflow-y: auto;
+}
+
+.side-menu.active {
+  left: 0; /* 활성화 시 화면에 표시 */
+}
+
+.side-menu-header {
+  display: flex;
+  align-items: center;
+  padding: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.side-menu-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.side-menu-logo img {
+  width: 24px;
+  height: 24px;
+}
+
+.side-menu-logo span {
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.side-menu-content {
+  padding: 15px 0;
+}
+
+.side-menu-item {
+  padding: 12px 15px;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+}
+
+.side-menu-item:hover {
+  background-color: #f5f5f5;
+}
+
+.side-menu-item.active {
+  font-weight: bold;
+  background-color: #f0f0f0;
+}
+
+/* 헤더 로고 & 아이콘 */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.menu-button, .search-button, .profile-button {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #333;
+  cursor: pointer;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: bold;
+  color: #333;
+  text-decoration: none;
+}
+
+.logo img {
+  width: 24px;
+  height: 24px;
+}
+
+.right-icons {
+  display: flex;
+  gap: 15px;
+}
+
+/* 탭 메뉴 */
+.tab-menu {
+  display: flex;
+  border-bottom: 1px solid #eee;
+  background-color: white;
+  overflow-x: auto;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+}
+
+.tab-menu::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+.tab-item {
+  padding: 12px 15px;
+  font-size: 14px;
+  color: #666;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.tab-item.active {
+  color: #333;
+  font-weight: bold;
+  border-bottom: 2px solid #333;
+}
+
+/**************/
+/* components/common.css */
+
+.header-search-panel {
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  background: white;
+  border-bottom: 1px solid #ddd;
+}
+.header-search-panel select,
+.header-search-panel input {
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}
+#header-search-input {
+  flex: 1;
+}
+#header-search-submit {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+}

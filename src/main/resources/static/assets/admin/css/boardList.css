@@ -1,0 +1,194 @@
+/* ======= Board List Specific Styles ======= */
+
+/* Page Header */
+.page-header {
+  margin-bottom: 1.5rem;
+}
+
+.page-title {
+  margin-bottom: 0;
+  font-weight: 600;
+  color: var(--dark-color);
+}
+
+.page-actions .btn {
+  margin-left: 0.5rem;
+}
+
+/* Search Area */
+.search-area {
+  background-color: #fff;
+  border-radius: var(--card-border-radius);
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+/* Board Table */
+.table-responsive {
+  overflow-x: auto;
+}
+
+#boardTable {
+  margin-bottom: 1rem;
+  background-color: #fff;
+}
+
+#boardTable thead th {
+  background-color: #f8f9fa;
+  border-top: 1px solid #dee2e6;
+  border-bottom: 2px solid #dee2e6;
+  color: #495057;
+  font-weight: 600;
+  text-align: center;
+  padding: 0.75rem;
+  vertical-align: middle;
+}
+
+#boardTable tbody td {
+  padding: 0.75rem;
+  vertical-align: middle;
+  border-bottom: 1px solid #ededed;
+  text-align: center;
+}
+
+/* 줄무늬 스타일 제거 */
+.table-striped > tbody > tr:nth-of-type(odd) {
+  background-color: transparent !important;
+}
+
+/* 선택된 행 스타일 */
+#boardTable tbody tr.table-active {
+  background-color: rgba(44, 123, 229, 0.08) !important;
+}
+
+#boardTable tbody tr {
+  transition: background-color 0.15s ease-in-out;
+  cursor: pointer;
+}
+
+#boardTable tbody tr:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* 제목 정렬 */
+.board-title {
+  text-align: left !important;
+}
+
+.board-title a {
+  color: #212529;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.board-title a:hover {
+  color: var(--primary-color);
+  text-decoration: underline;
+}
+
+/* 댓글 수 표시 */
+.comment-count {
+  display: inline-block;
+  font-size: 0.75rem;
+  background-color: var(--primary-color);
+  color: white;
+  border-radius: 0.25rem;
+  padding: 0.1rem 0.4rem;
+  margin-left: 0.5rem;
+  vertical-align: middle;
+}
+
+/* Pagination */
+.pagination-wrapper {
+  margin-top: 1.5rem;
+}
+
+.pagination .page-link {
+  color: var(--dark-color);
+  background-color: #fff;
+  border: 1px solid #dee2e6;
+  padding: 0.375rem 0.75rem;
+}
+
+.pagination .page-item.active .page-link {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
+}
+
+.pagination .page-item.disabled .page-link {
+  color: #6c757d;
+  pointer-events: none;
+  background-color: #fff;
+  border-color: #dee2e6;
+}
+
+.pagination .page-link:hover {
+  color: var(--primary-color);
+  background-color: #e9ecef;
+  border-color: #dee2e6;
+}
+
+.pagination .page-item:first-child .page-link {
+  border-top-left-radius: 0.25rem;
+  border-bottom-left-radius: 0.25rem;
+}
+
+.pagination .page-item:last-child .page-link {
+  border-top-right-radius: 0.25rem;
+  border-bottom-right-radius: 0.25rem;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 767.98px) {
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .page-actions {
+    margin-top: 1rem;
+    display: flex;
+    width: 100%;
+  }
+
+  .page-actions .btn {
+    flex: 1;
+    margin-left: 0;
+    margin-right: 0.5rem;
+  }
+
+  .page-actions .btn:last-child {
+    margin-right: 0;
+  }
+
+  #boardTable {
+    min-width: 600px;
+  }
+
+  .pagination .page-link {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+  }
+}
+
+/* 삭제 확인 모달 */
+#confirmModal .modal-content {
+  border-radius: var(--card-border-radius);
+  border: 0;
+}
+
+#confirmModal .modal-header {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+}
+
+#confirmModal .modal-title {
+  font-weight: 600;
+  color: var(--dark-color);
+}
+
+#confirmModal .modal-footer {
+  border-top: 1px solid #dee2e6;
+}

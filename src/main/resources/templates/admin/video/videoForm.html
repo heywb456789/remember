@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{admin/layout/default :: html(
+        ~{::title},
+        ~{::section},
+        ~{::customCSS},
+        ~{::customJS},
+        'video',
+        'videoCreate'
+      )}">
+<head>
+    <title th:text="${video != null ? '동영상 수정' : '동영상 업로드'} + ' - 나라걱정 관리자'">동영상 업로드/수정 - 나라걱정 관리자</title>
+
+    <!-- Custom CSS -->
+    <customCSS>
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css" rel="stylesheet">
+        <link th:href="@{/assets/admin/css/videoForm.css}" rel="stylesheet">
+        <style>
+            /* 유튜브 검증 스타일 추가 */
+            .form-control.is-valid {
+                border-color: #198754;
+                padding-right: calc(1.5em + 0.75rem);
+                background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%23198754' d='m2.3 6.73.41-.4c.21-.2.56-.2.77 0l.72.72 1.96-1.96c.21-.2.56-.2.77 0l.41.4c.21.2.21.56 0 .77L4.11 8.31c-.21.2-.56.2-.77 0L2.3 7.5c-.21-.2-.21-.56 0-.77z'/%3e%3c/svg%3e");
+                background-repeat: no-repeat;
+                background-position: right calc(0.375em + 0.1875rem) center;
+                background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+            }
+
+            .form-control.is-invalid {
+                border-color: #dc3545;
+                padding-right: calc(1.5em + 0.75rem);
+                background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath d='m5.8 4.6 2.4 2.4m0-2.4L5.8 7'/%3e%3c/svg%3e");
+                background-repeat: no-repeat;
+                background-position: right calc(0.375em + 0.1875rem) center;
+                background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+            }
+        </style>
+    </customCSS>
+</head>
+<body>
+<section>
+    <!-- Page Title -->
+    <div class="page-header d-flex justify-content-between align-items-center mb-4">
+        <h4 class="page-title" th:text="${video != null ? '동영상 수정' : '동영상 업로드'}">동영상 업로드</h4>
+        <div class="page-actions">
+            <a href="/admin/original/video/list" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> 목록으로
+            </a>
+        </div>
+    </div>
+
+    <!-- Video Form -->
+    <div class="card">
+        <div class="card-body">
+            <form id="videoForm" enctype="multipart/form-data">
+                <input type="hidden" id="videoId" name="videoId" th:if="${video != null}" th:value="${video.id}">
+
+                <div class="row">
+                    <div class="col-lg-8">
+                        <!-- 기본 정보 그룹 -->
+                        <div class="form-group-section mb-4">
+                            <h5 class="section-title">기본 정보</h5>
+
+                            <!-- 제목 -->
+                            <div class="mb-3">
+                                <label for="title" class="form-label">제목 <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="title" name="title"
+                                       th:value="${video != null ? video.title : ''}"
+                                       placeholder="동영상 제목을 입력하세요" required maxlength="200">
+                                <div class="form-text">최대 200자까지 입력 가능합니다.</div>
+                            </div>
+
+                            <!-- 설명/내용 -->
+                            <div class="mb-3">
+                                <label for="description" class="form-label">설명/내용</label>
+                                <textarea class="form-control" id="description" name="description" rows="4"
+                                          placeholder="동영상에 대한 설명을 입력하세요" maxlength="2000"
+                                          th:text="${video != null ? video.description : ''}"></textarea>
+                                <div class="form-text">최대 2000자까지 입력 가능합니다.</div>
+                            </div>
+
+                            <!-- 카테고리 및 타입 -->
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="category" class="form-label">카테고리 <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="category" name="category" required>
+                                        <option value="" selected disabled>카테고리를 선택하세요</option>
+                                        <option th:each="cat : ${categories}" th:value="${cat}"
+                                                th:text="${cat.displayName}"
+                                                th:selected="${video != null && video.category == cat}">
+                                            카테고리 이름
+                                        </option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="type" class="form-label">타입 <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="type" name="type" required>
+                                        <option value="" selected disabled>타입을 선택하세요</option>
+                                        <option th:each="t : ${types}" th:value="${t}"
+                                                th:text="${t.displayName}"
+                                                th:selected="${video != null && video.type == t}">
+                                            타입 이름
+                                        </option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- 공개 설정 -->
+                            <div class="mb-3">
+                                <label class="form-label d-block">공개 설정</label>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="isPublic" name="isPublic"
+                                           th:checked="${video != null ? video.isPublic : false}">
+                                    <label class="form-check-label" for="isPublic">
+                                        공개 여부 (체크하면 공개 상태가 됩니다)
+                                    </label>
+                                </div>
+                                <div class="mt-2">
+                                    <label for="publishedAt" class="form-label">공개 시간</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-calendar"></i></span>
+                                        <input type="text" class="form-control datetime-picker" id="publishedAt" name="publishedAt"
+                                               th:value="${video != null && video.publishedAt != null
+                                  ? #temporals.format(video.publishedAt, 'yyyy-MM-dd HH:mm')
+                                  : #temporals.format(T(java.time.LocalDateTime).now(), 'yyyy-MM-dd HH:mm')}"
+                                               placeholder="YYYY-MM-DD HH:MM">
+                                    </div>
+                                    <div class="form-text">공개 시간을 설정하지 않으면 저장 시간이 적용됩니다.</div>
+                                </div>
+                            </div>
+
+                            <!-- 핫 콘텐츠 설정 -->
+                            <div class="mb-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="isHot" name="isHot"
+                                           th:checked="${video != null ? video.isHot : false}">
+                                    <label class="form-check-label" for="isHot">
+                                        핫 콘텐츠로 설정
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 비디오 업로드 그룹 -->
+                        <div class="form-group-section mb-4">
+                            <h5 class="section-title">비디오 업로드</h5>
+
+                            <!-- 업로드 타입 선택 -->
+                            <div class="mb-3">
+                                <label class="form-label">업로드 방식 <span class="text-danger">*</span></label>
+                                <div class="upload-type-tabs">
+                                    <div class="nav nav-tabs" id="uploadTypeTabs" role="tablist">
+                                        <button class="nav-link active" id="file-tab" data-bs-toggle="tab" data-bs-target="#file-content" type="button" role="tab" aria-controls="file-content" aria-selected="true">
+                                            <i class="fas fa-file-video"></i> 파일 업로드
+                                        </button>
+                                        <button class="nav-link" id="youtube-tab" data-bs-toggle="tab" data-bs-target="#youtube-content" type="button" role="tab" aria-controls="youtube-content" aria-selected="false">
+                                            <i class="fab fa-youtube"></i> 유튜브 영상
+                                        </button>
+                                    </div>
+                                    <div class="tab-content" id="uploadTypeContent">
+                                        <!-- 파일 업로드 탭 -->
+                                        <div class="tab-pane fade show active" id="file-content" role="tabpanel" aria-labelledby="file-tab">
+                                            <div class="p-3">
+                                                <div class="video-upload-container" id="videoUploader">
+                                                    <div class="upload-placeholder" id="uploadPlaceholder">
+                                                        <i class="fas fa-cloud-upload-alt"></i>
+                                                        <p>영상 파일을 드래그하거나 클릭하여 업로드하세요</p>
+                                                        <span class="text-muted">지원 형식: MP4, MOV, AVI, WMV, MKV, WEBM, FLV, MPG, M4V (최대 500MB)</span>
+                                                    </div>
+                                                    <div class="upload-preview d-none" id="uploadPreview">
+                                                        <video id="videoPreview" controls class="w-100"></video>
+                                                        <div class="preview-info mt-2">
+                                                            <p id="videoFileName" class="mb-1">filename.mp4</p>
+                                                            <div class="d-flex justify-content-between">
+                                                                <span id="videoFileSize">0 MB</span>
+                                                                <button type="button" class="btn btn-sm btn-outline-danger" id="removeVideo">
+                                                                    <i class="fas fa-times"></i> 제거
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <input type="file" name="videoFile" id="videoFile" class="d-none" accept="video/*">
+                                                </div>
+                                                <div class="form-text mt-2">
+                                                    영상을 변경하지 않으려면 비워두세요. (수정 시)
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- 유튜브 탭 -->
+                                        <!-- YouTube 탭 부분만 수정 -->
+                                        <div class="tab-pane fade" id="youtube-content" role="tabpanel" aria-labelledby="youtube-tab">
+                                            <div class="p-3">
+                                                <div class="mb-3">
+                                                    <label for="youtubeUrl" class="form-label">유튜브 영상 URL 또는 ID</label>
+                                                    <div class="input-group">
+                                                        <span class="input-group-text"><i class="fab fa-youtube"></i></span>
+                                                        <input type="text" class="form-control" id="youtubeUrl" name="youtubeUrl"
+                                                               th:value="${video != null ? video.youtubeId : ''}"
+                                                               placeholder="https://www.youtube.com/watch?v=dQw4w9WgXcQ 또는 dQw4w9WgXcQ">
+                                                    </div>
+                                                    <div class="form-text">
+                                                        YouTube URL 전체 또는 비디오 ID만 입력하세요.
+                                                        <br>• 전체 URL: https://www.youtube.com/watch?v=<strong>dQw4w9WgXcQ</strong>
+                                                        <br>• 짧은 URL: https://youtu.be/<strong>dQw4w9WgXcQ</strong>
+                                                        <br>• Shorts URL: https://www.youtube.com/shorts/<strong>dQw4w9WgXcQ</strong>
+                                                        <br>• ID만: <strong>dQw4w9WgXcQ</strong>
+                                                        <br>• 입력 후 <kbd>Enter</kbd> 키를 누르면 바로 미리보기됩니다.
+                                                    </div>
+                                                    <!-- URL 타입 힌트 표시 영역 추가 -->
+                                                    <div id="urlTypeHint" class="mt-2 text-muted small"></div>
+                                                </div>
+
+                                                <!-- 유튜브 미리보기 -->
+                                                <div id="youtubePreviewContainer" class="youtube-preview-container mt-3 d-none">
+                                                    <div class="ratio ratio-16x9">
+                                                        <iframe id="youtubePreviewFrame" src="" title="YouTube video player" frameborder="0"
+                                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                                allowfullscreen></iframe>
+                                                    </div>
+                                                </div>
+                                                <div class="text-center mt-2">
+                                                    <button type="button" class="btn btn-sm btn-outline-primary" id="previewYoutube" disabled>
+                                                        <i class="fas fa-eye"></i> 미리보기
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 영상 길이 -->
+                            <div class="mb-3">
+                                <label for="durationSec" class="form-label">영상 길이 (초) <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="durationSec" name="durationSec"
+                                       th:value="${video != null ? video.durationSec : ''}"
+                                       placeholder="초 단위로 입력 (예: 180)" required min="1">
+                                <div class="form-text">파일 업로드 시 자동으로 계산됩니다. 유튜브 영상은 직접 입력하세요.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-4">
+                        <!-- 썸네일 업로드 그룹 -->
+                        <div class="form-group-section mb-4">
+                            <h5 class="section-title">썸네일</h5>
+
+                            <div class="thumbnail-upload-container" id="thumbnailUploader">
+                                <div class="upload-placeholder" id="thumbnailPlaceholder">
+                                    <i class="fas fa-image"></i>
+                                    <p>썸네일 이미지를 드래그하거나 클릭하여 업로드하세요</p>
+                                    <span class="text-muted">지원 형식: JPG, PNG, WEBP (16:9 비율 권장)</span>
+                                </div>
+                                <div class="upload-preview d-none" id="thumbnailPreview">
+                                    <img id="thumbnailImage" src="#" alt="썸네일 미리보기" class="w-100">
+                                    <div class="preview-info mt-2">
+                                        <p id="thumbnailFileName" class="mb-1">image.jpg</p>
+                                        <div class="d-flex justify-content-between">
+                                            <span id="thumbnailFileSize">0 MB</span>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" id="removeThumbnail">
+                                                <i class="fas fa-times"></i> 제거
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <input type="file" name="thumbnailFile" id="thumbnailFile" class="d-none" accept="image/*">
+                            </div>
+
+                            <!-- 기존 썸네일 표시 (수정 시) -->
+                            <div class="current-thumbnail mt-3" th:if="${video != null && video.thumbnailUrl != null}">
+                                <div class="form-text mb-2">현재 썸네일:</div>
+                                <div class="current-thumbnail-container">
+                                    <img th:src="${video.thumbnailUrl}" alt="현재 썸네일" class="w-100">
+                                </div>
+                                <div class="form-text mt-2" th:if="${video.youtubeId == null}">
+                                    썸네일을 변경하지 않으려면 비워두세요.
+                                </div>
+                                <div class="form-text mt-2 text-info" th:if="${video.youtubeId != null}">
+                                    <i class="fab fa-youtube"></i> 유튜브 영상의 썸네일입니다.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 동영상 정보 (수정 시) -->
+                        <div class="form-group-section mb-4" th:if="${video != null}">
+                            <h5 class="section-title">동영상 정보</h5>
+
+                            <table class="table table-sm table-borderless">
+                                <tbody>
+                                <tr>
+                                    <th style="width: 100px;">조회수</th>
+                                    <td th:text="${#numbers.formatInteger(video.viewCount, 0, 'COMMA')}">0</td>
+                                </tr>
+                                <tr>
+                                    <th>댓글수</th>
+                                    <td th:text="${#numbers.formatInteger(video.commentCount, 0, 'COMMA')}">0</td>
+                                </tr>
+                                <tr th:if="${video.youtubeId != null}">
+                                    <th>타입</th>
+                                    <td><i class="fab fa-youtube text-danger"></i> 유튜브 영상</td>
+                                </tr>
+                                <tr th:if="${video.youtubeId == null}">
+                                    <th>타입</th>
+                                    <td><i class="fas fa-file-video text-primary"></i> 업로드 파일</td>
+                                </tr>
+                                <tr>
+                                    <th>등록일</th>
+                                    <td th:text="${#temporals.format(video.createdAt, 'yyyy-MM-dd HH:mm')}">2023-01-01 00:00</td>
+                                </tr>
+                                <tr>
+                                    <th>수정일</th>
+                                    <td th:text="${#temporals.format(video.updatedAt, 'yyyy-MM-dd HH:mm')}">2023-01-01 00:00</td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 등록/수정 버튼 -->
+                <div class="d-flex justify-content-end mt-4">
+                    <button type="button" class="btn btn-secondary me-2" onclick="history.back()">취소</button>
+                    <button type="button" id="btnSubmit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> <span th:text="${video != null ? '수정' : '등록'}">등록</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+
+<!-- Custom JS -->
+<customJS>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/l10n/ko.min.js"></script>
+    <script th:src="@{/assets/admin/js/videoForm.js}" type="module"></script>
+</customJS>
+</body>
+</html>

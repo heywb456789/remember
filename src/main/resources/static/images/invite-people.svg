@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <!-- 배경 원 -->
+  <circle cx="100" cy="100" r="80" fill="#f0f4ff" />
+  
+  <!-- 사람 아이콘들 그룹 -->
+  <g id="people-group">
+    <!-- 중앙 사람 -->
+    <circle cx="100" cy="80" r="22" fill="#6c7dfd" />
+    <path d="M100 107C85.5 107 74 118.5 74 133V140H126V133C126 118.5 114.5 107 100 107Z" fill="#6c7dfd" />
+    
+    <!-- 왼쪽 사람 -->
+    <circle cx="60" cy="95" r="18" fill="#ff9d66" />
+    <path d="M60 117C48.95 117 40 125.95 40 137V140H80V137C80 125.95 71.05 117 60 117Z" fill="#ff9d66" />
+    
+    <!-- 오른쪽 사람 -->
+    <circle cx="140" cy="95" r="18" fill="#66d19e" />
+    <path d="M140 117C128.95 117 120 125.95 120 137V140H160V137C160 125.95 151.05 117 140 117Z" fill="#66d19e" />
+  </g>
+  
+  <!-- 연결선 -->
+  <line x1="82" y1="85" x2="70" y2="90" stroke="#6c7dfd" stroke-width="2" stroke-dasharray="3 3" />
+  <line x1="118" y1="85" x2="130" y2="90" stroke="#6c7dfd" stroke-width="2" stroke-dasharray="3 3" />
+  
+  <!-- 플러스 아이콘 -->
+  <circle cx="100" cy="45" r="15" fill="#ffd54f" />
+  <path d="M100 38V52" stroke="#333" stroke-width="3" stroke-linecap="round" />
+  <path d="M93 45H107" stroke="#333" stroke-width="3" stroke-linecap="round" />
+  
+  <!-- 광선 효과 -->
+  <g id="rays" opacity="0.7">
+    <path d="M100 25L100 15" stroke="#ffd54f" stroke-width="2" stroke-linecap="round" />
+    <path d="M85 30L80 22" stroke="#ffd54f" stroke-width="2" stroke-linecap="round" />
+    <path d="M115 30L120 22" stroke="#ffd54f" stroke-width="2" stroke-linecap="round" />
+    <path d="M75 45L65 45" stroke="#ffd54f" stroke-width="2" stroke-linecap="round" />
+    <path d="M125 45L135 45" stroke="#ffd54f" stroke-width="2" stroke-linecap="round" />
+  </g>
+  
+  <!-- TTR 텍스트 -->
+  <g id="ttr-text">
+    <rect x="75" y="150" width="50" height="20" rx="10" fill="#6c7dfd" />
+    <text x="100" y="165" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">TTR</text>
+  </g>
+  
+  <!-- 화살표 -->
+  <path d="M100 130L100 145" stroke="#6c7dfd" stroke-width="3" stroke-linecap="round" />
+  <path d="M92 138L100 146L108 138" stroke="#6c7dfd" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+</svg>

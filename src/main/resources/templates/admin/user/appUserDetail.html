@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{admin/layout/default :: html(
+        ~{::title},
+        ~{::section},
+        ~{::customCSS},
+        ~{::customJS},
+        'users',
+        'detail'
+      )}">
+<head>
+  <title>회원 상세 정보 - 관리자</title>
+
+  <!-- Custom CSS -->
+  <customCSS>
+    <link th:href="@{/assets/admin/css/appUserDetail.css}" rel="stylesheet">
+  </customCSS>
+</head>
+<body>
+<section>
+  <!-- Page Header -->
+  <div class="page-header d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex align-items-center">
+      <a href="/admin/users/app/user-list" class="btn btn-sm btn-light me-3">
+        <i class="fas fa-arrow-left"></i>
+      </a>
+      <h4 class="page-title mb-0">회원 상세 정보</h4>
+    </div>
+    <div class="page-actions">
+      <button id="btnStatusChange" class="btn btn-primary">
+        <i class="fas fa-exchange-alt"></i> 상태 변경
+      </button>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- 프로필 정보 카드 -->
+    <div class="col-md-4 mb-4">
+      <div class="card">
+        <div class="card-body text-center">
+          <div class="user-profile">
+            <div class="user-avatar-lg">
+              <img th:src="@{${#strings.isEmpty(user.profileImageUrl) ? '/assets/admin/images/user_default.png' : user.profileImageUrl}}"
+                 alt="프로필 이미지" class="avatar-img-lg">
+            </div>
+            <h5 class="user-name mt-3" th:text="${user.userName}">사용자 이름</h5>
+            <p class="user-email text-muted" th:text="${user.email}">user@example.com</p>
+            <div class="user-status mb-3">
+              <span class="badge rounded-pill"
+                  th:classappend="${user.status.name() == 'ACTIVE' ? 'bg-success' :
+                      (user.status.name() == 'TEMPORARY_INVITE' ? 'bg-warning' :
+                      (user.status.name() == 'TEMPORARY_PASS'  ? 'bg-warning' :
+                      (user.status.name() == 'BLOCKED'          ? 'bg-danger'  :
+                                                          'bg-secondary')))}"
+                  th:text="${user.status.name() == 'ACTIVE' ? '활성' :
+                      (user.status.name() == 'TEMPORARY_INVITE' ? '초대 대기' :
+                      (user.status.name() == 'TEMPORARY_PASS'  ? '인증 대기' :
+                      (user.status.name() == 'BLOCKED'          ? '차단'     :
+                                                          '탈퇴')))}">
+            </span>
+            </div>
+          </div>
+
+          <hr>
+
+          <div class="user-meta text-start">
+            <div class="meta-item">
+              <div class="meta-title">
+                <i class="fas fa-id-card text-primary me-2"></i> 회원 ID
+              </div>
+              <div class="meta-value" th:text="${user.userId}">1</div>
+            </div>
+            <div class="meta-item">
+              <div class="meta-title">
+                <i class="fas fa-mobile-alt text-primary me-2"></i> 전화번호
+              </div>
+              <div class="meta-value" th:text="${user.phoneNumber ?: '-'}">010-1234-5678</div>
+            </div>
+            <div class="meta-item">
+              <div class="meta-title">
+                <i class="fas fa-calendar-alt text-primary me-2"></i> 가입일
+              </div>
+              <div class="meta-value" th:text="${#temporals.format(user.createdAt, 'yyyy-MM-dd HH:mm')}">2023-01-01 12:00</div>
+            </div>
+            <div class="meta-item">
+              <div class="meta-title">
+                <i class="fas fa-sign-in-alt text-primary me-2"></i> 최근 로그인
+              </div>
+              <div class="meta-value" th:text="${user.lastAccessAt != null ? #temporals.format(user.lastAccessAt, 'yyyy-MM-dd HH:mm') : '-'}">2023-01-01 12:00</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- A상세 정보 및 활동 내역 -->
+    <div class="col-md-8">
+      <!-- 상세 정보 탭 -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <ul class="nav nav-tabs card-header-tabs" id="userDetailTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <a class="nav-link active" id="details-tab" data-bs-toggle="tab" href="#details" role="tab" aria-controls="details" aria-selected="true">회원 정보</a>
+            </li>
+            <li class="nav-item" role="presentation">
+              <a class="nav-link" id="activity-tab" data-bs-toggle="tab" href="#activity" role="tab" aria-controls="activity" aria-selected="false">활동 내역</a>
+            </li>
+            <li class="nav-item" role="presentation">
+              <a class="nav-link" id="login-history-tab" data-bs-toggle="tab" href="#login-history" role="tab" aria-controls="login-history" aria-selected="false">로그인 기록</a>
+            </li>
+          </ul>
+        </div>
+        <div class="card-body">
+          <div class="tab-content" id="userDetailTabsContent">
+            <!-- 회원 정보 탭 -->
+            <div class="tab-pane fade show active" id="details" role="tabpanel" aria-labelledby="details-tab">
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">생년월일</label>
+                  <div class="form-control-plaintext">1990-01-01</div>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">성별</label>
+                  <div class="form-control-plaintext">남성</div>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">소셜 계정 연동</label>
+                  <div class="form-control-plaintext social-links">
+                    <span>연동된 소셜 계정 없음</span>
+                  </div>
+                </div>
+              </div>
+
+              <hr>
+
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">패스 인증 여부</label>
+                  <div class="form-control-plaintext">
+                    <span th:if="${user.verified}" class="badge bg-success">인증됨</span>
+                    <span th:unless="${user.verified}" class="badge bg-danger">인증안됨</span>
+                  </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">마케팅 동의 여부</label>
+                  <div class="form-control-plaintext">
+                    <span class="badge bg-secondary">동의안함</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 활동 내역 탭 -->
+            <div class="tab-pane fade" id="activity" role="tabpanel" aria-labelledby="activity-tab">
+              <div class="row mb-3">
+                <div class="col-12">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">최근 활동</h6>
+                    <select id="activityType" class="form-select form-select-sm" style="width: auto;">
+                      <option value="">모든 활동</option>
+                      <option value="POST">게시글</option>
+                      <option value="COMMENT">댓글</option>
+                      <option value="VOTE">투표</option>
+                      <option value="LIKE">좋아요</option>
+                      <option value="VIEW">조회</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div class="activity-timeline">
+<!--                <div th:if="${#lists.isEmpty(userActivities)}" class="text-center py-5">-->
+<!--                  <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>-->
+<!--                  <p class="mb-0">활동 내역이 없습니다.</p>-->
+<!--                </div>-->
+
+<!--                <div th:unless="${#lists.isEmpty(userActivities)}" class="timeline-item" th:each="activity : ${userActivities}">-->
+<!--                  <div class="timeline-icon" th:classappend="${-->
+<!--                    activity.type == 'POST' ? 'icon-post' :-->
+<!--                    (activity.type == 'COMMENT' ? 'icon-comment' :-->
+<!--                    (activity.type == 'VOTE' ? 'icon-vote' : 'icon-like'))-->
+<!--                  }">-->
+<!--                    <i th:class="${-->
+<!--                      activity.type == 'POST' ? 'fas fa-file-alt' :-->
+<!--                      (activity.type == 'COMMENT' ? 'fas fa-comment' :-->
+<!--                      (activity.type == 'VOTE' ? 'fas fa-vote-yea' : 'fas fa-heart'))-->
+<!--                    }"></i>-->
+<!--                  </div>-->
+<!--                  <div class="timeline-content">-->
+<!--                    <h6 class="mb-1" th:text="${activity.title}">활동 제목</h6>-->
+<!--                    <p class="text-muted mb-1" th:text="${activity.description}">활동 내용</p>-->
+<!--                    <small class="text-muted">-->
+<!--                      <i class="fas fa-clock"></i> <span th:text="${#temporals.format(activity.createdAt, 'yyyy-MM-dd HH:mm')}">2023-01-01 12:00</span>-->
+<!--                      <a th:if="${activity.link}" th:href="${activity.link}" class="ms-2"><i class="fas fa-external-link-alt"></i> 바로가기</a>-->
+<!--                    </small>-->
+<!--                  </div>-->
+<!--                </div>-->
+              </div>
+
+<!--              <div th:if="${!#lists.isEmpty(userActivities)}" class="text-center mt-3">-->
+              <div class="text-center mt-3">
+                <button id="loadMoreActivities" class="btn btn-outline-primary btn-sm">더 보기</button>
+              </div>
+            </div>
+
+            <!-- 로그인 기록 탭 -->
+            <div class="tab-pane fade" id="login-history" role="tabpanel" aria-labelledby="login-history-tab">
+              <div class="table-responsive">
+                <table class="table table-hover table-striped">
+                  <thead>
+                    <tr>
+                      <th>로그인 시간</th>
+                      <th>IP 주소</th>
+                      <th>브라우저/기기</th>
+                      <th>로그인 상태</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr th:if="${#lists.isEmpty(loginHistory)}">
+                      <td colspan="4" class="text-center py-4">로그인 기록이 없습니다.</td>
+                    </tr>
+                    <tr th:unless="${#lists.isEmpty(loginHistory)}" th:each="login : ${loginHistory}">
+                      <td th:text="${#temporals.format(login.createdAt, 'yyyy-MM-dd HH:mm:ss')}">2023-01-01 12:00:00</td>
+                      <td th:text="${login.ipAddress}">127.0.0.1</td>
+                      <td>
+                        <span th:text="${login.userAgent}">Chrome on Windows</span>
+<!--                        <i th:if="${login.isMobile}" class="fas fa-mobile-alt ms-1" title="모바일 기기"></i>-->
+                        <i class="fas fa-mobile-alt ms-1" title="모바일 기기"></i>
+                      </td>
+                      <td>
+                        <span class="badge bg-success">성공</span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div th:if="${hasMoreLoginHistory}" class="text-center mt-3">
+                <button id="loadMoreHistory" class="btn btn-outline-primary btn-sm">더 보기</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 상태 변경 모달 -->
+  <div class="modal fade" id="statusModal" tabindex="-1" aria-labelledby="statusModalLabel">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="statusModalLabel">회원 상태 변경</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>다음 회원의 상태를 변경하시겠습니까?</p>
+          <p><strong th:text="${user.userName}">사용자 이름</strong> (<span th:text="${user.email}">user@example.com</span>)</p>
+
+          <div class="form-group mb-3">
+            <label for="status" class="form-label">상태</label>
+            <select id="status" class="form-select">
+              <option value="ACTIVE" th:selected="${user.status.name() == 'ACTIVE'}">활성</option>
+              <option value="BLOCKED" th:selected="${user.status.name() == 'BLOCKED'}">차단</option>
+              <option value="TEMPORARY_INVITE" th:selected="${user.status.name() == 'TEMPORARY_INVITE'}">초대대기</option>
+              <option value="TEMPORARY_PASS" th:selected="${user.status.name() == 'TEMPORARY_PASS'}">인증 대기</option>
+              <option value="DELETED" th:selected="${user.status.name() == 'DELETED'}">탈퇴</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="reason" class="form-label">사유 (선택사항)</label>
+            <textarea id="reason" class="form-control" rows="3" placeholder="상태 변경 사유를 입력하세요."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+          <button type="button" id="btnSaveStatus" class="btn btn-primary">저장</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<!-- Custom JS -->
+<customJS>
+  <script th:src="@{/assets/admin/js/appUserDetail.js}" type="module"></script>
+</customJS>
+</body>
+</html>

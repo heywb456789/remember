@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{admin/layout/default :: html(
+        ~{::title},
+        ~{::section},
+        ~{::customCSS},
+        ~{::customJS},
+        'board',
+        'detail'
+      )}">
+<head>
+  <title>게시글 상세 - 나라걱정 관리자</title>
+
+  <!-- Custom CSS -->
+  <customCSS>
+    <link th:href="@{/assets/admin/css/boardDetail.css}" rel="stylesheet">
+  </customCSS>
+</head>
+<body>
+<section>
+  <!-- Page Title and Buttons -->
+  <div class="page-header d-flex justify-content-between align-items-center mb-4">
+    <h4 class="page-title">게시글 상세</h4>
+    <div class="page-actions">
+      <a th:href="@{/admin/board/list}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> 목록으로
+      </a>
+      <!--                <button type="button" id="btnEdit" class="btn btn-primary">-->
+      <!--                    <i class="fas fa-edit"></i> 수정-->
+      <!--                </button>-->
+      <button type="button" id="btnDelete" class="btn btn-danger">
+        <i class="fas fa-trash"></i> 삭제
+      </button>
+    </div>
+  </div>
+
+  <!-- Post Detail Card -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <!-- Post Header -->
+      <div class="post-header">
+        <h1 class="post-title" th:text="${board.title}">게시글 제목</h1>
+        <div class="post-meta">
+                        <span class="post-author">
+                            <i class="fas fa-user"></i> <span
+                            th:text="${board.authorName}">작성자명</span>
+                        </span>
+          <span class="post-date">
+                            <i class="fas fa-calendar-alt"></i> <span
+              th:text="${#temporals.format(board.createdAt, 'yyyy-MM-dd HH:mm')}">2025-04-29 15:30</span>
+                        </span>
+          <span class="post-views">
+                            <i class="fas fa-eye"></i> <span th:text="${board.views}">123</span>
+                        </span>
+          <span class="post-comments">
+                            <i class="fas fa-comment"></i> <span
+              th:text="${board.commentCount}">5</span>
+                        </span>
+        </div>
+      </div>
+
+      <!-- Post Divider -->
+      <hr class="post-divider">
+
+      <!-- Post Content -->
+      <div class="post-content" th:utext="${board.content}">
+        <p>게시글 내용이 이곳에 표시됩니다.</p>
+        <p>텍스트, 이미지, 링크 등의 컨텐츠가 포함될 수 있습니다.</p>
+      </div>
+
+      <!-- Post Images -->
+      <div class="post-images mt-4" th:if="${not #lists.isEmpty(board.imageUrls)}">
+        <h6 class="mb-3">첨부 이미지</h6>
+        <div class="row g-3">
+          <div class="col-md-4 col-sm-6" th:each="image : ${board.imageUrls}">
+            <div class="image-item">
+              <a th:href="${image}" target="_blank" class="image-link">
+                <img th:src="${image}" th:alt="${image}" class="img-fluid rounded">
+              </a>
+              <div class="image-info">
+                <span th:text="${image.substring(image.lastIndexOf('/') + 1)}"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Comments Section -->
+  <div class="card">
+    <div class="card-header">
+      <h5 class="card-title">댓글 <span class="comment-count-badge"
+                                      th:text="${#lists.size(board.comments)}">5</span></h5>
+    </div>
+    <div class="card-body">
+      <!-- Comments List -->
+      <div class="comments-list">
+        <!-- No Comments Message -->
+        <div class="no-comments text-center py-4" th:if="${#lists.isEmpty(board.comments)}">
+          <p class="text-muted mb-0">등록된 댓글이 없습니다.</p>
+        </div>
+
+        <!-- Comments -->
+        <div class="comment" th:each="comment : ${board.comments}">
+          <div class="comment-header">
+            <div class="comment-user">
+              <span class="comment-author" th:text="${comment.authorName}">댓글 작성자</span>
+              <span class="comment-date"
+                    th:text="${#temporals.format(comment.createdAt, 'yyyy-MM-dd HH:mm')}">2025-04-29 16:45</span>
+            </div>
+            <div class="comment-actions">
+              <button type="button" class="btn btn-sm btn-light comment-edit"
+                      th:data-id="${comment.commentId}" title="수정">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button type="button" class="btn btn-sm btn-light comment-delete"
+                      th:data-id="${comment.commentId}" title="삭제">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>
+          <div class="comment-body">
+            <p class="comment-text" th:text="${comment.content}">댓글 내용입니다.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Comment Form -->
+      <!--                <div class="comment-form mt-4">-->
+      <!--                    <h6 class="mb-3">댓글 작성</h6>-->
+      <!--                    <form id="commentForm">-->
+      <!--                        <div class="mb-3">-->
+      <!--                            <textarea class="form-control" id="commentContent" rows="3" placeholder="댓글을 입력하세요"></textarea>-->
+      <!--                        </div>-->
+      <!--                        <div class="text-end">-->
+      <!--                            <button type="submit" class="btn btn-primary" id="btnAddComment">-->
+      <!--                                댓글 등록-->
+      <!--                            </button>-->
+      <!--                        </div>-->
+      <!--                    </form>-->
+      <!--                </div>-->
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">게시글 삭제</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p>이 게시글을 정말 삭제하시겠습니까?</p>
+          <p class="text-danger">삭제된 게시글은 복구할 수 없습니다.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+          <button type="button" class="btn btn-danger" id="btnConfirmDelete">삭제</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Comment Delete Confirmation Modal -->
+  <div class="modal fade" id="commentDeleteModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">댓글 삭제</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p>이 댓글을 정말 삭제하시겠습니까?</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+          <button type="button" class="btn btn-danger" id="btnConfirmCommentDelete">삭제</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Custom JS -->
+<customJS>
+  <script th:src="@{/assets/admin/js/boardDetail.js}" type="module"></script>
+</customJS>
+</body>
+</html>

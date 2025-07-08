@@ -1,0 +1,296 @@
+/* invite.css */
+/* 포인트 섹션 컨테이너 추가 */
+.point-section-container {
+  margin-top: 20px;
+}
+
+/* 포인트 섹션 수정 - 친구 추천 버튼과 교환 버튼 스타일 */
+.point-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  margin-top: 10px; /* 헤더와의 간격 조정 */
+}
+
+.point-info {
+  display: flex;
+  align-items: center;
+}
+
+.point-value {
+  font-weight: bold;
+  color: #333;
+  font-size: 16px;
+}
+
+.point-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent; /* 배경색 제거 */
+  margin-right: 10px;
+  overflow: hidden; /* 이미지가 동그라미 안에 잘 들어가도록 */
+}
+
+.point-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* 이미지 비율 유지 */
+}
+
+/* 포인트 버튼 컨테이너 추가 */
+.point-buttons {
+  display: flex;
+  gap: 8px; /* 버튼 사이 간격 */
+}
+
+/* 기본 버튼 스타일 */
+.point-button {
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  background-color: #e9ecef;
+  color: #495057;
+  transition: all 0.2s ease; /* 상태 변화를 부드럽게 */
+  position: relative; /* 로딩 아이콘 위치 기준 */
+  min-width: 75px; /* 최소 너비 설정으로 크기 변화 최소화 */
+  display: inline-flex; /* 아이콘과 텍스트를 함께 배치 */
+  align-items: center; /* 수직 가운데 정렬 */
+  justify-content: center; /* 수평 가운데 정렬 */
+}
+
+/* 친구 추천 버튼 스타일 (주요 버튼) */
+.point-button-primary {
+  background-color: #6c7dfd;
+  color: white;
+}
+
+.point-button:hover {
+  opacity: 0.9;
+}
+
+.point-button-primary:hover {
+  background-color: #5c6dfd;
+}
+
+/* 버튼 비활성화 상태 */
+.point-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* 스피너 스타일 - 버튼 내부 */
+.spinner-border-sm {
+  width: 1rem;
+  height: 1rem;
+  margin-right: 5px;
+  border-width: 0.15em;
+}
+
+/* 섹션 헤더 스타일 - 기존 다른 섹션과 일관성 유지 */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.more-link {
+  font-size: 12px;
+  color: #666;
+  text-decoration: none;
+}
+
+/* 기존 모달 스타일은 유지 */
+.modal-content {
+  border-radius: 12px;
+  border: none;
+  overflow: hidden;
+}
+
+.modal-header {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  padding: 15px 20px;
+}
+
+.modal-title {
+  color: #3e4a59;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+/* 초대 모달 내용 */
+.invite-modal-content {
+  text-align: center;
+}
+
+.invite-animation {
+  margin: 0 auto 20px;
+  max-width: 150px;
+}
+
+.invite-animation img {
+  width: 100%;
+  height: auto;
+}
+
+.invite-message {
+  margin-bottom: 25px;
+}
+
+.invite-message h5 {
+  color: #6c757d;
+  font-size: 16px;
+  margin-bottom: 5px;
+}
+
+.invite-message h4 {
+  color: #3e4a59;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.invite-message .highlight {
+  color: #6c7dfd;
+  font-weight: 700;
+}
+
+/* 초대 코드 컨테이너 */
+.invite-code-container {
+  background-color: #f8f9fa;
+  border-radius: 10px;
+  padding: 20px;
+  margin-top: 15px;
+}
+
+.invite-code-header {
+  color: #6c757d;
+  font-size: 14px;
+  margin-bottom: 10px;
+  text-align: left;
+}
+
+.invite-code-box {
+  background-color: white;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 15px;
+  margin-bottom: 12px;
+}
+
+#inviteCode {
+  color: #3e4a59;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+.btn-outline-primary {
+  color: #6c7dfd;
+  border-color: #6c7dfd;
+  font-size: 13px;
+  padding: 4px 10px;
+}
+
+.btn-outline-primary:hover {
+  background-color: #6c7dfd;
+  color: white;
+}
+
+/* URL 미리보기 */
+.invite-url-preview {
+  background-color: white;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  color: #6c757d;
+  font-size: 12px;
+  padding: 10px;
+  text-align: center;
+  word-break: break-all;
+}
+
+/* 토스트 메시지 */
+.toast {
+  background-color: rgba(25, 135, 84, 0.9) !important;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.toast-body {
+  padding: 12px 15px;
+  font-weight: 500;
+}
+
+/* 버튼 스타일 */
+.btn-primary {
+  background-color: #6c7dfd;
+  border-color: #6c7dfd;
+  font-weight: 500;
+  padding: 10px 16px;
+}
+
+.btn-primary:hover {
+  background-color: #5c6dfd;
+  border-color: #5c6dfd;
+}
+
+.btn-block {
+  display: block;
+  width: 100%;
+}
+
+/* 애니메이션 효과 */
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.invite-code-box {
+  animation: pulse 2s infinite;
+}
+
+/* 반응형 조정 */
+@media (max-width: 480px) {
+  .invite-message h4 {
+    font-size: 16px;
+  }
+
+  #inviteCode {
+    font-size: 16px;
+  }
+
+  /* 작은 화면에서 버튼 크기 조정 */
+  .point-button {
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+}
