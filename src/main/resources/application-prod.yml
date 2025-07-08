@@ -1,5 +1,5 @@
 # =======================================================
-# 토마토리멤버 운영환경 설정 (기존 설정 기반)
+# 토마토리멤버 운영환경 설정 (JWT 인증 시스템 추가)
 # =======================================================
 
 server:
@@ -15,12 +15,31 @@ spring:
     show-sql: false       # 운영환경에서는 SQL 로그 비활성화
 
   # =======================================================
-  # JWT 보안 설정 (운영용 - HTTPS 필수)
+  # 🔐 JWT 보안 설정 (운영용 - 최고 보안 레벨)
   # =======================================================
   security:
     jwt:
+      # 운영환경용 강력한 시크릿 키 (환경변수에서 주입 권장)
+      admin-secret: ${JWT_ADMIN_SECRET_PROD:cHJvZEFkbWluU2VjcmV0S2V5Rm9yVG9tYXRvUmVtZW1iZXJBZG1pblRva2VuR2VuZXJhdGlvblByb2Q=}
+      member-secret: ${JWT_MEMBER_SECRET_PROD:cHJvZE1lbWJlclNlY3JldEtleUZvclRvbWF0b1JlbWVtYmVyTWVtYmVyVG9rZW5HZW5lcmF0aW9uUHJvZA==}
+
+      # 운영환경용 토큰 만료 시간 (보안 강화)
+      access-token-expiration: 1800000     # 30분 (운영용 - 보안 강화)
+      refresh-token-expiration: 1209600000 # 2주 (기존 설정 유지)
+      auto-login-expiration: 31536000000   # 1년 (기존 설정 유지)
+
+      # 🍪 운영환경용 쿠키 설정 (최고 보안)
       cookie:
-        secure: true  # 기존 설정 유지 (HTTPS 필수)
+        member:
+          domain: .newstomato.com  # 운영 도메인
+          secure: true             # HTTPS 필수
+          same-site: Strict        # 최고 보안 레벨
+          max-age: 31536000        # 1년
+        admin:
+          domain: .newstomato.com
+          secure: true             # HTTPS 필수
+          same-site: Strict        # 최고 보안 레벨
+          max-age: 31536000
 
   # =======================================================
   # 데이터소스 설정 (기존 설정 유지)
@@ -52,6 +71,31 @@ spring:
         password: tomatochain1!
 
 # =======================================================
+# 🔐 토마토리멤버 운영환경 보안 설정 (최고 보안)
+# =======================================================
+tomato-remember:
+  security:
+    # CORS 설정 (운영환경용 - 제한적)
+    cors:
+      allowed-origins:
+        - https://remember.newstomato.com
+        - https://club1.newstomato.com
+        # 운영환경에서는 HTTPS만 허용
+      allow-credentials: true
+      max-age: 86400  # 24시간 캐시
+
+    # 운영환경 보안 강화 설정
+    rate-limit:
+      enabled: true
+      requests-per-minute: 100
+      burst-capacity: 200
+
+    # IP 화이트리스트 (필요시)
+    ip-whitelist:
+      enabled: false  # 필요시 활성화
+      allowed-ips: []
+
+# =======================================================
 # NICE 본인인증 설정 (기존 설정 유지)
 # =======================================================
 nice:
@@ -64,10 +108,60 @@ original:
   replication: true
 
 # =======================================================
-# 운영환경 로깅 설정
+# 운영환경 로깅 설정 (보안 로그 강화)
 # =======================================================
 logging:
   level:
     com.tomato.remember: INFO
     org.springframework.web: WARN
     org.springframework.security: WARN
+    # JWT 인증 관련 로깅 (운영에서는 최소화)
+    com.tomato.remember.common.security: INFO
+    com.tomato.remember.common.util.CookieUtil: WARN
+    # 보안 이벤트만 기록
+    com.tomato.remember.common.security.filter: WARN
+
+  # 운영환경 로그 설정
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%logger{36}] - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%logger{50}] - %msg%n"
+
+  file:
+    name: /logs/tomato-remember-prod.log
+    max-size: 100MB
+    max-history: 30
+
+# =======================================================
+# 운영환경 JWT 설정 (보안 강화)
+# =======================================================
+debug:
+  jwt:
+    enabled: false  # 운영에서는 JWT 디버깅 완전 비활성화
+    print-claims: false
+    print-headers: false
+
+# =======================================================
+# 운영환경 모니터링 설정
+# =======================================================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: never  # 운영환경에서는 상세 정보 숨김
+  security:
+    enabled: true
+
+# =======================================================
+# 운영환경 SSL/TLS 설정 (필요시)
+# =======================================================
+# server:
+#   ssl:
+#     enabled: true
+#     key-store: classpath:keystore.p12
+#     key-store-password: ${SSL_KEYSTORE_PASSWORD}
+#     key-store-type: PKCS12
+#     key-alias: tomato-remember

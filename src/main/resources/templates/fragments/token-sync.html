@@ -1,0 +1,197 @@
+<!-- fragments/token-sync.html - 모든 모바일 뷰 페이지에 포함할 토큰 동기화 스크립트 -->
+
+<div th:fragment="tokenSync">
+    <!-- 토큰 갱신 정보 메타 태그 (서버에서 설정) -->
+    <meta th:if="${newAccessToken}" name="new-access-token" th:content="${newAccessToken}" />
+    <meta th:if="${newRefreshToken}" name="new-refresh-token" th:content="${newRefreshToken}" />
+
+    <!-- 토큰 동기화 스크립트 -->
+    <script>
+        (function() {
+            'use strict';
+
+            /**
+             * 토큰 동기화 처리 (새로운 JWT 쿠키 인증 시스템용)
+             */
+            function syncTokens() {
+                try {
+                    // 메타 태그에서 새 토큰 정보 확인
+                    const newAccessTokenMeta = document.querySelector('meta[name="new-access-token"]');
+                    const newRefreshTokenMeta = document.querySelector('meta[name="new-refresh-token"]');
+
+                    if (newAccessTokenMeta && newRefreshTokenMeta) {
+                        const newAccessToken = newAccessTokenMeta.content;
+                        const newRefreshToken = newRefreshTokenMeta.content;
+
+                        if (newAccessToken && newRefreshToken) {
+                            // localStorage 업데이트 (기존 토큰과 동기화)
+                            localStorage.setItem('accessToken', newAccessToken);
+                            localStorage.setItem('refreshToken', newRefreshToken);
+
+                            console.log('JWT 쿠키 → localStorage 토큰 동기화 완료');
+                            console.log('Access Token:', newAccessToken.substring(0, 20) + '...');
+
+                            // 보안을 위해 메타 태그 제거
+                            newAccessTokenMeta.remove();
+                            newRefreshTokenMeta.remove();
+
+                            // 토큰 동기화 완료 이벤트 발생 (다른 스크립트에서 감지 가능)
+                            window.dispatchEvent(new CustomEvent('tokenSynced', {
+                                detail: {
+                                    accessToken: newAccessToken,
+                                    refreshToken: newRefreshToken,
+                                    syncedAt: new Date().toISOString()
+                                }
+                            }));
+                        }
+                    }
+                } catch (error) {
+                    console.error('토큰 동기화 오류:', error);
+                }
+            }
+
+            /**
+             * 페이지 로드 완료 시 토큰 동기화 실행
+             */
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', syncTokens);
+            } else {
+                syncTokens();
+            }
+
+            /**
+             * 로그인 상태 확인 (JWT 토큰 기반)
+             */
+            window.checkLoginStatus = function() {
+                const accessToken = localStorage.getItem('accessToken');
+                const refreshToken = localStorage.getItem('refreshToken');
+
+                if (!accessToken || !refreshToken) {
+                    console.warn('JWT 토큰이 없습니다.');
+                    return false;
+                }
+
+                // 토큰 만료 시간 체크 (JWT payload 디코딩)
+                try {
+                    const payload = JSON.parse(atob(accessToken.split('.')[1]));
+                    const now = Math.floor(Date.now() / 1000);
+
+                    if (payload.exp && payload.exp < now) {
+                        console.warn('Access Token이 만료되었습니다. (서버에서 자동 갱신됨)');
+                        return false;
+                    }
+
+                    console.log('JWT 토큰 유효:', {
+                        memberId: payload.sub,
+                        role: payload.role,
+                        expiresAt: new Date(payload.exp * 1000)
+                    });
+
+                    return true;
+                } catch (error) {
+                    console.error('JWT 토큰 검증 오류:', error);
+                    return false;
+                }
+            };
+
+            /**
+             * 강제 로그아웃 처리 (JWT 쿠키 및 localStorage 정리)
+             */
+            window.forceLogout = function(message = '세션이 만료되었습니다.') {
+                // localStorage 정리
+                localStorage.removeItem('accessToken');
+                localStorage.removeItem('refreshToken');
+
+                // 쿠키 정리 (서버에서 처리되지만 클라이언트에서도 시도)
+                document.cookie = 'MEMBER_ACCESS_TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; Secure; HttpOnly; SameSite=Strict';
+                document.cookie = 'MEMBER_REFRESH_TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; Secure; HttpOnly; SameSite=Strict';
+
+                alert(message);
+                window.location.href = '../../static/login';
+            };
+
+            /**
+             * JWT 토큰 정보 디버깅 (개발용)
+             */
+            window.debugTokens = function() {
+                const accessToken = localStorage.getItem('accessToken');
+                const refreshToken = localStorage.getItem('refreshToken');
+
+                console.group('JWT 토큰 정보 (새로운 쿠키 인증 시스템)');
+                console.log('Access Token:', accessToken ? accessToken.substring(0, 50) + '...' : 'None');
+                console.log('Refresh Token:', refreshToken ? refreshToken.substring(0, 50) + '...' : 'None');
+
+                if (accessToken) {
+                    try {
+                        const payload = JSON.parse(atob(accessToken.split('.')[1]));
+                        console.log('토큰 Payload:', payload);
+                        console.log('회원 ID:', payload.sub);
+                        console.log('역할:', payload.role);
+                        console.log('토큰 타입:', payload.type);
+                        console.log('발급 시간:', new Date(payload.iat * 1000));
+                        console.log('만료 시간:', new Date(payload.exp * 1000));
+                        console.log('남은 시간:', Math.floor((payload.exp * 1000 - Date.now()) / 1000) + '초');
+                    } catch (error) {
+                        console.error('JWT 토큰 파싱 오류:', error);
+                    }
+                }
+
+                // 쿠키 정보도 확인 (개발자 도구에서만 확인 가능)
+                console.log('쿠키:', document.cookie);
+                console.groupEnd();
+            };
+
+            /**
+             * 토큰 갱신 상태 모니터링 (개발용)
+             */
+            window.addEventListener('tokenSynced', function(event) {
+                if (window.location.search.includes('debug=token')) {
+                    console.log('🔄 토큰 갱신 이벤트 감지:', event.detail);
+                }
+            });
+
+        })();
+    </script>
+
+    <!-- 페이지별 추가 스크립트 (디버그 모드) -->
+    <script th:if="${param.debug == 'token'}">
+        // 디버그 모드일 때만 실행
+        console.log('🔧 JWT 토큰 디버그 모드 활성화');
+
+        // 페이지 로드 완료 후 토큰 정보 출력
+        window.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                window.debugTokens();
+            }, 1000);
+        });
+
+        // 토큰 동기화 이벤트 상세 로깅
+        window.addEventListener('tokenSynced', function(event) {
+            console.log('📡 토큰 동기화 상세 정보:', {
+                event: event.detail,
+                localStorage: {
+                    accessToken: localStorage.getItem('accessToken')?.substring(0, 30) + '...',
+                    refreshToken: localStorage.getItem('refreshToken')?.substring(0, 30) + '...'
+                },
+                cookies: document.cookie
+            });
+        });
+    </script>
+</div>
+
+<!--
+사용법:
+1. 모든 모바일 뷰 페이지에서 이 fragment를 include
+2. 컨트롤러에서 토큰 갱신 시 model에 newAccessToken, newRefreshToken 추가
+3. 자동으로 쿠키와 localStorage가 동기화됨
+4. 디버그 모드: URL에 ?debug=token 추가
+
+예시:
+<div th:replace="~{fragments/token-sync :: tokenSync}"></div>
+
+새로운 인증 시스템 특징:
+- JWT 토큰은 쿠키에 저장 (HttpOnly, Secure)
+- localStorage와 자동 동기화로 JavaScript에서도 사용 가능
+- MobileJwtFilter에서 자동 토큰 갱신 처리
+- API 호출 시 Bearer 토큰 또는 쿠키 인증 모두 지원
+-->

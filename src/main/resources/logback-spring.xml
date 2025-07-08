@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configuration debug="true">
+<configuration debug="false">
   <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
 
   <!-- 로그 파일 경로 변수 -->
@@ -29,42 +29,67 @@
 
   <!-- 공통 로거 레벨 -->
   <logger name="org.springframework" level="INFO"/>
-  <logger name="com.tomato"       level="DEBUG"/>
+  <logger name="com.tomato" level="DEBUG"/>
 
   <!-- JDBC 드라이버 자체 로그 비활성화 -->
-  <logger name="jdbc"            level="OFF"/>
-  <logger name="jdbc.audit"      level="OFF"/>
+  <logger name="jdbc" level="OFF"/>
+  <logger name="jdbc.audit" level="OFF"/>
   <logger name="jdbc.connection" level="OFF"/>
 
   <!-- 개발/테스트/스테이징 프로파일 -->
   <springProfile name="local,dev,staging">
     <!-- log4jdbc SQL 덤프 -->
-    <logger name="jdbc.sqlonly"        level="DEBUG"/>
-    <logger name="jdbc.sqltiming"      level="DEBUG"/>
+    <logger name="jdbc.sqlonly" level="DEBUG"/>
+    <logger name="jdbc.sqltiming" level="DEBUG"/>
     <logger name="jdbc.resultsettable" level="DEBUG"/>
 
     <!-- Hibernate SQL, 바인딩 로그 -->
-    <logger name="org.hibernate.SQL"                                level="DEBUG"/>
-    <logger name="org.hibernate.type.descriptor.sql.BasicBinder"    level="TRACE"/>
+    <logger name="org.hibernate.SQL" level="DEBUG"/>
+    <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="TRACE"/>
+
+    <!-- ===== 토마토리멤버 JWT 인증 시스템 디버깅 ===== -->
+    <logger name="com.tomato.remember.common.security" level="TRACE"/>
+    <logger name="com.tomato.remember.common.security.filter" level="TRACE"/>
+    <logger name="com.tomato.remember.common.util.CookieUtil" level="TRACE"/>
+
+    <!-- Spring Security 상세 로깅 -->
+    <logger name="org.springframework.security" level="DEBUG"/>
+    <logger name="org.springframework.security.web" level="DEBUG"/>
+    <logger name="org.springframework.security.web.FilterChainProxy" level="DEBUG"/>
+    <logger name="org.springframework.security.web.authentication" level="DEBUG"/>
+    <logger name="org.springframework.security.access" level="DEBUG"/>
+
+    <!-- 컨트롤러 및 요청 처리 로깅 -->
+    <logger name="com.tomato.remember.application.auth.controller" level="TRACE"/>
+    <logger name="org.springframework.web.servlet.DispatcherServlet" level="DEBUG"/>
+    <logger name="org.springframework.web.servlet.mvc.method.annotation" level="DEBUG"/>
+
+    <!-- HTTP 요청/응답 로깅 -->
+    <logger name="org.springframework.web.reactive.function.client.ExchangeFilterFunctions" level="DEBUG"/>
+    <logger name="reactor.netty.http.client.HttpClient" level="DEBUG"/>
   </springProfile>
 
   <!-- 운영 프로파일 -->
   <springProfile name="prod">
     <!-- log4jdbc SQL 덤프 (WARN 이상) -->
-    <logger name="jdbc.sqlonly"        level="WARN"/>
-    <logger name="jdbc.sqltiming"      level="WARN"/>
+    <logger name="jdbc.sqlonly" level="WARN"/>
+    <logger name="jdbc.sqltiming" level="WARN"/>
     <logger name="jdbc.resultsettable" level="WARN"/>
 
     <!-- Hibernate SQL 로그 비활성화 -->
-    <logger name="org.hibernate.SQL"                             level="WARN"/>
+    <logger name="org.hibernate.SQL" level="WARN"/>
     <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="WARN"/>
 
-    <!-- Spring Security 인증/인가 로그 -->
-    <logger name="org.springframework.security"                                        level="WARN"/>
-    <logger name="org.springframework.security.web.authentication"                     level="DEBUG"/>
+    <!-- Spring Security 운영 로그 (중요한 것만) -->
+    <logger name="org.springframework.security" level="WARN"/>
+    <logger name="org.springframework.security.web.authentication" level="DEBUG"/>
     <logger name="org.springframework.security.access.intercept.FilterSecurityInterceptor" level="DEBUG"/>
-    <logger name="org.springframework.security.web.access.AccessDeniedHandlerImpl"     level="WARN"/>
-    <logger name="org.springframework.security.web.AuthenticationEntryPoint"            level="WARN"/>
+    <logger name="org.springframework.security.web.access.AccessDeniedHandlerImpl" level="WARN"/>
+    <logger name="org.springframework.security.web.AuthenticationEntryPoint" level="WARN"/>
+
+    <!-- 토마토리멤버 보안 모듈 (운영에서는 ERROR만) -->
+    <logger name="com.tomato.remember.common.security" level="ERROR"/>
+    <logger name="com.tomato.remember.common.util.CookieUtil" level="ERROR"/>
   </springProfile>
 
   <!-- 루트 로거 -->

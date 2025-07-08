@@ -131,18 +131,22 @@ public class SecurityConfig {
     @Order(3)
     public SecurityFilterChain mobileViewFilterChain(HttpSecurity http) throws Exception {
         http
-            .securityMatcher("/mobile/**")
-            .csrf(AbstractHttpConfigurer::disable)
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/mobile/login", "/mobile/register", "/mobile/auth/**").permitAll()
-                .requestMatchers("/mobile/**").authenticated()
-            )
-            .addFilterBefore(mobileJwtFilter(), UsernamePasswordAuthenticationFilter.class)
-            .exceptionHandling(ex -> ex
-                .authenticationEntryPoint((request, response, authException) ->
-                    response.sendRedirect("/mobile/login"))
-            );
+                .securityMatcher("/mobile/**")
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        // 공개 경로들을 먼저 명시적으로 허용
+                        .requestMatchers("/mobile/login", "/mobile/register", "/mobile/auth/**", "/mobile/public/**").permitAll()
+                        // 인증이 필요한 경로들을 구체적으로 명시
+                        .requestMatchers("/mobile/dashboard/**", "/mobile/memorial/**", "/mobile/video-call/**").authenticated()
+                        // 나머지 모든 /mobile/** 경로는 일단 허용 (필요시 authenticated()로 변경)
+                        .requestMatchers("/mobile/**").permitAll()
+                )
+                .addFilterBefore(mobileJwtFilter(), UsernamePasswordAuthenticationFilter.class)
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((request, response, authException) ->
+                                response.sendRedirect("/mobile/login"))
+                );
 
         return http.build();
     }

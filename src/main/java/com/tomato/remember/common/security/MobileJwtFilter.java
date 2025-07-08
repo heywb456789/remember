@@ -30,6 +30,15 @@ public class MobileJwtFilter extends OncePerRequestFilter {
     private final CookieUtil cookieUtil;
 
     @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        String path = request.getRequestURI();
+        // /mobile/** 경로가 아니면 필터 실행 안함
+        boolean shouldNotFilter = !path.startsWith("/mobile/");
+        log.debug("MobileJwtFilter shouldNotFilter for {}: {}", path, shouldNotFilter);
+        return shouldNotFilter;
+    }
+
+    @Override
     protected void doFilterInternal(HttpServletRequest request, 
                                   HttpServletResponse response, 
                                   FilterChain filterChain) throws ServletException, IOException {

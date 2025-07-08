@@ -1,6 +1,5 @@
 package com.tomato.remember.application.auth.dto;
 
-import com.tomato.remember.application.MobileApiController.MemberInfo;
 import com.tomato.remember.application.member.dto.MemberDTO;
 import lombok.*;
 

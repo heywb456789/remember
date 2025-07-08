@@ -5,15 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
   <title th:text="${pageTitle} ?: '토마토 One-ID'">토마토 One-ID</title>
 
+  <!-- 토큰 동기화를 위한 메타 태그 (서버에서 설정) -->
+  <meta th:if="${newAccessToken}" name="new-access-token" th:content="${newAccessToken}" />
+  <meta th:if="${newRefreshToken}" name="new-refresh-token" th:content="${newRefreshToken}" />
+
   <!-- Bootstrap CSS -->
   <link th:href="@{/bootstrap/css/bootstrap.css}" rel="stylesheet"/>
   <script th:src="@{/bootstrap/js/bootstrap.bundle.js}"></script>
 
   <!-- Custom CSS -->
   <link th:href="@{/assets/mobile/css/login.css}" rel="stylesheet"/>
-
-  <!-- Custom JavaScript (모듈로 로드) -->
-  <script th:src="@{/assets/mobile/js/login.js}" type="module"></script>
 
   <!-- 커스텀 스타일 -->
   <style>
@@ -107,10 +108,15 @@
 
   <p class="subtitle">토마토 One-ID를 이용하세요!</p>
 
+  <!-- 서버 측 메시지 표시 (필요시 사용) -->
+  <!--  <div th:if="${loginError}" class="alert-message alert-error" th:text="${loginError}"></div>-->
+  <!--  <div th:if="${logoutSuccess}" class="alert-message alert-success">성공적으로 로그아웃되었습니다.</div>-->
+
   <!-- 클라이언트사이드 메시지 표시 영역 (API 응답용) -->
   <div id="clientMessage" class="alert-message" style="display: none;"></div>
 
-  <form id="loginForm">
+  <!-- 🆕 API 기반 로그인 폼 - form 태그를 제거하고 div로 변경 -->
+  <div id="loginForm">
     <!-- 휴대폰 번호 입력 -->
     <div class="phone-input-container mb-3">
       <div class="country-code">+82</div>
@@ -150,7 +156,8 @@
       <input class="form-check-input"
              type="checkbox"
              id="autoLogin"
-             name="autoLogin">
+             name="autoLogin"
+             value="true">
       <label class="form-check-label" for="autoLogin">
         One-ID 자동로그인
       </label>
@@ -170,24 +177,35 @@
 
     <!-- 회원가입 버튼 -->
     <button type="button" class="register-button" id="registerButton">회원가입</button>
-  </form>
+  </div>
 </div>
+
+<!-- 토큰 동기화 스크립트 (fragment 포함) -->
+<div th:replace="~{fragments/token-sync :: tokenSync}"></div>
+
+<!-- 로그인 JavaScript -->
+<script type="module" th:src="@{/assets/mobile/js/login.js}"></script>
 
 <!-- 전역 설정을 위한 스크립트 (Thymeleaf로 서버 데이터 전달) -->
 <script th:inline="javascript">
-  // API 엔드포인트 설정
+  // API 엔드포인트 설정 (서버에서 주입)
   window.API_ENDPOINTS = {
-    LOGIN: '/api/auth/login',
+    LOGIN: /*[[${loginApiUrl}]]*/ '/api/auth/login',
     REGISTER: '/api/auth/register',
-    LOGOUT: '/api/auth/logout'
+    LOGOUT: '/api/auth/logout',
+    REFRESH: '/api/auth/refresh'
   };
 
   // 페이지 설정 (Thymeleaf에서 서버 데이터 주입)
   window.PAGE_CONFIG = {
-    registerUrl: '/register',
+    registerUrl: /*[[${registerUrl}]]*/ '/mobile/register',
     homeUrl: '/',
-    mainUrl: '/main'
+    mainUrl: /*[[${mainUrl}]]*/ '/mobile/main'
   };
+
+  // 디버그 정보
+  console.log('🔧 페이지 설정:', window.PAGE_CONFIG);
+  console.log('🔧 API 엔드포인트:', window.API_ENDPOINTS);
 </script>
 
 </body>

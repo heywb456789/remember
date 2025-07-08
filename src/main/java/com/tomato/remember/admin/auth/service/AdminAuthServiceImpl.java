@@ -54,17 +54,17 @@ public class AdminAuthServiceImpl implements AdminAuthService {
 
         user.getAdmin().updateLastAccess();
 
-        String accessToken = jwtProvider.createAccessTokenForAdmin(user.getAdmin());
-        String refreshToken = jwtProvider.createRefreshTokenForAdmin(user.getAdmin(),
-            req.getAutoLogin());
+//        String accessToken = jwtProvider.createAccessTokenForAdmin(user.getAdmin());
+//        String refreshToken = jwtProvider.createRefreshTokenForAdmin(user.getAdmin(),
+//            req.getAutoLogin());
 
-        LocalDateTime expiryDate = jwtProvider.getExpirationDate(refreshToken);
+//        LocalDateTime expiryDate = jwtProvider.getExpirationDate(refreshToken);
         String userAgent = UserDeviceInfoUtil.getUserAgent(request.getHeader("User-Agent"));
 
         adminRefreshTokenRepository.save(AdminRefreshToken.builder()
             .admin(user.getAdmin())
-            .refreshToken(refreshToken)
-            .expiryDate(expiryDate)
+//            .refreshToken(refreshToken)
+//            .expiryDate(expiryDate)
             .ipAddress(UserDeviceInfoUtil.getClientIp(request))  // IP 주소 가져오기
             .deviceType(UserDeviceInfoUtil.getDeviceType(userAgent))  // Custom 헤더 또는 파싱
             .userAgent(userAgent)
@@ -72,8 +72,8 @@ public class AdminAuthServiceImpl implements AdminAuthService {
             .build());
 
         return AdminAuthResponseDTO.builder()
-            .token(accessToken)
-            .refreshToken(refreshToken)
+//            .token(accessToken)
+//            .refreshToken(refreshToken)
             .admin(user.getAdmin().convertDTO())
             .build();
     }
@@ -99,16 +99,16 @@ public class AdminAuthServiceImpl implements AdminAuthService {
             .lastAccessAt(LocalDateTime.now())
             .build());
 
-        String accessToken = jwtProvider.createAccessTokenForAdmin(saved);
-        String refreshToken = jwtProvider.createRefreshTokenForAdmin(saved, false);
+//        String accessToken = jwtProvider.createAccessTokenForAdmin(saved);
+//        String refreshToken = jwtProvider.createRefreshTokenForAdmin(saved, false);
 
-        LocalDateTime expiryDate = jwtProvider.getExpirationDate(refreshToken);
+//        LocalDateTime expiryDate = jwtProvider.getExpirationDate(refreshToken);
         String userAgent = UserDeviceInfoUtil.getUserAgent(request.getHeader("User-Agent"));
 
         adminRefreshTokenRepository.save(AdminRefreshToken.builder()
             .admin(saved)
-            .refreshToken(refreshToken)
-            .expiryDate(expiryDate)
+//            .refreshToken(refreshToken)
+//            .expiryDate(expiryDate)
             .ipAddress(UserDeviceInfoUtil.getClientIp(request))  // IP 주소 가져오기
             .deviceType(UserDeviceInfoUtil.getDeviceType(userAgent))  // Custom 헤더 또는 파싱
             .userAgent(userAgent)
@@ -116,8 +116,8 @@ public class AdminAuthServiceImpl implements AdminAuthService {
             .build());
 
         return AdminAuthResponseDTO.builder()
-            .token(accessToken)
-            .refreshToken(refreshToken)
+//            .token(accessToken)
+//            .refreshToken(refreshToken)
             .admin(saved.convertDTO())
             .build();
     }
@@ -133,9 +133,9 @@ public class AdminAuthServiceImpl implements AdminAuthService {
     @Override
     @Transactional
     public AdminAuthResponseDTO refreshToken(String refreshToken) {
-        if (!jwtProvider.validateToken(refreshToken)) {
-            throw new UnAuthorizationException("Invalid Token");
-        }
+//        if (!jwtProvider.validateToken(refreshToken)) {
+//            throw new UnAuthorizationException("Invalid Token");
+//        }
 
         AdminRefreshToken token = adminRefreshTokenRepository.findByRefreshToken(refreshToken)
             .orElseThrow(() -> new UnAuthorizationException("Refresh Token not found"));
@@ -146,13 +146,13 @@ public class AdminAuthServiceImpl implements AdminAuthService {
 
         Admin admin = token.getAdmin(); // Member 객체 직접 참조
 
-        String newAccessToken = jwtProvider.createAccessTokenForAdmin(admin);
+//        String newAccessToken = jwtProvider.createAccessTokenForAdmin(admin);
 
         // RefreshToken의 lastUsedAt 갱신
         token.setLastUsedAt(LocalDateTime.now());
 
         return AdminAuthResponseDTO.builder()
-            .token(newAccessToken)
+//            .token(newAccessToken)
             .refreshToken(refreshToken)
             .admin(admin.convertDTO()) // Member 정보도 함께 전달 가능
             .build();

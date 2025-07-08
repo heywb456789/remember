@@ -29,6 +29,15 @@ public class ApiJwtFilter extends OncePerRequestFilter {
     private final MemberUserDetailsService memberUserDetailsService;
 
     @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        String path = request.getRequestURI();
+        // /api/** 경로가 아니거나 /admin/api/**이면 필터 실행 안함
+        boolean shouldNotFilter = !path.startsWith("/api/") || path.startsWith("/admin/api/");
+        log.debug("ApiJwtFilter shouldNotFilter for {}: {}", path, shouldNotFilter);
+        return shouldNotFilter;
+    }
+
+    @Override
     protected void doFilterInternal(HttpServletRequest request, 
                                   HttpServletResponse response, 
                                   FilterChain filterChain) throws ServletException, IOException {

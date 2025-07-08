@@ -14,12 +14,12 @@ public class WebConfig implements WebMvcConfigurer {
     private String uploadRoot;
 
 
-    @Override
-    public void addViewControllers(ViewControllerRegistry registry) {
-        // "/" 요청이 들어오면 내부적으로 /main/main.html 을 forward
-        registry.addViewController("/").setViewName("forward:/main/main.html");
-        registry.setOrder(Ordered.HIGHEST_PRECEDENCE);
-    }
+//    @Override
+//    public void addViewControllers(ViewControllerRegistry registry) {
+//        // "/" 요청이 들어오면 내부적으로 /main/main.html 을 forward
+//        registry.addViewController("/").setViewName("forward:/main/main.html");
+//        registry.setOrder(Ordered.HIGHEST_PRECEDENCE);
+//    }
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {

@@ -52,7 +52,7 @@ public class AuthRequestDTO {
         example = "user_key_12345",
         requiredMode = Schema.RequiredMode.REQUIRED
     )
-    @NotBlank(message = "사용자 키는 필수입니다")
+//    @NotBlank(message = "사용자 키는 필수입니다")
     private String userKey;
 
     @Schema(
@@ -60,7 +60,7 @@ public class AuthRequestDTO {
         example = "홍길동",
         requiredMode = Schema.RequiredMode.REQUIRED
     )
-    @NotBlank(message = "이름은 필수입니다")
+//    @NotBlank(message = "이름은 필수입니다")
     private String name;
 
     @Schema(

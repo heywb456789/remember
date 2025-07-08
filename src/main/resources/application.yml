@@ -1,23 +1,23 @@
 # =======================================================
-# 토마토리멤버 기본 설정 파일 (기존 설정 기반 정리)
+# 토마토리멤버 기본 설정 파일
 # =======================================================
 
 spring:
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:local}
-  
+
   application:
     name: remember
-  
+
   output:
     ansi:
       enabled: always
-  
+
   main:
     banner-mode: off
 
   # =======================================================
-  # JPA 설정 (기존 설정 유지 + 정리)
+  # JPA 설정
   # =======================================================
   jpa:
     database: mysql
@@ -30,7 +30,7 @@ spring:
         use_sql_comments: true
 
   # =======================================================
-  # MVC 설정 (기존 설정 유지)
+  # MVC 설정
   # =======================================================
   mvc:
     format:
@@ -39,7 +39,7 @@ spring:
       time: HH:mm:ss
 
   # =======================================================
-  # Thymeleaf 설정 (기존 설정 정리)
+  # Thymeleaf 설정
   # =======================================================
   thymeleaf:
     prefix: classpath:/templates/
@@ -48,7 +48,7 @@ spring:
     cache: ${THYMELEAF_CACHE:false}
 
   # =======================================================
-  # 정적 리소스 설정 (기존 설정 유지)
+  # 정적 리소스 설정
   # =======================================================
   web:
     resources:
@@ -56,7 +56,7 @@ spring:
         period: ${RESOURCE_CACHE_PERIOD:0}
 
   # =======================================================
-  # 파일 업로드 설정 (기존 설정 유지)
+  # 파일 업로드 설정
   # =======================================================
   servlet:
     multipart:
@@ -64,29 +64,117 @@ spring:
       max-request-size: 500MB
 
   # =======================================================
-  # JWT 보안 설정 (기존 설정 정리)
+  # JWT 보안 설정
   # =======================================================
   security:
     jwt:
-      secret: ${JWT_SECRET:MDEyMzQ1Njc4OWNiZmFnZDEyMzQ1Njc4OWNiZmFnZA==}
-      access-token-expiration: ${JWT_ACCESS_EXPIRATION:3600000}      # 기존 테스트 10초 → 1시간으로 수정
-      refresh-token-expiration: ${JWT_REFRESH_EXPIRATION:1209600000} # 2주 (기존 설정 유지)
-      auto-login-expiration: ${JWT_AUTO_LOGIN_EXPIRATION:31536000000} # 1년 (기존 설정 유지)
+      # 관리자 JWT 설정
+      admin-secret: ${JWT_ADMIN_SECRET:YWRtaW5TZWNyZXRLZXlGb3JUb21hdG9SZW1lbWJlckFkbWluVG9rZW5Hzb250}
+      # 회원 JWT 설정
+      member-secret: ${JWT_MEMBER_SECRET:bWVtYmVyU2VjcmV0S2V5Rm9yVG9tYXRvUmVtZW1iZXJNZW1iZXJUb2tlbkdlbmVy}
+
+      # 토큰 만료 시간 설정
+      access-token-expiration: ${JWT_ACCESS_EXPIRATION:3600000}        # 1시간 (기존 설정 유지)
+      refresh-token-expiration: ${JWT_REFRESH_EXPIRATION:1209600000}   # 2주 (기존 설정 유지)
+      auto-login-expiration: ${JWT_AUTO_LOGIN_EXPIRATION:31536000000}  # 1년 (기존 설정 유지)
+
+      # JWT 쿠키 설정 (모바일 뷰용)
       cookie:
-        secure: ${JWT_COOKIE_SECURE:false}
-        http-only: true
-        same-site: lax
-        path: /
+        # 회원용 쿠키 설정
+        member:
+          access-token-name: MEMBER_ACCESS_TOKEN
+          refresh-token-name: MEMBER_REFRESH_TOKEN
+          domain: ${JWT_COOKIE_DOMAIN:}  # 환경별 설정
+          path: /
+          secure: ${JWT_COOKIE_SECURE:false}  # 환경별 설정
+          http-only: true
+          same-site: Strict
+          max-age: ${JWT_COOKIE_MAX_AGE:31536000}  # 1년
+
+        # 관리자용 쿠키 설정 (필요시)
+        admin:
+          access-token-name: ADMIN_ACCESS_TOKEN
+          refresh-token-name: ADMIN_REFRESH_TOKEN
+          domain: ${JWT_ADMIN_COOKIE_DOMAIN:}
+          path: /admin
+          secure: ${JWT_COOKIE_SECURE:false}
+          http-only: true
+          same-site: Strict
+          max-age: ${JWT_COOKIE_MAX_AGE:31536000}
+
+      # 토큰 동기화 설정 (쿠키 ↔ localStorage)
+      sync:
+        enabled: true
+        header-name: X-Token-Sync
+        localStorage-prefix: tomato_remember_
 
   # =======================================================
-  # 개발툴 설정 (기존 설정 유지)
+  # 개발툴 설정
   # =======================================================
   devtools:
     livereload:
       enabled: ${DEVTOOLS_ENABLED:true}
 
 # =======================================================
-# SpringDoc OpenAPI 설정 (기존 설정 정리)
+# 토마토리멤버 보안 설정
+# =======================================================
+tomato-remember:
+  security:
+    # JWT 필터 순서 설정
+    filter-order:
+      admin-api: 1
+      mobile-view: 2
+      api: 3
+
+    # 인증 제외 경로 설정
+    permit-all-patterns:
+      - /
+      - /home
+      - /about
+      - /contact
+      - /mobile/login
+      - /mobile/register
+      - /mobile/auth/**
+      - /mobile/public/**
+      - /admin/view/login
+      - /admin/view/register
+      - /admin/api/auth/login
+      - /admin/api/auth/refresh
+      - /api/auth/login
+      - /api/auth/register
+      - /api/auth/refresh
+      - /api/memorial/public/**
+      - /api/videos/public/**
+      - /api/news/public/**
+      - /api/share/**
+      - /uploads/**
+      - /css/**
+      - /js/**
+      - /images/**
+      - /favicon.ico
+      - /actuator/health
+      - /v3/api-docs/**
+      - /swagger-ui/**
+      - /swagger-ui.html
+
+    # CORS 설정
+    cors:
+      allowed-origins:
+        - ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:8080,https://remember.newstomato.com}
+      allowed-methods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - OPTIONS
+        - PATCH
+      allowed-headers:
+        - "*"
+      allow-credentials: true
+      max-age: 3600
+
+# =======================================================
+# SpringDoc OpenAPI 설정 (JWT Bearer 토큰 지원 추가)
 # =======================================================
 springdoc:
   swagger-ui:
@@ -100,6 +188,11 @@ springdoc:
     display-request-duration: true
     default-models-expand-depth: 2
     default-model-expand-depth: 2
+
+    # JWT Bearer 토큰 인증 버튼 추가
+    config-url: /v3/api-docs/swagger-config
+    oauth2-redirect-url: /swagger-ui/oauth2-redirect.html
+
     # 기존 커스텀 CSS 유지 (토마토 브랜드 색상)
     custom-css: |
       .swagger-ui .topbar { 
@@ -119,17 +212,25 @@ springdoc:
         border-radius: 8px;
         margin: 15px 0;
       }
-  
+      .swagger-ui .auth-wrapper { 
+        display: flex; 
+        justify-content: flex-end; 
+        margin: 10px 0;
+      }
+      .swagger-ui .btn.authorize { 
+        background-color: #00b894; 
+        border-color: #00a085;
+      }
+
   api-docs:
     enabled: true
     path: /v3/api-docs
     groups:
       enabled: true
-  
-  # 기존: com.tomato.naraclub → 새 프로젝트 패키지로 변경
+
   packages-to-scan: com.tomato.remember
-  paths-to-match: /api/**  # /admin/** 제거 (관리자 기능 없음)
-  
+  paths-to-match: /api/**,/admin/api/**  # 관리자 API도 문서화에 포함
+
   default-consumes-media-type: application/json
   default-produces-media-type: application/json
   model-and-view-allowed: true
@@ -153,16 +254,3 @@ one-id:
     register: /v1/api/external/{apptype}/join
     coin-info: /v1/api/external/{apptype}/coin-info
     profile-img: /v1/api/external/{apptype}/profile/img/upload/{userkey}
-
-# =======================================================
-# 로깅 설정 (기존 설정 유지)
-# =======================================================
-logging:
-  level:
-    org.springframework.web.reactive.function.client.ExchangeFilterFunctions: ${LOG_LEVEL_HTTP:DEBUG}
-    reactor.netty.http.client.HttpClient: ${LOG_LEVEL_HTTP:DEBUG}
-
-# =======================================================
-# 인바운드 로깅 설정 (기존 설정 유지)
-# =======================================================
-inbound-logging: ${INBOUND_LOGGING:true}

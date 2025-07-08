@@ -1,5 +1,5 @@
 # =======================================================
-# 토마토리멤버 로컬 개발환경 설정 (기존 설정 기반)
+# 토마토리멤버 로컬 개발환경 설정 (JWT 인증 시스템 추가)
 # =======================================================
 
 server:
@@ -11,8 +11,34 @@ spring:
   # =======================================================
   jpa:
     hibernate:
-      ddl-auto: create-drop  # 로컬에서는 매번 새로 생성
+#      ddl-auto: create-drop  # 로컬에서는 매번 새로 생성
+      ddl-auto: update  # 로컬에서는 매번 새로 생성
     show-sql: true          # 로컬에서는 SQL 로그 활성화
+
+  # =======================================================
+  # JWT 보안 설정 (로컬 개발용)
+  # =======================================================
+  security:
+    jwt:
+      # 로컬 개발용 시크릿 키 (Base64 인코딩된 값)
+      admin-secret: bG9jYWxBZG1pblNlY3JldEtleUZvclRvbWF0b1JlbWVtYmVyQWRtaW5Ub2tlbkdlbmVyYXRpb24=
+      member-secret: bG9jYWxNZW1iZXJTZWNyZXRLZXlGb3JUb21hdG9SZW1lbWJlck1lbWJlclRva2VuR2VuZXJhdGlvbg==
+
+      # 로컬 개발용 토큰 만료 시간 (테스트 용이성을 위해 짧게 설정)
+      access-token-expiration: 3600000    # 1시간 (개발용)
+      refresh-token-expiration: 86400000  # 1일 (개발용)
+      auto-login-expiration: 604800000    # 1주 (개발용)
+
+      # 로컬 개발용 쿠키 설정
+      cookie:
+        member:
+          domain: localhost  # 로컬 도메인
+          secure: false      # HTTP 허용
+          same-site: Lax     # 개발용으로 Lax 사용
+        admin:
+          domain: localhost
+          secure: false
+          same-site: Lax
 
   # =======================================================
   # 데이터소스 설정 (기존 설정 기반)
@@ -45,28 +71,23 @@ spring:
       # FTP 설정 제거 (로컬에서는 불필요)
 
 # =======================================================
+# 토마토리멤버 로컬 보안 설정
+# =======================================================
+tomato-remember:
+  security:
+    # CORS 설정 (로컬 개발용)
+    cors:
+      allowed-origins:
+        - http://localhost:3000
+        - http://localhost:8080
+        - http://127.0.0.1:3000
+        - http://127.0.0.1:8080
+      allow-credentials: true
+
+# =======================================================
 # Google 서비스 설정 (기존 설정 유지)
 # =======================================================
 google:
   key-path:
     console: ${GOOGLE_CONSOLE_KEY:/google/pc-api-6501066511374588335-380-1ad7a0f489f4.json}
     firebase: ${GOOGLE_FIREBASE_KEY:/firebase/dev-bread-4908a-firebase-adminsdk-cp247-2bc9dd1010.json}
-
-# =======================================================
-# 로컬 개발용 로깅 (상세 로그)
-# =======================================================
-logging:
-  level:
-    com.tomato.remember: DEBUG
-    org.springframework.web: DEBUG
-    org.springframework.security: DEBUG
-    org.hibernate.SQL: DEBUG
-
-# =======================================================
-# 로컬 개발 전용 설정
-# =======================================================
-inbound-logging: true
-
-# 복제 설정 (기존 설정 유지)
-original:
-  replication: false  # 로컬은 복제 비활성화

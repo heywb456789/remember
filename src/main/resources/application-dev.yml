@@ -1,5 +1,5 @@
 # =======================================================
-# 토마토리멤버 개발서버 환경 설정 (기존 설정 기반)
+# 토마토리멤버 개발서버 환경 설정 (JWT 인증 시스템 추가)
 # =======================================================
 
 server:
@@ -17,6 +17,31 @@ spring:
     hibernate:
       ddl-auto: validate  # 기존 설정 유지 (스키마 검증만)
     show-sql: false       # 개발서버에서는 SQL 로그 비활성화
+
+  # =======================================================
+  # 🔐 JWT 보안 설정 (개발서버용)
+  # =======================================================
+  security:
+    jwt:
+      # 개발서버용 시크릿 키 (운영과 다른 키 사용)
+      admin-secret: ZGV2QWRtaW5TZWNyZXRLZXlGb3JUb21hdG9SZW1lbWJlckFkbWluVG9rZW5HZW5lcmF0aW9uRGV2
+      member-secret: ZGV2TWVtYmVyU2VjcmV0S2V5Rm9yVG9tYXRvUmVtZW1iZXJNZW1iZXJUb2tlbkdlbmVyYXRpb25EZXY=
+
+      # 개발서버용 토큰 만료 시간
+      access-token-expiration: 7200000     # 2시간 (개발서버용)
+      refresh-token-expiration: 604800000  # 1주 (개발서버용)
+      auto-login-expiration: 2592000000    # 1개월 (개발서버용)
+
+      # 🍪 개발서버용 쿠키 설정
+      cookie:
+        member:
+          domain: .newstomato.com  # 개발 도메인
+          secure: false            # 개발서버는 HTTP 사용
+          same-site: Lax
+        admin:
+          domain: .newstomato.com
+          secure: false
+          same-site: Lax
 
   # =======================================================
   # 데이터소스 설정 (기존 설정 유지)
@@ -48,6 +73,19 @@ spring:
         password: tomatochain1!
 
 # =======================================================
+# 🔐 토마토리멤버 개발서버 보안 설정
+# =======================================================
+tomato-remember:
+  security:
+    # CORS 설정 (개발서버용)
+    cors:
+      allowed-origins:
+        - http://114.31.52.64:8096
+        - https://dev-remember.newstomato.com
+        - http://localhost:3000  # 로컬 개발 지원
+      allow-credentials: true
+
+# =======================================================
 # Google 서비스 설정 (기존 설정 유지)
 # =======================================================
 google:
@@ -68,10 +106,22 @@ original:
   replication: false
 
 # =======================================================
-# 개발서버 로깅 설정
+# 개발서버 로깅 설정 (JWT 인증 로깅 추가)
 # =======================================================
 logging:
   level:
     com.tomato.remember: INFO
     org.springframework.web: INFO
     org.springframework.security: INFO
+    # JWT 인증 관련 로깅 (개발서버에서는 중간 레벨)
+    com.tomato.remember.common.security: DEBUG
+    com.tomato.remember.common.util.CookieUtil: DEBUG
+
+# =======================================================
+# 개발서버용 JWT 설정
+# =======================================================
+debug:
+  jwt:
+    enabled: false  # 개발서버에서는 JWT 디버깅 비활성화
+    print-claims: false
+    print-headers: false
