@@ -1,4 +1,4 @@
-package com.tomato.naraclub.domain;
+package com.tomato.remember.domain;
 
 import static com.querydsl.core.types.PathMetadataFactory.*;
 

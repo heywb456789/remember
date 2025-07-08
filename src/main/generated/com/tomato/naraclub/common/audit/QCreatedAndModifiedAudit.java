@@ -1,4 +1,4 @@
-package com.tomato.naraclub.common.audit;
+package com.tomato.remember.common.audit;
 
 import static com.querydsl.core.types.PathMetadataFactory.*;
 

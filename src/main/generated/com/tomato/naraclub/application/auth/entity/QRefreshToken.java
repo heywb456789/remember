@@ -1,4 +1,4 @@
-package com.tomato.naraclub.application.auth.entity;
+package com.tomato.remember.application.auth.entity;
 
 import static com.querydsl.core.types.PathMetadataFactory.*;
 
@@ -22,7 +22,7 @@ public class QRefreshToken extends EntityPathBase<RefreshToken> {
 
     public static final QRefreshToken refreshToken1 = new QRefreshToken("refreshToken1");
 
-    public final com.tomato.naraclub.common.audit.QCreatedAndModifiedAudit _super = new com.tomato.naraclub.common.audit.QCreatedAndModifiedAudit(this);
+    public final com.tomato.remember.common.audit.QCreatedAndModifiedAudit _super = new com.tomato.remember.common.audit.QCreatedAndModifiedAudit(this);
 
     //inherited
     public final DateTimePath<java.time.LocalDateTime> createdAt = _super.createdAt;
@@ -40,7 +40,7 @@ public class QRefreshToken extends EntityPathBase<RefreshToken> {
 
     public final DateTimePath<java.time.LocalDateTime> lastUsedAt = createDateTime("lastUsedAt", java.time.LocalDateTime.class);
 
-    public final com.tomato.naraclub.application.member.entity.QMember member;
+    public final com.tomato.remember.application.member.entity.QMember member;
 
     public final StringPath refreshToken = createString("refreshToken");
 
@@ -70,7 +70,7 @@ public class QRefreshToken extends EntityPathBase<RefreshToken> {
 
     public QRefreshToken(Class<? extends RefreshToken> type, PathMetadata metadata, PathInits inits) {
         super(type, metadata, inits);
-        this.member = inits.isInitialized("member") ? new com.tomato.naraclub.application.member.entity.QMember(forProperty("member"), inits.get("member")) : null;
+        this.member = inits.isInitialized("member") ? new com.tomato.remember.application.member.entity.QMember(forProperty("member"), inits.get("member")) : null;
     }
 
 }

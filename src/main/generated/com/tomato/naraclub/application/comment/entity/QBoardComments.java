@@ -1,4 +1,4 @@
-package com.tomato.naraclub.application.comment.entity;
+package com.tomato.remember.application.comment.entity;
 
 import static com.querydsl.core.types.PathMetadataFactory.*;
 
@@ -22,11 +22,11 @@ public class QBoardComments extends EntityPathBase<BoardComments> {
 
     public static final QBoardComments boardComments = new QBoardComments("boardComments");
 
-    public final com.tomato.naraclub.common.audit.QAudit _super = new com.tomato.naraclub.common.audit.QAudit(this);
+    public final com.tomato.remember.common.audit.QAudit _super = new com.tomato.remember.common.audit.QAudit(this);
 
-    public final com.tomato.naraclub.application.member.entity.QMember author;
+    public final com.tomato.remember.application.member.entity.QMember author;
 
-    public final com.tomato.naraclub.application.board.entity.QBoardPost boardPost;
+    public final com.tomato.remember.application.board.entity.QBoardPost boardPost;
 
     public final StringPath content = createString("content");
 
@@ -63,8 +63,8 @@ public class QBoardComments extends EntityPathBase<BoardComments> {
 
     public QBoardComments(Class<? extends BoardComments> type, PathMetadata metadata, PathInits inits) {
         super(type, metadata, inits);
-        this.author = inits.isInitialized("author") ? new com.tomato.naraclub.application.member.entity.QMember(forProperty("author"), inits.get("author")) : null;
-        this.boardPost = inits.isInitialized("boardPost") ? new com.tomato.naraclub.application.board.entity.QBoardPost(forProperty("boardPost"), inits.get("boardPost")) : null;
+        this.author = inits.isInitialized("author") ? new com.tomato.remember.application.member.entity.QMember(forProperty("author"), inits.get("author")) : null;
+        this.boardPost = inits.isInitialized("boardPost") ? new com.tomato.remember.application.board.entity.QBoardPost(forProperty("boardPost"), inits.get("boardPost")) : null;
     }
 
 }

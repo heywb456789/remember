@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="ko" xmlns:th="http://www.thymeleaf.org"><meta charset="UTF-8"/>
-  <
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
-  meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
   <title th:text="${pageTitle} ?: '토마토 One-ID'">토마토 One-ID</title>
 
   <!-- Bootstrap CSS -->
@@ -15,22 +15,8 @@
   <!-- Custom JavaScript (모듈로 로드) -->
   <script th:src="@{/assets/mobile/js/login.js}" type="module"></script>
 
-  <!-- 토스트 및 커스텀 스타일 -->
+  <!-- 커스텀 스타일 -->
   <style>
-    .toast-container {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      z-index: 9999;
-    }
-    .custom-toast {
-      background-color: rgba(255, 255, 255, 0.95);
-      border-left: 4px solid #ff9999;
-    }
-    .success-toast {
-      border-left: 4px solid #28a745;
-    }
-
     /* 비밀번호 토글 스타일 */
     .password-container {
       position: relative;
@@ -93,6 +79,19 @@
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
+
+    /* 버튼 스타일 개선 */
+    .verify-button {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .verify-button:disabled {
+      cursor: not-allowed;
+    }
   </style>
 </head>
 <body class="d-flex align-items-start justify-content-center py-5">
@@ -107,16 +106,6 @@
   </div>
 
   <p class="subtitle">토마토 One-ID를 이용하세요!</p>
-
-<!--  &lt;!&ndash; 서버사이드 에러 메시지 표시 (Thymeleaf) &ndash;&gt;-->
-<!--  <div th:if="${errorMessage}" class="alert-message alert-error">-->
-<!--    <span th:text="${errorMessage}">에러 메시지</span>-->
-<!--  </div>-->
-
-<!--  &lt;!&ndash; 서버사이드 성공 메시지 표시 (Thymeleaf) &ndash;&gt;-->
-<!--  <div th:if="${successMessage}" class="alert-message alert-success">-->
-<!--    <span th:text="${successMessage}">성공 메시지</span>-->
-<!--  </div>-->
 
   <!-- 클라이언트사이드 메시지 표시 영역 (API 응답용) -->
   <div id="clientMessage" class="alert-message" style="display: none;"></div>
@@ -190,7 +179,6 @@
   window.API_ENDPOINTS = {
     LOGIN: '/api/auth/login',
     REGISTER: '/api/auth/register',
-    INVITE_CODE: '/api/auth/invite-code',
     LOGOUT: '/api/auth/logout'
   };
 
@@ -198,6 +186,7 @@
   window.PAGE_CONFIG = {
     registerUrl: '/register',
     homeUrl: '/',
+    mainUrl: '/main'
   };
 </script>
 

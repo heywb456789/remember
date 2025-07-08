@@ -1,4 +1,4 @@
-package com.tomato.naraclub.application.member.entity;
+package com.tomato.remember.application.member.entity;
 
 import static com.querydsl.core.types.PathMetadataFactory.*;
 
@@ -22,7 +22,7 @@ public class QMember extends EntityPathBase<Member> {
 
     public static final QMember member = new QMember("member1");
 
-    public final com.tomato.naraclub.common.audit.QAudit _super = new com.tomato.naraclub.common.audit.QAudit(this);
+    public final com.tomato.remember.common.audit.QAudit _super = new com.tomato.remember.common.audit.QAudit(this);
 
     //inherited
     public final DateTimePath<java.time.LocalDateTime> createdAt = _super.createdAt;
@@ -49,9 +49,9 @@ public class QMember extends EntityPathBase<Member> {
 
     public final StringPath profileImg = createString("profileImg");
 
-    public final EnumPath<com.tomato.naraclub.common.code.MemberRole> role = createEnum("role", com.tomato.naraclub.common.code.MemberRole.class);
+    public final EnumPath<com.tomato.remember.common.code.MemberRole> role = createEnum("role", com.tomato.remember.common.code.MemberRole.class);
 
-    public final EnumPath<com.tomato.naraclub.common.code.MemberStatus> status = createEnum("status", com.tomato.naraclub.common.code.MemberStatus.class);
+    public final EnumPath<com.tomato.remember.common.code.MemberStatus> status = createEnum("status", com.tomato.remember.common.code.MemberStatus.class);
 
     //inherited
     public final DateTimePath<java.time.LocalDateTime> updatedAt = _super.updatedAt;

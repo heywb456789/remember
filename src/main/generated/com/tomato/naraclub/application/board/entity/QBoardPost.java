@@ -1,4 +1,4 @@
-package com.tomato.naraclub.application.board.entity;
+package com.tomato.remember.application.board.entity;
 
 import static com.querydsl.core.types.PathMetadataFactory.*;
 
@@ -22,13 +22,13 @@ public class QBoardPost extends EntityPathBase<BoardPost> {
 
     public static final QBoardPost boardPost = new QBoardPost("boardPost");
 
-    public final com.tomato.naraclub.common.audit.QAudit _super = new com.tomato.naraclub.common.audit.QAudit(this);
+    public final com.tomato.remember.common.audit.QAudit _super = new com.tomato.remember.common.audit.QAudit(this);
 
-    public final com.tomato.naraclub.application.member.entity.QMember author;
+    public final com.tomato.remember.application.member.entity.QMember author;
 
     public final NumberPath<Long> commentCount = createNumber("commentCount", Long.class);
 
-    public final ListPath<com.tomato.naraclub.application.comment.entity.BoardComments, com.tomato.naraclub.application.comment.entity.QBoardComments> comments = this.<com.tomato.naraclub.application.comment.entity.BoardComments, com.tomato.naraclub.application.comment.entity.QBoardComments>createList("comments", com.tomato.naraclub.application.comment.entity.BoardComments.class, com.tomato.naraclub.application.comment.entity.QBoardComments.class, PathInits.DIRECT2);
+    public final ListPath<com.tomato.remember.application.comment.entity.BoardComments, com.tomato.remember.application.comment.entity.QBoardComments> comments = this.<com.tomato.remember.application.comment.entity.BoardComments, com.tomato.remember.application.comment.entity.QBoardComments>createList("comments", com.tomato.remember.application.comment.entity.BoardComments.class, com.tomato.remember.application.comment.entity.QBoardComments.class, PathInits.DIRECT2);
 
     public final StringPath content = createString("content");
 
@@ -79,7 +79,7 @@ public class QBoardPost extends EntityPathBase<BoardPost> {
 
     public QBoardPost(Class<? extends BoardPost> type, PathMetadata metadata, PathInits inits) {
         super(type, metadata, inits);
-        this.author = inits.isInitialized("author") ? new com.tomato.naraclub.application.member.entity.QMember(forProperty("author"), inits.get("author")) : null;
+        this.author = inits.isInitialized("author") ? new com.tomato.remember.application.member.entity.QMember(forProperty("author"), inits.get("author")) : null;
     }
 
 }

@@ -1,4 +1,4 @@
-package com.tomato.naraclub.domain;
+package com.tomato.remember.domain;
 
 import static com.querydsl.core.types.PathMetadataFactory.*;
 
@@ -22,7 +22,7 @@ public class QVotePost extends EntityPathBase<VotePost> {
 
     public static final QVotePost votePost = new QVotePost("votePost");
 
-    public final com.tomato.naraclub.application.member.entity.QMember author;
+    public final com.tomato.remember.application.member.entity.QMember author;
 
     public final StringPath choiceA = createString("choiceA");
 
@@ -56,7 +56,7 @@ public class QVotePost extends EntityPathBase<VotePost> {
 
     public QVotePost(Class<? extends VotePost> type, PathMetadata metadata, PathInits inits) {
         super(type, metadata, inits);
-        this.author = inits.isInitialized("author") ? new com.tomato.naraclub.application.member.entity.QMember(forProperty("author"), inits.get("author")) : null;
+        this.author = inits.isInitialized("author") ? new com.tomato.remember.application.member.entity.QMember(forProperty("author"), inits.get("author")) : null;
     }
 
 }

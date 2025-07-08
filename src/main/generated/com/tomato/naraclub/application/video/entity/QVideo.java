@@ -1,4 +1,4 @@
-package com.tomato.naraclub.application.original.entity;
+package com.tomato.remember.application.original.entity;
 
 import static com.querydsl.core.types.PathMetadataFactory.*;
 
@@ -19,7 +19,7 @@ public class QVideo extends EntityPathBase<Video> {
 
     public static final QVideo video = new QVideo("video");
 
-    public final com.tomato.naraclub.common.audit.QAudit _super = new com.tomato.naraclub.common.audit.QAudit(this);
+    public final com.tomato.remember.common.audit.QAudit _super = new com.tomato.remember.common.audit.QAudit(this);
 
     public final StringPath category = createString("category");
 

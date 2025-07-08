@@ -1,4 +1,4 @@
-package com.tomato.naraclub.application.board.entity;
+package com.tomato.remember.application.board.entity;
 
 import static com.querydsl.core.types.PathMetadataFactory.*;
 
@@ -22,7 +22,7 @@ public class QBoardPostLike extends EntityPathBase<BoardPostLike> {
 
     public static final QBoardPostLike boardPostLike = new QBoardPostLike("boardPostLike");
 
-    public final com.tomato.naraclub.common.audit.QAudit _super = new com.tomato.naraclub.common.audit.QAudit(this);
+    public final com.tomato.remember.common.audit.QAudit _super = new com.tomato.remember.common.audit.QAudit(this);
 
     public final QBoardPost boardPost;
 
@@ -34,7 +34,7 @@ public class QBoardPostLike extends EntityPathBase<BoardPostLike> {
 
     public final NumberPath<Long> id = createNumber("id", Long.class);
 
-    public final com.tomato.naraclub.application.member.entity.QMember member;
+    public final com.tomato.remember.application.member.entity.QMember member;
 
     //inherited
     public final DateTimePath<java.time.LocalDateTime> updatedAt = _super.updatedAt;
@@ -61,7 +61,7 @@ public class QBoardPostLike extends EntityPathBase<BoardPostLike> {
     public QBoardPostLike(Class<? extends BoardPostLike> type, PathMetadata metadata, PathInits inits) {
         super(type, metadata, inits);
         this.boardPost = inits.isInitialized("boardPost") ? new QBoardPost(forProperty("boardPost"), inits.get("boardPost")) : null;
-        this.member = inits.isInitialized("member") ? new com.tomato.naraclub.application.member.entity.QMember(forProperty("member"), inits.get("member")) : null;
+        this.member = inits.isInitialized("member") ? new com.tomato.remember.application.member.entity.QMember(forProperty("member"), inits.get("member")) : null;
     }
 
 }

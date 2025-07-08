@@ -1,4 +1,4 @@
-package com.tomato.naraclub.application.board.entity;
+package com.tomato.remember.application.board.entity;
 
 import static com.querydsl.core.types.PathMetadataFactory.*;
 
@@ -22,7 +22,7 @@ public class QBoardPostImage extends EntityPathBase<BoardPostImage> {
 
     public static final QBoardPostImage boardPostImage = new QBoardPostImage("boardPostImage");
 
-    public final com.tomato.naraclub.common.audit.QAudit _super = new com.tomato.naraclub.common.audit.QAudit(this);
+    public final com.tomato.remember.common.audit.QAudit _super = new com.tomato.remember.common.audit.QAudit(this);
 
     public final QBoardPost boardPost;
 

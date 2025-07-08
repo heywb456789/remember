@@ -1,4 +1,4 @@
-package com.tomato.naraclub.domain;
+package com.tomato.remember.domain;
 
 import static com.querydsl.core.types.PathMetadataFactory.*;
 
@@ -26,7 +26,7 @@ public class QViewHistory extends EntityPathBase<ViewHistory> {
 
     public final NumberPath<Long> id = createNumber("id", Long.class);
 
-    public final com.tomato.naraclub.application.member.entity.QMember member;
+    public final com.tomato.remember.application.member.entity.QMember member;
 
     public final EnumPath<ViewHistory.ContentType> type = createEnum("type", ViewHistory.ContentType.class);
 
@@ -50,7 +50,7 @@ public class QViewHistory extends EntityPathBase<ViewHistory> {
 
     public QViewHistory(Class<? extends ViewHistory> type, PathMetadata metadata, PathInits inits) {
         super(type, metadata, inits);
-        this.member = inits.isInitialized("member") ? new com.tomato.naraclub.application.member.entity.QMember(forProperty("member"), inits.get("member")) : null;
+        this.member = inits.isInitialized("member") ? new com.tomato.remember.application.member.entity.QMember(forProperty("member"), inits.get("member")) : null;
     }
 
 }

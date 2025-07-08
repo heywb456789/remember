@@ -1,0 +1,142 @@
+<!-- token-sync.html - 모든 모바일 뷰 페이지에 포함할 토큰 동기화 스크립트 -->
+
+<!-- 토큰 갱신 정보 메타 태그 (서버에서 설정) -->
+<meta th:if="${newAccessToken}" name="new-access-token" th:content="${newAccessToken}" />
+<meta th:if="${newRefreshToken}" name="new-refresh-token" th:content="${newRefreshToken}" />
+
+<!-- 토큰 동기화 스크립트 -->
+<script>
+(function() {
+    'use strict';
+
+    /**
+     * 토큰 동기화 처리
+     */
+    function syncTokens() {
+        try {
+            // 메타 태그에서 새 토큰 정보 확인
+            const newAccessTokenMeta = document.querySelector('meta[name="new-access-token"]');
+            const newRefreshTokenMeta = document.querySelector('meta[name="new-refresh-token"]');
+
+            if (newAccessTokenMeta && newRefreshTokenMeta) {
+                const newAccessToken = newAccessTokenMeta.content;
+                const newRefreshToken = newRefreshTokenMeta.content;
+
+                if (newAccessToken && newRefreshToken) {
+                    // localStorage 업데이트
+                    localStorage.setItem('accessToken', newAccessToken);
+                    localStorage.setItem('refreshToken', newRefreshToken);
+
+                    console.log('토큰 동기화 완료 - Access Token:', newAccessToken.substring(0, 20) + '...');
+
+                    // 보안을 위해 메타 태그 제거
+                    newAccessTokenMeta.remove();
+                    newRefreshTokenMeta.remove();
+
+                    // 토큰 동기화 완료 이벤트 발생 (다른 스크립트에서 감지 가능)
+                    window.dispatchEvent(new CustomEvent('tokenSynced', {
+                        detail: {
+                            accessToken: newAccessToken,
+                            refreshToken: newRefreshToken
+                        }
+                    }));
+                }
+            }
+        } catch (error) {
+            console.error('토큰 동기화 오류:', error);
+        }
+    }
+
+    /**
+     * 페이지 로드 완료 시 토큰 동기화 실행
+     */
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', syncTokens);
+    } else {
+        syncTokens();
+    }
+
+    /**
+     * 로그인 상태 확인 (선택적 사용)
+     */
+    window.checkLoginStatus = function() {
+        const accessToken = localStorage.getItem('accessToken');
+        const refreshToken = localStorage.getItem('refreshToken');
+
+        if (!accessToken || !refreshToken) {
+            console.warn('로그인 토큰이 없습니다.');
+            return false;
+        }
+
+        // 토큰 만료 시간 체크 (JWT payload 디코딩)
+        try {
+            const payload = JSON.parse(atob(accessToken.split('.')[1]));
+            const now = Math.floor(Date.now() / 1000);
+
+            if (payload.exp && payload.exp < now) {
+                console.warn('Access Token이 만료되었습니다.');
+                return false;
+            }
+
+            return true;
+        } catch (error) {
+            console.error('토큰 검증 오류:', error);
+            return false;
+        }
+    };
+
+    /**
+     * 강제 로그아웃 처리
+     */
+    window.forceLogout = function(message = '세션이 만료되었습니다.') {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        alert(message);
+        window.location.href = '/mobile/login';
+    };
+
+    /**
+     * 토큰 정보 디버깅 (개발용)
+     */
+    window.debugTokens = function() {
+        const accessToken = localStorage.getItem('accessToken');
+        const refreshToken = localStorage.getItem('refreshToken');
+
+        console.group('토큰 정보');
+        console.log('Access Token:', accessToken ? accessToken.substring(0, 50) + '...' : 'None');
+        console.log('Refresh Token:', refreshToken ? refreshToken.substring(0, 50) + '...' : 'None');
+
+        if (accessToken) {
+            try {
+                const payload = JSON.parse(atob(accessToken.split('.')[1]));
+                console.log('토큰 Payload:', payload);
+                console.log('만료 시간:', new Date(payload.exp * 1000));
+                console.log('남은 시간:', Math.floor((payload.exp * 1000 - Date.now()) / 1000) + '초');
+            } catch (error) {
+                console.error('토큰 파싱 오류:', error);
+            }
+        }
+        console.groupEnd();
+    };
+
+})();
+</script>
+
+<!-- 페이지별 추가 스크립트 (필요시) -->
+<script th:if="${param.debug}">
+    // 디버그 모드일 때만 실행
+    console.log('토큰 동기화 디버그 모드 활성화');
+    window.addEventListener('tokenSynced', function(event) {
+        console.log('토큰 동기화 이벤트 감지:', event.detail);
+    });
+</script>
+
+<!--
+사용법:
+1. 모든 모바일 뷰 페이지에서 이 파일을 include
+2. 컨트롤러에서 토큰 갱신 시 model에 newAccessToken, newRefreshToken 추가
+3. 자동으로 localStorage와 동기화됨
+
+예시:
+<div th:replace="~{fragments/token-sync :: tokenSync}"></div>
+-->
