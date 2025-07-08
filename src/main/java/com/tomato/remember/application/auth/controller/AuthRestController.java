@@ -94,8 +94,7 @@ public class AuthRestController {
         @RequestBody AuthRequestDTO req,
         @Parameter(hidden = true) HttpServletRequest servletRequest
     ) {
-        AuthResponseDTO authResponse = authService.loginProcess(req, servletRequest);
-        return ResponseDTO.ok(authResponse);
+        return ResponseDTO.ok(authService.loginProcess(req, servletRequest));
     }
 
     @Operation(
