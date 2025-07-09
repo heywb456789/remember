@@ -110,8 +110,6 @@ public class JwtTokenProvider {
                 .setSubject(String.valueOf(member.getId()))
                 .claim("type", tokenType.getValue())
                 .claim("email", member.getEmail())
-                .claim("role", member.getRole().name())
-                .claim("status", member.getStatus().name())
                 .setIssuedAt(toDate(now))
                 .setExpiration(toDate(expiration))
                 .signWith(memberKey)

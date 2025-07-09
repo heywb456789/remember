@@ -153,11 +153,10 @@ public class AuthServiceImpl implements AuthService {
                             .password(passwordEncoder.encode(resp.getValue().getPasswd()))
                             .phoneNumber(resp.getValue().getDecPhoneNum())
                             .inviteCode(InviteCodeGenerator.generateUnique(memberRepository))
-                            .status(MemberStatus.ACTIVE) // 바로 활성 상태로 변경
-                            .role(MemberRole.USER_ACTIVE)      // 일반 사용자로 변경
+//                            .status(MemberStatus.ACTIVE) // 바로 활성 상태로 변경
+//                            .role(MemberRole.USER_ACTIVE)      // 일반 사용자로 변경
                             .email(resp.getValue().getEmail())
                             .name(resp.getValue().getName())
-                            .verified(true)  // 인증 완료로 설정
                             .profileImg(profileImg)
                             .build();
                     return memberRepository.save(m);
@@ -183,7 +182,7 @@ public class AuthServiceImpl implements AuthService {
         log.info("One-ID token creation successful for member: {} (ID: {})", member.getName(), member.getId());
 
         return AuthResponseDTO.builder()
-                .token(accessToken)
+                .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .member(member.convertDTO())
                 .build();
@@ -324,8 +323,6 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() -> new BadRequestException("존재하지 않는 회원입니다."));
 
         // 포인트 회수
-        member.decreasePoints(member.getPoints());
-
         // 회원 정보 삭제 처리
         member.deleteMemInfo();
 

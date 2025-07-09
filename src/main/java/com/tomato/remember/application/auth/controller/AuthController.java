@@ -55,7 +55,7 @@ public class AuthController {
         // API 엔드포인트 정보 제공
         model.addAttribute("loginApiUrl", "/api/auth/login");
         model.addAttribute("registerUrl", "/mobile/register");
-        model.addAttribute("mainUrl", "/mobile/main");
+        model.addAttribute("mainUrl", "/mobile/home");
 
         return "/mobile/login/login";
     }
@@ -88,7 +88,7 @@ public class AuthController {
         model.addAttribute("pageTitle", "메모리얼 등록 - 토마토리멤버");
         model.addAttribute("createMemorialApiUrl", "/api/memorial");
         model.addAttribute("uploadApiUrl", "/api/upload");
-        model.addAttribute("backUrl", "/mobile/main");
+        model.addAttribute("backUrl", "/mobile/home");
 
         return "/mobile/memorial/create";
     }

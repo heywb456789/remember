@@ -5,15 +5,21 @@ import {
   authFetch,
   checkAuthAndRedirect,
   syncTokensFromPage,
-  memberLogin
-} from '/js/commonFetchV2.js';
+  memberLogin,
+  checkLoginStatus  // 추가
+} from './commonFetch.js';
 
 // 초기화 함수
 const initLoginPage = () => {
   console.log("Login page initializing with new JWT cookie authentication...");
 
-  // 이미 로그인된 상태라면 메인 페이지로 리다이렉트
-  checkAuthAndRedirect(window.PAGE_CONFIG?.mainUrl || '/mobile/main');
+  // 🔧 단순히 토큰 체크만 하고 리다이렉트는 하지 않음
+  if (checkLoginStatus()) {
+    console.log('이미 로그인된 상태입니다. 홈으로 이동합니다.');
+    // 바로 홈으로 이동 (API 호출 없이)
+    window.location.href = '/';
+    return;
+  }
 
   // 페이지 로드 시 토큰 동기화 (서버에서 갱신된 토큰이 있는 경우)
   syncTokensFromPage();
@@ -86,12 +92,6 @@ const registerEventListeners = (elements) => {
 
 /**
  * 🆕 새로운 API 기반 로그인 처리
- *
- * 변경사항:
- * 1. JSON 형태로 API 호출
- * 2. 서버에서 쿠키에 JWT 토큰 설정
- * 3. 클라이언트에서 localStorage와 자동 동기화
- * 4. 성공/실패 처리를 클라이언트에서 완전히 처리
  */
 const handleLogin = async (elements) => {
   const loginData = {
@@ -129,8 +129,8 @@ const handleLogin = async (elements) => {
       console.log('✅ Login successful:', data.response.member);
 
       // localStorage에 토큰 저장 (서버에서 쿠키로도 설정됨)
-      if (data.response.token) {
-        localStorage.setItem('accessToken', data.response.token);
+      if (data.response.accessToken) {
+        localStorage.setItem('accessToken', data.response.accessToken);
       }
       if (data.response.refreshToken) {
         localStorage.setItem('refreshToken', data.response.refreshToken);
@@ -139,10 +139,9 @@ const handleLogin = async (elements) => {
       // 성공 메시지 표시
       showSuccessMessage(`환영합니다, ${data.response.member.name}님!`);
 
-      // 잠시 후 메인 페이지로 이동
+      // 잠시 후 홈 페이지로 이동
       setTimeout(() => {
-        const mainUrl = window.PAGE_CONFIG?.mainUrl || '/mobile/main';
-        window.location.href = mainUrl;
+        window.location.href = '/';  // 🔧 간단히 루트로 이동
       }, 1000);
 
     } else {
@@ -156,50 +155,6 @@ const handleLogin = async (elements) => {
   } catch (err) {
     console.error('💥 Login error:', err);
     showErrorMessage('네트워크 오류가 발생했습니다. 다시 시도해주세요.');
-    hideLoadingState(elements.loginButton);
-  }
-};
-
-/**
- * 🆕 대안: commonFetchV2.js 사용한 로그인 (필요시 사용)
- */
-const handleApiLoginAlternative = async (elements) => {
-  const loginData = {
-    phoneNumber: elements.phoneInput.value.trim(),
-    password: elements.passwordInput.value,
-    autoLogin: elements.autoLoginCheckbox.checked
-  };
-
-  showLoadingState(elements.loginButton);
-
-  try {
-    // commonFetchV2.js의 memberLogin 함수 사용
-    const result = await memberLogin(
-        loginData.phoneNumber,
-        loginData.password,
-        loginData.autoLogin
-    );
-
-    if (result.success) {
-      console.log('API 로그인 성공:', result.data.member);
-
-      // 성공 메시지 표시
-      showSuccessMessage(`환영합니다, ${result.data.member.name}님!`);
-
-      // 잠시 후 메인 페이지로 이동
-      setTimeout(() => {
-        const mainUrl = window.PAGE_CONFIG?.mainUrl || '/mobile/main';
-        window.location.href = mainUrl;
-      }, 1000);
-
-    } else {
-      showErrorMessage(result.error);
-      hideLoadingState(elements.loginButton);
-    }
-
-  } catch (err) {
-    console.error('API 로그인 실패:', err);
-    showErrorMessage('네트워크 오류가 발생했습니다.');
     hideLoadingState(elements.loginButton);
   }
 };
@@ -264,7 +219,7 @@ const showSuccessMessage = (message) => {
   }
 };
 
-// 기타 이벤트 처리 (변경 없음)
+// 기타 이벤트 처리
 const handleBack = () => window.history.back();
 
 const handlePhoneInput = (e, elements) => {
@@ -288,16 +243,15 @@ const validateForm = (elements) => {
   elements.loginButton.style.backgroundColor = isFormValid ? '#ff9999' : '#ffcccc';
 };
 
-// 토큰 동기화 이벤트 리스너 (새로운 기능)
+// 🔧 토큰 동기화 이벤트 리스너도 단순화
 document.addEventListener('tokenSynced', (event) => {
   console.log('🔄 토큰 동기화 감지:', event.detail);
 
-  // 토큰이 동기화되었다면 이미 로그인된 상태이므로 메인 페이지로 이동
+  // 토큰이 동기화되었다면 이미 로그인된 상태이므로 홈으로 이동
   if (event.detail.accessToken && event.detail.refreshToken) {
-    console.log('✅ 로그인 상태 감지, 메인 페이지로 이동');
+    console.log('✅ 로그인 상태 감지, 홈으로 이동');
     setTimeout(() => {
-      const mainUrl = window.PAGE_CONFIG?.mainUrl || '/mobile/main';
-      window.location.href = mainUrl;
+      window.location.href = '/';
     }, 500);
   }
 });

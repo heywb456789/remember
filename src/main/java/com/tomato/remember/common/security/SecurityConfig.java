@@ -21,7 +21,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
 
 @Configuration
 @RequiredArgsConstructor
@@ -58,15 +57,14 @@ public class SecurityConfig {
     }
 
     /**
-     * 1순위: 관리자 뷰 - 세션 기반 인증
-     * URL: /admin/view/**
+     * 1순위: 관리자 뷰 - 세션 기반 인증 URL: /admin/view/**
      */
     @Bean
     @Order(1)
     public SecurityFilterChain adminViewFilterChain(HttpSecurity http) throws Exception {
         http
             .securityMatcher("/admin/view/**")
-            .csrf(csrf -> csrf.disable()) // 필요시 활성화 가능
+            .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                 .maximumSessions(1)
@@ -99,8 +97,7 @@ public class SecurityConfig {
     }
 
     /**
-     * 2순위: 관리자 API - JWT Bearer 토큰
-     * URL: /admin/api/**
+     * 2순위: 관리자 API - JWT Bearer 토큰 URL: /admin/api/**
      */
     @Bean
     @Order(2)
@@ -113,7 +110,7 @@ public class SecurityConfig {
                 .requestMatchers("/admin/api/auth/login", "/admin/api/auth/refresh").permitAll()
                 .requestMatchers("/admin/api/**").hasAnyRole("SUPER_ADMIN", "OPERATOR", "UPLOADER")
             )
-            .addFilterBefore(adminApiJwtFilter(), UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(new AdminApiJwtFilter(jwtTokenProvider, adminUserDetailsService), UsernamePasswordAuthenticationFilter.class)
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
                 .accessDeniedHandler((req, res, denied) ->
@@ -124,36 +121,44 @@ public class SecurityConfig {
     }
 
     /**
-     * 3순위: 모바일 뷰 - JWT 쿠키 기반
-     * URL: /mobile/**
+     * 3순위: 모바일 뷰 - JWT 쿠키 기반 URL: /mobile/**, /, /home
+     * 홈페이지도 모바일 뷰로 처리하여 JWT 토큰 인증 적용
      */
     @Bean
     @Order(3)
     public SecurityFilterChain mobileViewFilterChain(HttpSecurity http) throws Exception {
         http
-                .securityMatcher("/mobile/**")
-                .csrf(AbstractHttpConfigurer::disable)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        // 공개 경로들을 먼저 명시적으로 허용
-                        .requestMatchers("/mobile/login", "/mobile/register", "/mobile/auth/**", "/mobile/public/**").permitAll()
-                        // 인증이 필요한 경로들을 구체적으로 명시
-                        .requestMatchers("/mobile/dashboard/**", "/mobile/memorial/**", "/mobile/video-call/**").authenticated()
-                        // 나머지 모든 /mobile/** 경로는 일단 허용 (필요시 authenticated()로 변경)
-                        .requestMatchers("/mobile/**").permitAll()
-                )
-                .addFilterBefore(mobileJwtFilter(), UsernamePasswordAuthenticationFilter.class)
-                .exceptionHandling(ex -> ex
-                        .authenticationEntryPoint((request, response, authException) ->
-                                response.sendRedirect("/mobile/login"))
-                );
+            .securityMatcher("/mobile/**", "/", "/home")  // 홈페이지 URL 추가
+            .csrf(AbstractHttpConfigurer::disable)
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(auth -> auth
+                // 홈페이지 공개 경로 추가
+                .requestMatchers("/", "/home").permitAll()
+                // 기존 모바일 공개 경로
+                .requestMatchers("/mobile/login", "/mobile/register", "/mobile/auth/**", "/mobile/public/**").permitAll()
+                // 인증이 필요한 경로들
+                .requestMatchers("/mobile/dashboard/**", "/mobile/memorial/**", "/mobile/video-call/**").authenticated()
+                // 나머지 모든 경로는 허용
+                .requestMatchers("/mobile/**").permitAll()
+            )
+            .addFilterBefore(new MobileJwtFilter(jwtTokenProvider, memberUserDetailsService, cookieUtil), UsernamePasswordAuthenticationFilter.class)
+            .exceptionHandling(ex -> ex
+                .authenticationEntryPoint((request, response, authException) -> {
+                    String requestURI = request.getRequestURI();
+                    // 홈페이지는 리다이렉트하지 않고 계속 진행
+                    if ("/".equals(requestURI) || "/home".equals(requestURI)) {
+                        response.sendRedirect("/mobile/login");
+                    } else {
+                        response.sendRedirect("/mobile/login");
+                    }
+                })
+            );
 
         return http.build();
     }
 
     /**
-     * 4순위: 모바일/앱 공용 API - JWT Bearer 토큰
-     * URL: /api/**
+     * 4순위: 모바일/앱 공용 API - JWT Bearer 토큰 URL: /api/**
      */
     @Bean
     @Order(4)
@@ -167,7 +172,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/memorial/public/**", "/api/videos/public/**").permitAll()
                 .requestMatchers("/api/**").authenticated()
             )
-            .addFilterBefore(apiJwtFilter(), UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(new ApiJwtFilter(jwtTokenProvider, memberUserDetailsService), UsernamePasswordAuthenticationFilter.class)
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
                 .accessDeniedHandler((req, res, denied) ->
@@ -178,33 +183,17 @@ public class SecurityConfig {
     }
 
     /**
-     * 5순위: 기본 웹 페이지 (홈, 로그인 등)
+     * 5순위: 기본 웹 페이지 - 나머지 모든 요청 (JWT 필터 없음)
      */
     @Bean
     @Order(5)
     public SecurityFilterChain defaultFilterChain(HttpSecurity http) throws Exception {
         http
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/", "/home", "/about", "/contact").permitAll()
+                .requestMatchers("/about", "/contact", "/terms", "/privacy").permitAll()
                 .anyRequest().permitAll()
             );
 
         return http.build();
-    }
-
-    // 필터 빈 생성
-    @Bean
-    public AdminApiJwtFilter adminApiJwtFilter() {
-        return new AdminApiJwtFilter(jwtTokenProvider, adminUserDetailsService);
-    }
-
-    @Bean
-    public MobileJwtFilter mobileJwtFilter() {
-        return new MobileJwtFilter(jwtTokenProvider, memberUserDetailsService, cookieUtil);
-    }
-
-    @Bean
-    public ApiJwtFilter apiJwtFilter() {
-        return new ApiJwtFilter(jwtTokenProvider, memberUserDetailsService);
     }
 }

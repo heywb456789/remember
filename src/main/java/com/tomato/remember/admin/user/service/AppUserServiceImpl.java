@@ -66,16 +66,16 @@ public class AppUserServiceImpl implements AppUserService {
         Member member = appUserRepository.findById(id)
             .orElseThrow(()->new APIException(ResponseStatus.USER_NOT_EXIST));
 
-        if(member.getStatus().equals(request.getStatus())){
-            throw new APIException(ResponseStatus.ALREADY_MODIFIED_STATUS);
-        }
-        member.setStatus(request.getStatus());
-
-        if(request.getStatus().equals(MemberStatus.ACTIVE)){
-            member.setRole(MemberRole.USER_ACTIVE);
-        }else{
-            member.setRole(MemberRole.USER_INACTIVE);
-        }
+//        if(member.getStatus().equals(request.getStatus())){
+//            throw new APIException(ResponseStatus.ALREADY_MODIFIED_STATUS);
+//        }
+//        member.setStatus(request.getStatus());
+//
+//        if(request.getStatus().equals(MemberStatus.ACTIVE)){
+//            member.setRole(MemberRole.USER_ACTIVE);
+//        }else{
+//            member.setRole(MemberRole.USER_INACTIVE);
+//        }
 
         AuthorityHistory authorityHistory = authorityHistoryRepository.save(
             AuthorityHistory.builder()

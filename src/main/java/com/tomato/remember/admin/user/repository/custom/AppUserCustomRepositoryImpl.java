@@ -78,7 +78,6 @@ public class AppUserCustomRepositoryImpl implements AppUserCustomRepository {
             member.role,
             member.email,
             member.lastAccessAt,
-            member.verified,
             inviter.id.as("inviterId"),            // 수정된 부분
             inviter.name.as("inviterName"),
             member.createdAt,

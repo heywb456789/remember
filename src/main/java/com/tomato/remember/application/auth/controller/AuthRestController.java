@@ -122,7 +122,7 @@ public class AuthRestController {
 
             // 모바일 뷰에서 사용할 수 있도록 쿠키에도 토큰 설정
             cookieUtil.setMemberTokensWithSync(servletResponse,
-                    authResponse.getToken(),
+                    authResponse.getAccessToken(),
                     authResponse.getRefreshToken());
 
             log.info("API login successful for member: {} (ID: {})",
@@ -293,8 +293,8 @@ public class AuthRestController {
         return ResponseDTO.ok(Map.of(
                 "memberId", userDetails.getMember().getId(),
                 "memberName", userDetails.getMember().getName(),
-                "memberRole", userDetails.getMember().getRole(),
-                "memberStatus", userDetails.getMember().getStatus(),
+                "memberRole", userDetails.getMember().getRole().getDisplayName(),
+                "memberStatus", userDetails.getMember().getStatus().getDisplayName(),
                 "authenticated", auth.isAuthenticated(),
                 "authorities", auth.getAuthorities(),
                 "tokenType", "MEMBER_ACCESS_TOKEN"

@@ -1,5 +1,7 @@
 package com.tomato.remember.application.member.dto;
 
+import com.tomato.remember.common.code.MemberRole;
+import com.tomato.remember.common.code.MemberStatus;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
@@ -15,17 +17,18 @@ public class MemberDTO {
     private String password;
     private String phoneNumber;
     private String inviteCode;
-    private String status;
-    private String role;
+    private MemberStatus status;
+    private MemberRole role;
     private String email;
     private String name;
     private LocalDateTime lastAccessAt;
-    @Builder.Default
-    private Boolean verified = false;
     private String profileImg;
-    private Double points;
-//    private Member inviter;    // 추천인
-    private boolean twitterConnected;
-
-
+    private String preferredLanguage;
+    private Boolean marketingAgreed;
+    private Boolean pushNotification;
+    private Boolean memorialNotification;
+    private Boolean paymentNotification;
+    private Boolean familyNotification;
+    private LocalDateTime freeTrialStartAt;
+    private LocalDateTime freeTrialEndAt;
 }

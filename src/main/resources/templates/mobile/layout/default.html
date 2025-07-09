@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      th:fragment="html(title, content, customCSS, customJS, activeMenu, activeSubMenu)">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+  <meta name="format-detection" content="telephone=no"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+
+  <title th:replace="${title}">토마토리멤버</title>
+
+  <!-- Bootstrap CSS -->
+  <link th:href="@{/bootstrap/css/bootstrap.css}" rel="stylesheet"/>
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"/>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Common CSS -->
+  <link th:href="@{/assets/mobile/css/common.css}" rel="stylesheet"/>
+  <link th:href="@{/assets/mobile/css/layout.css}" rel="stylesheet"/>
+
+  <!-- Custom CSS -->
+  <th:block th:replace="${customCSS}"></th:block>
+</head>
+<body class="mobile-layout" th:classappend="|page-${activeMenu ?: 'main'}|">
+
+  <!-- 헤더 -->
+  <header class="mobile-header fixed-top" id="mobileHeader">
+    <div class="container-fluid">
+      <div class="header-content">
+        <!-- 로고 -->
+        <div class="header-logo">
+          <a href="/mobile/home" class="logo-link">
+            <span class="logo-text">TOMATOREMEMBER</span>
+          </a>
+        </div>
+
+        <!-- 햄버거 메뉴 버튼 -->
+        <button class="header-menu-btn" type="button" id="menuToggleBtn" aria-label="메뉴 열기">
+          <span class="menu-icon">
+            <span></span>
+            <span></span>
+            <span></span>
+          </span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 메인 컨텐츠 -->
+  <main class="mobile-main" id="mobileMain">
+    <div th:replace="${content}"></div>
+  </main>
+
+  <!-- 하단 네비게이션 -->
+  <nav class="mobile-nav fixed-bottom" id="mobileNav">
+    <div class="nav-container">
+      <a href="/mobile/home" class="nav-item" th:classappend="${(activeMenu ?: 'main') == 'main' ? 'active' : ''}">
+        <i class="fas fa-home"></i>
+        <span>홈</span>
+      </a>
+      <a href="/mobile/memorial" class="nav-item" th:classappend="${(activeMenu ?: 'main') == 'memorial' ? 'active' : ''}">
+        <i class="fas fa-heart"></i>
+        <span>추모하기</span>
+      </a>
+      <a href="/mobile/family" class="nav-item" th:classappend="${(activeMenu ?: 'main') == 'family' ? 'active' : ''}">
+        <i class="fas fa-users"></i>
+        <span>가족</span>
+      </a>
+      <a href="/mobile/support" class="nav-item" th:classappend="${(activeMenu ?: 'main') == 'support' ? 'active' : ''}">
+        <i class="fas fa-question-circle"></i>
+        <span>도움말</span>
+      </a>
+      <a href="/mobile/mypage" class="nav-item" th:classappend="${(activeMenu ?: 'main') == 'mypage' ? 'active' : ''}">
+        <i class="fas fa-user"></i>
+        <span>마이페이지</span>
+      </a>
+    </div>
+  </nav>
+
+  <!-- 사이드 메뉴 (Offcanvas) -->
+  <div class="mobile-offcanvas" tabindex="-1" id="mobileMenu" aria-labelledby="mobileMenuLabel">
+    <div class="offcanvas-header">
+      <div class="offcanvas-title" id="mobileMenuLabel">
+        <!-- 현재 사용자가 있으면 사용자 정보, 없으면 게스트 정보 표시 -->
+        <div class="user-info" th:if="${currentUser != null}">
+          <div class="user-avatar">
+            <img th:src="${currentUser.profileImageUrl ?: '/images/default-avatar.png'}" th:alt="${currentUser.name}" class="avatar-img">
+          </div>
+          <div class="user-details">
+            <h6 class="user-name" th:text="${currentUser.name ?: '사용자'}">김토마토</h6>
+            <p class="user-email" th:text="${currentUser.email ?: ''}">tomato@example.com</p>
+          </div>
+        </div>
+        <div class="guest-info" th:unless="${currentUser != null}">
+          <div class="guest-avatar">
+            <i class="fas fa-user"></i>
+          </div>
+          <div class="guest-details">
+            <h6>로그인이 필요합니다</h6>
+            <a href="/mobile/login" class="btn btn-sm btn-primary">로그인</a>
+          </div>
+        </div>
+      </div>
+      <button type="button" class="btn-close" id="menuCloseBtn" aria-label="메뉴 닫기"></button>
+    </div>
+
+    <div class="offcanvas-body">
+      <!-- 로그인 후 메뉴 -->
+      <div class="menu-section" th:if="${currentUser != null}">
+        <h6 class="menu-title">주요 기능</h6>
+        <ul class="menu-list">
+          <li>
+            <a href="/mobile/memorial/management" class="menu-link">
+              <i class="fas fa-cog text-danger"></i>
+              <span>메모리얼 관리</span>
+            </a>
+          </li>
+          <li>
+            <a href="/mobile/memorial/history" class="menu-link">
+              <i class="fas fa-chart-line text-primary"></i>
+              <span>활동 내역</span>
+            </a>
+          </li>
+        </ul>
+
+        <h6 class="menu-title">도움 & 설정</h6>
+        <ul class="menu-list">
+          <li>
+            <a href="/mobile/payment" class="menu-link">
+              <i class="fas fa-credit-card text-warning"></i>
+              <span>토큰 관리</span>
+            </a>
+          </li>
+          <li>
+            <a href="/mobile/profile" class="menu-link">
+              <i class="fas fa-user-edit text-info"></i>
+              <span>프로필 설정</span>
+            </a>
+          </li>
+          <li>
+            <a href="/mobile/family/manage" class="menu-link">
+              <i class="fas fa-users-cog text-success"></i>
+              <span>가족 관리</span>
+            </a>
+          </li>
+        </ul>
+
+        <h6 class="menu-title">정보 & 설정</h6>
+        <ul class="menu-list">
+          <li>
+            <a href="/mobile/support/help" class="menu-link">
+              <i class="fas fa-question-circle text-muted"></i>
+              <span>도움말</span>
+            </a>
+          </li>
+          <li>
+            <a href="/mobile/support/contact" class="menu-link">
+              <i class="fas fa-phone text-muted"></i>
+              <span>고객지원</span>
+            </a>
+          </li>
+          <li>
+            <button class="menu-link logout-btn" onclick="logout()">
+              <i class="fas fa-sign-out-alt text-danger"></i>
+              <span>로그아웃</span>
+            </button>
+          </li>
+        </ul>
+      </div>
+
+      <!-- 로그인 전 메뉴 -->
+      <div class="menu-section" th:unless="${currentUser != null}">
+        <h6 class="menu-title">계정</h6>
+        <ul class="menu-list">
+          <li>
+            <a href="/mobile/login" class="menu-link">
+              <i class="fas fa-sign-in-alt text-primary"></i>
+              <span>로그인</span>
+            </a>
+          </li>
+          <li>
+            <a href="/mobile/register" class="menu-link">
+              <i class="fas fa-user-plus text-success"></i>
+              <span>회원가입</span>
+            </a>
+          </li>
+        </ul>
+
+        <h6 class="menu-title">서비스</h6>
+        <ul class="menu-list">
+          <li>
+            <a href="/mobile/experience" class="menu-link">
+              <i class="fas fa-play text-warning"></i>
+              <span>3개월 무료체험</span>
+            </a>
+          </li>
+          <li>
+            <a href="/mobile/about" class="menu-link">
+              <i class="fas fa-info-circle text-info"></i>
+              <span>서비스 소개</span>
+            </a>
+          </li>
+        </ul>
+
+        <h6 class="menu-title">정보</h6>
+        <ul class="menu-list">
+          <li>
+            <a href="/mobile/support/faq" class="menu-link">
+              <i class="fas fa-question-circle text-muted"></i>
+              <span>도움말</span>
+            </a>
+          </li>
+          <li>
+            <a href="/mobile/support/contact" class="menu-link">
+              <i class="fas fa-phone text-muted"></i>
+              <span>고객지원</span>
+            </a>
+          </li>
+          <li>
+            <a href="/mobile/terms" class="menu-link">
+              <i class="fas fa-file-contract text-muted"></i>
+              <span>개인정보처리방침</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <!-- 푸터 정보 -->
+      <div class="menu-footer">
+        <p class="company-info">
+          서울특별시 마포구 양화진 4길 32 이토마토빌딩 2층<br>
+          전화번호: 02-2128-3838<br>
+          이메일: tomatoai@etomato.com
+        </p>
+        <p class="copyright">
+          COPYRIGHT © 2025 TOMATOREMEMBER.<br>
+          ALL RIGHTS RESERVED.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script th:src="@{/bootstrap/js/bootstrap.bundle.js}"></script>
+
+  <!-- 토큰 동기화 스크립트 (기존 fragment 활용) -->
+  <div th:replace="~{fragments/token-sync :: tokenSync}"></div>
+
+  <!-- Common JS -->
+  <script th:src="@{/assets/mobile/js/common.js}" type="module"></script>
+  <script th:src="@{/assets/mobile/js/layout.js}" type="module"></script>
+
+  <!-- Custom JS -->
+  <th:block th:replace="${customJS}"></th:block>
+
+  <!-- 전역 설정 (단순화 버전) -->
+  <script>
+    // 기본 전역 설정
+    window.APP_CONFIG = {
+      baseUrl: '',
+      activeMenu: /*[[ ${activeMenu} ?: 'main' ]]*/ 'main',
+      activeSubMenu: /*[[ ${activeSubMenu} ?: null ]]*/ null,
+      currentUser: /*[[ ${currentUser} ?: null ]]*/ null
+    };
+
+    // API 엔드포인트 설정
+    window.API_ENDPOINTS = {
+      LOGIN: '/api/auth/login',
+      LOGOUT: '/api/auth/logout',
+      REFRESH: '/api/auth/refresh',
+      MEMORIAL: '/api/memorial',
+      VIDEO_CALL: '/api/video-call',
+      TRIBUTE: '/api/tribute'
+    };
+
+    // 로그아웃 함수 (사이드 메뉴에서 사용)
+    function logout() {
+      if (confirm('로그아웃 하시겠습니까?')) {
+        // 토큰 정리
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+
+        // 로그아웃 페이지로 이동 (서버에서 쿠키 정리)
+        window.location.href = '/mobile/logout';
+      }
+    }
+  </script>
+
+</body>
+</html>

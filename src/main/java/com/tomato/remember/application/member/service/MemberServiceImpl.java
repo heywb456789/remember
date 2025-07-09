@@ -41,9 +41,9 @@ public class MemberServiceImpl implements MemberService {
         if(inviteCode.equals("CTOMATO")){
             Member current = memberRepository.findById(userDetails.getMember().getId())
             .orElseThrow(() -> new UnAuthorizationException("유저의 정보를 찾을 수 없습니다."));
-//            current.setInviter(inviter);
-            current.setStatus(MemberStatus.TEMPORARY_PASS);
-            current.setRole(MemberRole.USER_INACTIVE);
+
+//            current.setStatus(MemberStatus.TEMPORARY_PASS);
+//            current.setRole(MemberRole.USER_INACTIVE);
             return current.convertDTO();
         }
 
@@ -56,14 +56,14 @@ public class MemberServiceImpl implements MemberService {
             .orElseThrow(() -> new UnAuthorizationException("유저의 정보를 찾을 수 없습니다."));
 
         // 3) 이미 초대 코드가 등록된 경우 예외
-        if (current.getStatus().equals(MemberStatus.ACTIVE) || current.getStatus().equals(MemberStatus.TEMPORARY_PASS)) {
-            throw new BadRequestException("이미 초대 코드가 등록되었습니다.");
-        }
+//        if (current.getStatus().equals(MemberStatus.ACTIVE) || current.getStatus().equals(MemberStatus.TEMPORARY_PASS)) {
+//            throw new BadRequestException("이미 초대 코드가 등록되었습니다.");
+//        }
 
         // 4) 추천인과 연결 및 상태 변경
-        current.setInviter(inviter);
-        current.setStatus(MemberStatus.TEMPORARY_PASS);
-        current.setRole(MemberRole.USER_INACTIVE);
+//        current.setInviter(inviter);
+//        current.setStatus(MemberStatus.TEMPORARY_PASS);
+//        current.setRole(MemberRole.USER_INACTIVE);
 
         // 6) DTO 변환 후 반환
         return current.convertDTO();

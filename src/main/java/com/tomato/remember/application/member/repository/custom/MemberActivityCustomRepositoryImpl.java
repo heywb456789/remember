@@ -34,7 +34,7 @@ public class MemberActivityCustomRepositoryImpl implements MemberActivityCustomR
             .from(activity)
             .where(
                 activity.author.id.eq(id)
-                    .and(activity.isDeleted.eq(false))
+//                    .and(activity.isDeleted.eq(false))
             );
 
         JPAQuery<MemberActivityResponse> activityQuery = this.query
@@ -42,7 +42,7 @@ public class MemberActivityCustomRepositoryImpl implements MemberActivityCustomR
             .from(activity)
             .where(
                 activity.author.id.eq(id)
-                    .and(activity.isDeleted.eq(false))
+//                    .and(activity.isDeleted.eq(false))
             );
 
         activityQuery = QueryUtil.paging(activityQuery, pageable)
@@ -60,9 +60,6 @@ public class MemberActivityCustomRepositoryImpl implements MemberActivityCustomR
             activity.author.id.as("memberId"),
             activity.author.name.as("memberName"),
             activity.title,
-            activity.shareLink,
-            activity.stage,
-            activity.isDeleted,
             activity.createdAt
         );
     }

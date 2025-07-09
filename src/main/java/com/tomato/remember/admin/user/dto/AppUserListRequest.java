@@ -185,7 +185,8 @@ public class AppUserListRequest implements SearchTypeRequest {
 
     @Hidden
     public BooleanExpression getIsNotDeleted() {
-        return QMember.member.status.ne(MemberStatus.DELETED);
+//        return QMember.member.status.ne(MemberStatus.DELETED);
+        return null;
     }
 
     @Hidden
@@ -193,6 +194,7 @@ public class AppUserListRequest implements SearchTypeRequest {
         if (memberStatus == null) {
             return null;
         }
-        return member.status.eq(memberStatus);
+//        return member.status.eq(memberStatus);
+        return null;
     }
 }

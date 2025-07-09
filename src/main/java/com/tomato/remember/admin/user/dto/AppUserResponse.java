@@ -30,11 +30,14 @@ public class AppUserResponse {
     private MemberStatus status;
     private MemberRole role;
     private String email;
-    private LocalDateTime lastAccessAt;
-    private Boolean verified;
-    private Long inviterId;
-    private String inviterName;
-    private Double points;
+    private String preferredLanguage;
+    private Boolean marketingAgreed;
+    private Boolean pushNotification;
+    private Boolean memorialNotification;
+    private Boolean paymentNotification;
+    private Boolean familyNotification;
+    private LocalDateTime freeTrialStartAt;
+    private LocalDateTime freeTrialEndAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

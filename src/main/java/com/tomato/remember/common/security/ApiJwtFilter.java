@@ -1,8 +1,11 @@
+// ApiJwtFilter.java - 다국어 제거 및 Enum 적용
 package com.tomato.remember.common.security;
 
 import com.tomato.remember.application.member.entity.Member;
 import com.tomato.remember.application.security.MemberUserDetails;
 import com.tomato.remember.application.security.MemberUserDetailsService;
+import com.tomato.remember.common.code.MemberRole;
+import com.tomato.remember.common.code.MemberStatus;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
@@ -29,31 +32,16 @@ public class ApiJwtFilter extends OncePerRequestFilter {
     private final MemberUserDetailsService memberUserDetailsService;
 
     @Override
-    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
-        String path = request.getRequestURI();
-        // /api/** 경로가 아니거나 /admin/api/**이면 필터 실행 안함
-        boolean shouldNotFilter = !path.startsWith("/api/") || path.startsWith("/admin/api/");
-        log.debug("ApiJwtFilter shouldNotFilter for {}: {}", path, shouldNotFilter);
-        return shouldNotFilter;
-    }
-
-    @Override
-    protected void doFilterInternal(HttpServletRequest request, 
-                                  HttpServletResponse response, 
+    protected void doFilterInternal(HttpServletRequest request,
+                                  HttpServletResponse response,
                                   FilterChain filterChain) throws ServletException, IOException {
 
         String requestURI = request.getRequestURI();
         log.debug("ApiJwtFilter processing: {}", requestURI);
 
-        // 인증이 필요없는 경로는 패스
-        if (isPublicPath(requestURI)) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
         try {
             String token = tokenProvider.extractBearerToken(request);
-            
+
             if (token == null) {
                 log.debug("No Bearer token found in API request");
                 sendUnauthorizedResponse(response, "Missing Authorization token");
@@ -70,7 +58,6 @@ public class ApiJwtFilter extends OncePerRequestFilter {
 
         } catch (ExpiredJwtException ex) {
             log.debug("API token expired: {}", ex.getMessage());
-            // API는 자동 갱신하지 않고 401 응답 (클라이언트에서 처리)
             sendTokenExpiredResponse(response);
         } catch (JwtException | IllegalArgumentException ex) {
             log.debug("API token validation failed: {}", ex.getMessage());
@@ -81,48 +68,26 @@ public class ApiJwtFilter extends OncePerRequestFilter {
         }
     }
 
-    /**
-     * 회원 인증 처리
-     */
     private void authenticateMember(HttpServletRequest request, String token) {
         try {
             Map<String, Object> claims = tokenProvider.getMemberClaims(token);
             String memberId = tokenProvider.getSubject(token);
 
             UserDetails userDetails = memberUserDetailsService.loadUserByUsername(memberId);
-            
-            UsernamePasswordAuthenticationToken authentication = 
+
+            UsernamePasswordAuthenticationToken authentication =
                 new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-            
+
             SecurityContextHolder.getContext().setAuthentication(authentication);
             log.debug("Member authenticated successfully via API: {}", memberId);
-            
+
         } catch (Exception e) {
             log.error("Failed to authenticate member via API", e);
             throw new RuntimeException("Authentication failed", e);
         }
     }
 
-    /**
-     * 인증이 필요없는 공개 경로 확인
-     */
-    private boolean isPublicPath(String requestURI) {
-        return requestURI.equals("/api/auth/login") ||
-               requestURI.equals("/api/auth/refresh") ||
-               requestURI.equals("/api/auth/register") ||
-               requestURI.startsWith("/api/memorial/public/") ||
-               requestURI.startsWith("/api/videos/public/") ||
-               requestURI.startsWith("/api/news/public/") ||
-               requestURI.startsWith("/api/share/") ||
-               requestURI.equals("/api/auth/pass/callback") ||
-               requestURI.startsWith("/api/subscription/confirm") ||
-               requestURI.startsWith("/api/subscription/recurring");
-    }
-
-    /**
-     * 401 Unauthorized 응답 전송
-     */
     private void sendUnauthorizedResponse(HttpServletResponse response, String message) throws IOException {
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
         response.setContentType("application/json;charset=UTF-8");
@@ -137,9 +102,6 @@ public class ApiJwtFilter extends OncePerRequestFilter {
             """, message));
     }
 
-    /**
-     * 토큰 만료 응답 전송 (클라이언트에서 refresh 토큰으로 갱신하도록)
-     */
     private void sendTokenExpiredResponse(HttpServletResponse response) throws IOException {
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
         response.setContentType("application/json;charset=UTF-8");
@@ -154,9 +116,7 @@ public class ApiJwtFilter extends OncePerRequestFilter {
             """);
     }
 
-    /**
-     * 현재 인증된 회원 정보 추출 (유틸리티 메서드)
-     */
+    // 정적 메서드들 - Enum 사용으로 변경
     public static Member getCurrentMember() {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getPrincipal() instanceof MemberUserDetails) {
@@ -165,30 +125,21 @@ public class ApiJwtFilter extends OncePerRequestFilter {
         return null;
     }
 
-    /**
-     * 현재 회원 ID 추출 (유틸리티 메서드)
-     */
     public static Long getCurrentMemberId() {
         Member member = getCurrentMember();
         return member != null ? member.getId() : null;
     }
 
-    /**
-     * 로그인 상태 확인 (유틸리티 메서드)
-     */
     public static boolean isAuthenticated() {
         return getCurrentMember() != null;
     }
 
-    /**
-     * 회원 권한 확인 (유틸리티 메서드)
-     */
-    public static boolean hasMemberRole(String... roles) {
+    public static boolean hasMemberRole(MemberRole... roles) {
         Member member = getCurrentMember();
         if (member == null) return false;
-        
-        String memberRole = member.getRole().name();
-        for (String role : roles) {
+
+        MemberRole memberRole = member.getRole();
+        for (MemberRole role : roles) {
             if (role.equals(memberRole)) {
                 return true;
             }
@@ -196,11 +147,28 @@ public class ApiJwtFilter extends OncePerRequestFilter {
         return false;
     }
 
-    /**
-     * 회원 상태 확인 (유틸리티 메서드)
-     */
     public static boolean isMemberActive() {
         Member member = getCurrentMember();
-        return member != null && "ACTIVE".equals(member.getStatus().name());
+        return member != null && member.getStatus() == MemberStatus.ACTIVE;
+    }
+
+    public static boolean isMemberBlocked() {
+        Member member = getCurrentMember();
+        return member != null && member.getStatus() == MemberStatus.BLOCKED;
+    }
+
+    public static boolean isMemberDeleted() {
+        Member member = getCurrentMember();
+        return member != null && member.getStatus() == MemberStatus.DELETED;
+    }
+
+    public static boolean isUserActive() {
+        Member member = getCurrentMember();
+        return member != null && member.getRole() == MemberRole.USER_ACTIVE;
+    }
+
+    public static boolean isUserInactive() {
+        Member member = getCurrentMember();
+        return member != null && member.getRole() == MemberRole.USER_INACTIVE;
     }
 }
