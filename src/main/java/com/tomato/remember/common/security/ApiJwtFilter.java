@@ -1,4 +1,3 @@
-// ApiJwtFilter.java - 다국어 제거 및 Enum 적용
 package com.tomato.remember.common.security;
 
 import com.tomato.remember.application.member.entity.Member;
@@ -33,8 +32,8 @@ public class ApiJwtFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
-                                  HttpServletResponse response,
-                                  FilterChain filterChain) throws ServletException, IOException {
+                                    HttpServletResponse response,
+                                    FilterChain filterChain) throws ServletException, IOException {
 
         String requestURI = request.getRequestURI();
         log.debug("ApiJwtFilter processing: {}", requestURI);
@@ -43,7 +42,7 @@ public class ApiJwtFilter extends OncePerRequestFilter {
             String token = tokenProvider.extractBearerToken(request);
 
             if (token == null) {
-                log.debug("No Bearer token found in API request");
+                log.debug("No Bearer token found in API request: {}", requestURI);
                 sendUnauthorizedResponse(response, "Missing Authorization token");
                 return;
             }
@@ -53,30 +52,61 @@ public class ApiJwtFilter extends OncePerRequestFilter {
                 authenticateMember(request, token);
                 filterChain.doFilter(request, response);
             } else {
+                log.debug("Invalid member token for API request: {}", requestURI);
                 sendUnauthorizedResponse(response, "Invalid member token");
             }
 
         } catch (ExpiredJwtException ex) {
-            log.debug("API token expired: {}", ex.getMessage());
+            log.debug("API token expired for request: {}", requestURI);
             sendTokenExpiredResponse(response);
+
         } catch (JwtException | IllegalArgumentException ex) {
-            log.debug("API token validation failed: {}", ex.getMessage());
+            log.debug("API token validation failed for request: {}: {}", requestURI, ex.getMessage());
             sendUnauthorizedResponse(response, "Invalid token format");
+
         } catch (Exception ex) {
-            log.error("Unexpected error in ApiJwtFilter", ex);
-            sendUnauthorizedResponse(response, "Authentication error");
+            log.error("Unexpected error in ApiJwtFilter for request: {}", requestURI, ex);
+
+            // 토큰 관련 오류가 아닌 일반적인 오류는 그대로 전달 (404 등)
+            if (isTokenRelatedError(ex)) {
+                sendUnauthorizedResponse(response, "Authentication error");
+            } else {
+                filterChain.doFilter(request, response);
+            }
         }
     }
 
+    /**
+     * 토큰과 관련된 오류인지 확인
+     */
+    private boolean isTokenRelatedError(Exception ex) {
+        if (ex instanceof JwtException || ex instanceof IllegalArgumentException) {
+            return true;
+        }
+
+        String message = ex.getMessage();
+        if (message != null) {
+            return message.contains("token") ||
+                    message.contains("JWT") ||
+                    message.contains("authentication") ||
+                    message.contains("Member ID");
+        }
+
+        return false;
+    }
+
+    /**
+     * 회원 인증 처리
+     */
     private void authenticateMember(HttpServletRequest request, String token) {
         try {
             Map<String, Object> claims = tokenProvider.getMemberClaims(token);
-            String memberId = tokenProvider.getSubject(token);
+            Long memberId = extractMemberId(claims, token);
 
-            UserDetails userDetails = memberUserDetailsService.loadUserByUsername(memberId);
+            UserDetails userDetails = memberUserDetailsService.loadUserById(memberId);
 
             UsernamePasswordAuthenticationToken authentication =
-                new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                    new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -88,35 +118,97 @@ public class ApiJwtFilter extends OncePerRequestFilter {
         }
     }
 
+    /**
+     * 토큰에서 Member ID 추출
+     */
+    private Long extractMemberId(Map<String, Object> claims, String token) {
+        Long memberId = null;
+        Object memberIdClaim = claims.get("memberId");
+
+        if (memberIdClaim instanceof Number) {
+            memberId = ((Number) memberIdClaim).longValue();
+        } else if (memberIdClaim instanceof String) {
+            try {
+                memberId = Long.parseLong((String) memberIdClaim);
+            } catch (NumberFormatException e) {
+                log.error("Invalid memberId format in claim: {}", memberIdClaim);
+                throw new RuntimeException("Invalid memberId format in claim", e);
+            }
+        }
+
+        // Subject에서도 시도 (fallback)
+        if (memberId == null) {
+            String memberIdStr = tokenProvider.getSubject(token);
+            try {
+                memberId = Long.parseLong(memberIdStr);
+            } catch (NumberFormatException e) {
+                log.error("Invalid member ID format in subject: {}", memberIdStr);
+                throw new RuntimeException("Invalid member ID format in subject", e);
+            }
+        }
+
+        if (memberId == null) {
+            throw new RuntimeException("Member ID not found in token");
+        }
+
+        return memberId;
+    }
+
+    /**
+     * API 401 Unauthorized 응답
+     */
     private void sendUnauthorizedResponse(HttpServletResponse response, String message) throws IOException {
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
         response.setContentType("application/json;charset=UTF-8");
-        response.getWriter().write(String.format("""
+        response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        response.setHeader("Pragma", "no-cache");
+        response.setHeader("Expires", "0");
+
+        String jsonResponse = String.format("""
             {
                 "status": {
                     "code": "UNAUTHORIZED_4001",
                     "message": "%s"
                 },
-                "response": null
+                "response": null,
+                "timestamp": "%s"
             }
-            """, message));
+            """, message, java.time.LocalDateTime.now());
+
+        response.getWriter().write(jsonResponse);
+        response.getWriter().flush();
+
+        log.debug("API 401 response sent: {}", message);
     }
 
+    /**
+     * API 토큰 만료 응답
+     */
     private void sendTokenExpiredResponse(HttpServletResponse response) throws IOException {
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
         response.setContentType("application/json;charset=UTF-8");
-        response.getWriter().write("""
+        response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        response.setHeader("Pragma", "no-cache");
+        response.setHeader("Expires", "0");
+
+        String jsonResponse = String.format("""
             {
                 "status": {
                     "code": "TOKEN_EXPIRED_4011",
                     "message": "Access token expired. Please refresh token."
                 },
-                "response": null
+                "response": null,
+                "timestamp": "%s"
             }
-            """);
+            """, java.time.LocalDateTime.now());
+
+        response.getWriter().write(jsonResponse);
+        response.getWriter().flush();
+
+        log.debug("API token expired response sent");
     }
 
-    // 정적 메서드들 - Enum 사용으로 변경
+    // 정적 메서드들
     public static Member getCurrentMember() {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getPrincipal() instanceof MemberUserDetails) {

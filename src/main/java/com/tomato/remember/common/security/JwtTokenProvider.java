@@ -102,6 +102,7 @@ public class JwtTokenProvider {
         return createMemberToken(member, validity, TokenType.MEMBER_REFRESH);
     }
 
+
     private String createMemberToken(Member member, long validityInMillis, TokenType tokenType) {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime expiration = now.plusNanos(validityInMillis * 1_000_000);
@@ -109,6 +110,8 @@ public class JwtTokenProvider {
         return Jwts.builder()
                 .setSubject(String.valueOf(member.getId()))
                 .claim("type", tokenType.getValue())
+                .claim("memberId", member.getId())
+                .claim("userKey", member.getUserKey())
                 .claim("email", member.getEmail())
                 .setIssuedAt(toDate(now))
                 .setExpiration(toDate(expiration))
@@ -144,20 +147,42 @@ public class JwtTokenProvider {
      * 회원 토큰 검증
      */
     public boolean validateMemberToken(String token) {
+        log.debug("🔍 Validating member token...");
+
+        if (token == null || token.trim().isEmpty()) {
+            log.warn("❌ Token is null or empty");
+            return false;
+        }
+
         try {
+            log.debug("🔍 Parsing token with member key...");
             Claims claims = Jwts.parserBuilder()
                     .setSigningKey(memberKey)
                     .build()
                     .parseClaimsJws(token)
                     .getBody();
 
+            log.debug("📋 Token claims: {}", claims);
+            log.debug("👤 Token subject: {}", claims.getSubject());
+            log.debug("⏰ Token expiration: {}", claims.getExpiration());
+            log.debug("🕐 Token issued at: {}", claims.getIssuedAt());
+
             String tokenType = (String) claims.get("type");
-            return tokenType != null && (
-                tokenType.equals(TokenType.MEMBER_ACCESS.getValue()) ||
-                tokenType.equals(TokenType.MEMBER_REFRESH.getValue())
+            log.debug("🏷️ Token type: {}", tokenType);
+
+            boolean isValidType = tokenType != null && (
+                    tokenType.equals(TokenType.MEMBER_ACCESS.getValue()) ||
+                            tokenType.equals(TokenType.MEMBER_REFRESH.getValue())
             );
+
+            log.info("✅ Member token validation result: {} (type: {})", isValidType, tokenType);
+            return isValidType;
+
+        } catch (ExpiredJwtException e) {
+            log.warn("⏰ Member token expired: {}", e.getMessage());
+            throw e; // 만료 예외는 다시 throw
         } catch (JwtException | IllegalArgumentException e) {
-            log.debug("Invalid member token: {}", e.getMessage());
+            log.error("❌ Invalid member token: {} - {}", e.getClass().getSimpleName(), e.getMessage());
             return false;
         }
     }
@@ -179,35 +204,55 @@ public class JwtTokenProvider {
      * 회원 토큰에서 정보 추출
      */
     public Map<String, Object> getMemberClaims(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(memberKey)
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
+        log.debug("🔍 Extracting member claims from token...");
+
+        try {
+            Claims claims = Jwts.parserBuilder()
+                    .setSigningKey(memberKey)
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+
+            log.debug("📋 Member claims extracted: {}", claims);
+            return claims;
+
+        } catch (Exception e) {
+            log.error("❌ Failed to extract member claims: {}", e.getMessage());
+            throw e;
+        }
     }
 
     /**
      * 토큰에서 Subject 추출 (토큰 타입 자동 감지)
      */
     public String getSubject(String token) {
+        log.debug("🔍 Extracting subject from token...");
+
         // 먼저 관리자 토큰으로 시도
         try {
-            return Jwts.parserBuilder()
+            String subject = Jwts.parserBuilder()
                     .setSigningKey(adminKey)
                     .build()
                     .parseClaimsJws(token)
                     .getBody()
                     .getSubject();
+            log.debug("👤 Admin token subject: {}", subject);
+            return subject;
         } catch (JwtException e) {
-            // 관리자 토큰이 아니면 회원 토큰으로 시도
+            log.debug("🔍 Not admin token, trying member token...");
+
+            // 회원 토큰으로 시도
             try {
-                return Jwts.parserBuilder()
+                String subject = Jwts.parserBuilder()
                         .setSigningKey(memberKey)
                         .build()
                         .parseClaimsJws(token)
                         .getBody()
                         .getSubject();
+                log.debug("👤 Member token subject: {}", subject);
+                return subject;
             } catch (JwtException e2) {
+                log.error("❌ Failed to extract subject from both admin and member tokens");
                 throw new UnAuthorizationException("Invalid token");
             }
         }

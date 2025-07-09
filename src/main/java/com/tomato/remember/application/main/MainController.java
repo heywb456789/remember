@@ -28,10 +28,16 @@ public class MainController {
     // private final SubscriptionService subscriptionService;
     // private final PaymentService paymentService;
 
+    @GetMapping("/")
+    public String root() {
+        log.info("🏠 Root path accessed, redirecting to /mobile/home");
+        return "redirect:/mobile/home";
+    }
+
     /**
      * 메인 홈페이지 - 로그인 전: 서비스 소개 + 안내 페이지 - 로그인 후: 메모리얼 대시보드
      */
-    @GetMapping({"/", "/mobile/home"})
+    @GetMapping("/mobile/home")
     public String homePage(@AuthenticationPrincipal MemberUserDetails userDetails,
                           Model model,
                           HttpServletRequest request) {

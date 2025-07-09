@@ -28,12 +28,10 @@ public class AdminApiJwtFilter extends OncePerRequestFilter {
     private final JwtTokenProvider tokenProvider;
     private final AdminUserDetailsService adminUserDetailsService;
 
-    // shouldNotFilter 메서드 제거 - SecurityConfig에서 securityMatcher로 처리
-
     @Override
     protected void doFilterInternal(HttpServletRequest request,
-                                  HttpServletResponse response,
-                                  FilterChain filterChain) throws ServletException, IOException {
+                                    HttpServletResponse response,
+                                    FilterChain filterChain) throws ServletException, IOException {
 
         String requestURI = request.getRequestURI();
         log.debug("AdminApiJwtFilter processing: {}", requestURI);
@@ -42,7 +40,7 @@ public class AdminApiJwtFilter extends OncePerRequestFilter {
             String token = tokenProvider.extractBearerToken(request);
 
             if (token == null) {
-                log.debug("No Bearer token found in request");
+                log.debug("No Bearer token found in admin API request: {}", requestURI);
                 sendUnauthorizedResponse(response, "Missing Authorization token");
                 return;
             }
@@ -52,17 +50,18 @@ public class AdminApiJwtFilter extends OncePerRequestFilter {
                 authenticateAdmin(request, token);
                 filterChain.doFilter(request, response);
             } else {
+                log.debug("Invalid admin token for API request: {}", requestURI);
                 sendUnauthorizedResponse(response, "Invalid admin token");
             }
 
         } catch (ExpiredJwtException ex) {
-            log.debug("Admin token expired: {}", ex.getMessage());
-            handleExpiredToken(request, response, filterChain, ex);
+            log.debug("Admin API token expired for request: {}", requestURI);
+            sendTokenExpiredResponse(response);
         } catch (JwtException | IllegalArgumentException ex) {
-            log.debug("Admin token validation failed: {}", ex.getMessage());
+            log.debug("Admin API token validation failed for request: {}: {}", requestURI, ex.getMessage());
             sendUnauthorizedResponse(response, "Invalid token format");
         } catch (Exception ex) {
-            log.error("Unexpected error in AdminApiJwtFilter", ex);
+            log.error("Unexpected error in AdminApiJwtFilter for request: {}", requestURI, ex);
             sendUnauthorizedResponse(response, "Authentication error");
         }
     }
@@ -78,52 +77,73 @@ public class AdminApiJwtFilter extends OncePerRequestFilter {
             UserDetails userDetails = adminUserDetailsService.loadUserByUsername(username);
 
             UsernamePasswordAuthenticationToken authentication =
-                new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                    new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
-            log.debug("Admin authenticated successfully: {}", username);
+            log.debug("Admin authenticated successfully via API: {}", username);
 
         } catch (Exception e) {
-            log.error("Failed to authenticate admin", e);
+            log.error("Failed to authenticate admin via API", e);
             throw new RuntimeException("Authentication failed", e);
         }
     }
 
-    private void handleExpiredToken(HttpServletRequest request,
-                                  HttpServletResponse response,
-                                  FilterChain filterChain,
-                                  ExpiredJwtException ex) throws IOException {
-
-        log.debug("Admin API token expired, sending 401");
-
-        response.setStatus(HttpStatus.UNAUTHORIZED.value());
-        response.setContentType("application/json;charset=UTF-8");
-        response.getWriter().write("""
-            {
-                "status": {
-                    "code": "UNAUTHORIZED_4001",
-                    "message": "Admin token expired"
-                },
-                "response": null
-            }
-            """);
-    }
-
+    /**
+     * Admin API 401 Unauthorized 응답 - 리다이렉트 없이 JSON 응답
+     */
     private void sendUnauthorizedResponse(HttpServletResponse response, String message) throws IOException {
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
         response.setContentType("application/json;charset=UTF-8");
-        response.getWriter().write(String.format("""
+        response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        response.setHeader("Pragma", "no-cache");
+        response.setHeader("Expires", "0");
+
+        String jsonResponse = String.format("""
             {
                 "status": {
                     "code": "UNAUTHORIZED_4001",
                     "message": "%s"
                 },
-                "response": null
+                "response": null,
+                "timestamp": "%s"
             }
-            """, message));
+            """, message, java.time.LocalDateTime.now());
+
+        response.getWriter().write(jsonResponse);
+        response.getWriter().flush();
+
+        log.debug("Admin API 401 response sent: {}", message);
     }
 
+    /**
+     * Admin API 토큰 만료 응답 - 리다이렉트 없이 JSON 응답
+     */
+    private void sendTokenExpiredResponse(HttpServletResponse response) throws IOException {
+        response.setStatus(HttpStatus.UNAUTHORIZED.value());
+        response.setContentType("application/json;charset=UTF-8");
+        response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        response.setHeader("Pragma", "no-cache");
+        response.setHeader("Expires", "0");
+
+        String jsonResponse = String.format("""
+            {
+                "status": {
+                    "code": "TOKEN_EXPIRED_4011",
+                    "message": "Admin token expired. Please refresh token."
+                },
+                "response": null,
+                "timestamp": "%s"
+            }
+            """, java.time.LocalDateTime.now());
+
+        response.getWriter().write(jsonResponse);
+        response.getWriter().flush();
+
+        log.debug("Admin API token expired response sent");
+    }
+
+    // 정적 메서드들
     public static Admin getCurrentAdmin() {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getPrincipal() instanceof AdminUserDetails) {
@@ -135,7 +155,7 @@ public class AdminApiJwtFilter extends OncePerRequestFilter {
     public static boolean hasAdminRole(String... roles) {
         Admin admin = getCurrentAdmin();
         if (admin == null) return false;
-        
+
         String adminRole = admin.getRole().name();
         for (String role : roles) {
             if (role.equals(adminRole)) {

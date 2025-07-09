@@ -48,46 +48,54 @@ public class CookieUtil {
      * 회원 JWT 토큰 쿠키 설정 (모바일 뷰용)
      */
     public void setMemberTokenCookies(HttpServletResponse response, String accessToken, String refreshToken) {
-        log.debug("Setting member JWT token cookies");
+        log.info("🍪 Setting member JWT token cookies...");
 
         if (accessToken != null) {
             ResponseCookie accessCookie = createTokenCookie(
-                MEMBER_ACCESS_TOKEN,
-                accessToken,
-                (int) (accessTokenExpiration / 1000)
+                    MEMBER_ACCESS_TOKEN,
+                    accessToken,
+                    (int) (accessTokenExpiration / 1000)
             );
             response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
-            log.debug("MEMBER_ACCESS_TOKEN cookie set with expiration: {} seconds", accessTokenExpiration / 1000);
+            log.info("✅ {} cookie set (expires in {} seconds)",
+                    MEMBER_ACCESS_TOKEN, accessTokenExpiration / 1000);
         }
 
         if (refreshToken != null) {
             ResponseCookie refreshCookie = createTokenCookie(
-                MEMBER_REFRESH_TOKEN,
-                refreshToken,
-                (int) (refreshTokenExpiration / 1000)
+                    MEMBER_REFRESH_TOKEN,
+                    refreshToken,
+                    (int) (refreshTokenExpiration / 1000)
             );
             response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
-            log.debug("MEMBER_REFRESH_TOKEN cookie set with expiration: {} seconds", refreshTokenExpiration / 1000);
+            log.info("✅ {} cookie set (expires in {} seconds)",
+                    MEMBER_REFRESH_TOKEN, refreshTokenExpiration / 1000);
         }
+
+        log.info("✅ Member JWT token cookies setting completed");
     }
 
     /**
      * 회원 JWT 토큰 쿠키 + localStorage 동기화 헤더 설정
      */
     public void setMemberTokensWithSync(HttpServletResponse response, String accessToken, String refreshToken) {
+        log.info("🔧 Setting member tokens with sync...");
+
         // 1. 쿠키 설정
         setMemberTokenCookies(response, accessToken, refreshToken);
 
         // 2. localStorage 동기화용 헤더 설정
         if (accessToken != null) {
             response.setHeader(HEADER_NEW_ACCESS_TOKEN, accessToken);
-            log.debug("Set sync header for access token");
+            log.debug("📤 Set sync header for access token");
         }
 
         if (refreshToken != null) {
             response.setHeader(HEADER_NEW_REFRESH_TOKEN, refreshToken);
-            log.debug("Set sync header for refresh token");
+            log.debug("📤 Set sync header for refresh token");
         }
+
+        log.info("✅ Member tokens set with sync headers");
     }
 
     /**
@@ -108,31 +116,73 @@ public class CookieUtil {
      * 회원 JWT 토큰 쿠키 삭제
      */
     public void clearMemberTokenCookies(HttpServletResponse response) {
-        log.debug("Clearing member JWT token cookies");
+        log.info("🗑️ Clearing member JWT token cookies...");
 
         ResponseCookie clearAccessCookie = createClearCookie(MEMBER_ACCESS_TOKEN);
         response.addHeader(HttpHeaders.SET_COOKIE, clearAccessCookie.toString());
+        log.info("🗑️ {} cookie cleared", MEMBER_ACCESS_TOKEN);
 
         ResponseCookie clearRefreshCookie = createClearCookie(MEMBER_REFRESH_TOKEN);
         response.addHeader(HttpHeaders.SET_COOKIE, clearRefreshCookie.toString());
+        log.info("🗑️ {} cookie cleared", MEMBER_REFRESH_TOKEN);
 
-        log.debug("Member JWT token cookies cleared");
+        log.info("✅ Member JWT token cookies cleared");
     }
 
     /**
      * 특정 쿠키값 추출
      */
     public String getCookieValue(HttpServletRequest request, String cookieName) {
+        log.debug("🔍 Looking for cookie: {}", cookieName);
+
         if (request.getCookies() == null) {
+            log.warn("❌ No cookies found in request");
             return null;
         }
 
+        log.debug("🍪 Total cookies in request: {}", request.getCookies().length);
+
         for (Cookie cookie : request.getCookies()) {
+            log.debug("🍪 Checking cookie: {} = {}",
+                    cookie.getName(),
+                    cookie.getValue() != null && cookie.getValue().length() > 30 ?
+                            cookie.getValue().substring(0, 30) + "..." : cookie.getValue());
+
             if (cookieName.equals(cookie.getName())) {
                 String value = cookie.getValue();
-                return (value != null && !value.trim().isEmpty()) ? value.trim() : null;
+                boolean isValidValue = value != null && !value.trim().isEmpty();
+
+                // JWT 토큰 형식 검증 추가
+                if (isValidValue && (cookieName.equals(MEMBER_ACCESS_TOKEN) || cookieName.equals(MEMBER_REFRESH_TOKEN))) {
+                    // JWT는 세 부분으로 구성: header.payload.signature
+                    String[] parts = value.split("\\.");
+                    if (parts.length != 3) {
+                        log.error("❌ Invalid JWT format in cookie {}: expected 3 parts, got {}", cookieName, parts.length);
+                        log.error("❌ Cookie value: {}", value);
+                        return null;
+                    }
+
+                    // 각 부분이 Base64로 인코딩되어 있는지 확인
+                    for (int i = 0; i < parts.length; i++) {
+                        if (parts[i].isEmpty()) {
+                            log.error("❌ Empty JWT part {} in cookie {}", i, cookieName);
+                            return null;
+                        }
+                    }
+
+                    log.debug("✅ JWT format validation passed for cookie: {}", cookieName);
+                }
+
+                log.info("✅ Cookie found: {} = {} (valid: {})",
+                        cookieName,
+                        value != null && value.length() > 30 ? value.substring(0, 30) + "..." : value,
+                        isValidValue);
+
+                return isValidValue ? value.trim() : null;
             }
         }
+
+        log.warn("❌ Cookie not found: {}", cookieName);
         return null;
     }
 

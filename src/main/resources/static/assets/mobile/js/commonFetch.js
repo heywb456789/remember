@@ -1,4 +1,4 @@
-// commonFetchV2.js - 토마토리멤버 확장 버전
+// commonFetch.js - 토마토리멤버 확장 버전
 
 export class FetchError extends Error {
   constructor(status, statusCode, statusMessage, responseBody) {

@@ -52,8 +52,8 @@ public class SecurityConfig {
     @Bean
     public WebSecurityCustomizer webSecurityCustomizer() {
         return web -> web.ignoring()
-            .requestMatchers(PathRequest.toStaticResources().atCommonLocations())
-            .requestMatchers("/uploads/**", "/css/**", "/js/**", "/images/**", "/favicon.ico");
+                .requestMatchers(PathRequest.toStaticResources().atCommonLocations())
+                .requestMatchers("/uploads/**", "/css/**", "/js/**", "/images/**", "/favicon.ico");
     }
 
     /**
@@ -63,35 +63,35 @@ public class SecurityConfig {
     @Order(1)
     public SecurityFilterChain adminViewFilterChain(HttpSecurity http) throws Exception {
         http
-            .securityMatcher("/admin/view/**")
-            .csrf(csrf -> csrf.disable())
-            .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
-                .maximumSessions(1)
-                .maxSessionsPreventsLogin(false)
-            )
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/admin/view/login", "/admin/view/register").permitAll()
-                .requestMatchers("/admin/view/**").hasAnyRole("SUPER_ADMIN", "OPERATOR", "UPLOADER")
-            )
-            .formLogin(form -> form
-                .loginPage("/admin/view/login")
-                .loginProcessingUrl("/admin/view/login")
-                .defaultSuccessUrl("/admin/view/dashboard", true)
-                .failureUrl("/admin/view/login?error=true")
-                .usernameParameter("username")
-                .passwordParameter("password")
-            )
-            .logout(logout -> logout
-                .logoutUrl("/admin/view/logout")
-                .logoutSuccessUrl("/admin/view/login?logout=true")
-                .invalidateHttpSession(true)
-                .deleteCookies("JSESSIONID")
-            )
-            .exceptionHandling(ex -> ex
-                .authenticationEntryPoint((request, response, authException) ->
-                    response.sendRedirect("/admin/view/login"))
-            );
+                .securityMatcher("/admin/view/**")
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+                        .maximumSessions(1)
+                        .maxSessionsPreventsLogin(false)
+                )
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/admin/view/login", "/admin/view/register").permitAll()
+                        .requestMatchers("/admin/view/**").hasAnyRole("SUPER_ADMIN", "OPERATOR", "UPLOADER")
+                )
+                .formLogin(form -> form
+                        .loginPage("/admin/view/login")
+                        .loginProcessingUrl("/admin/view/login")
+                        .defaultSuccessUrl("/admin/view/dashboard", true)
+                        .failureUrl("/admin/view/login?error=true")
+                        .usernameParameter("username")
+                        .passwordParameter("password")
+                )
+                .logout(logout -> logout
+                        .logoutUrl("/admin/view/logout")
+                        .logoutSuccessUrl("/admin/view/login?logout=true")
+                        .invalidateHttpSession(true)
+                        .deleteCookies("JSESSIONID")
+                )
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((request, response, authException) ->
+                                response.sendRedirect("/admin/view/login"))
+                );
 
         return http.build();
     }
@@ -103,96 +103,106 @@ public class SecurityConfig {
     @Order(2)
     public SecurityFilterChain adminApiFilterChain(HttpSecurity http) throws Exception {
         http
-            .securityMatcher("/admin/api/**")
-            .csrf(AbstractHttpConfigurer::disable)
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/admin/api/auth/login", "/admin/api/auth/refresh").permitAll()
-                .requestMatchers("/admin/api/**").hasAnyRole("SUPER_ADMIN", "OPERATOR", "UPLOADER")
-            )
-            .addFilterBefore(new AdminApiJwtFilter(jwtTokenProvider, adminUserDetailsService), UsernamePasswordAuthenticationFilter.class)
-            .exceptionHandling(ex -> ex
-                .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
-                .accessDeniedHandler((req, res, denied) ->
-                    res.sendError(HttpStatus.FORBIDDEN.value(), "Forbidden"))
-            );
+                .securityMatcher("/admin/api/**")
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/admin/api/auth/login", "/admin/api/auth/refresh").permitAll()
+                        .requestMatchers("/admin/api/**").hasAnyRole("SUPER_ADMIN", "OPERATOR", "UPLOADER")
+                )
+                .addFilterBefore(new AdminApiJwtFilter(jwtTokenProvider, adminUserDetailsService), UsernamePasswordAuthenticationFilter.class)
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
+                        .accessDeniedHandler((req, res, denied) ->
+                                res.sendError(HttpStatus.FORBIDDEN.value(), "Forbidden"))
+                );
 
         return http.build();
     }
 
     /**
-     * 3순위: 모바일 뷰 - JWT 쿠키 기반 URL: /mobile/**, /, /home
-     * 홈페이지도 모바일 뷰로 처리하여 JWT 토큰 인증 적용
+     * 3순위: 모바일 뷰 통합 - 선택적 인증 (토큰 있으면 인증, 없으면 비회원)
+     * 인증이 필요한 경로와 선택적 인증 경로를 필터 내에서 구분 처리
      */
     @Bean
     @Order(3)
     public SecurityFilterChain mobileViewFilterChain(HttpSecurity http) throws Exception {
         http
-            .securityMatcher("/mobile/**", "/", "/home")  // 홈페이지 URL 추가
-            .csrf(AbstractHttpConfigurer::disable)
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                // 홈페이지 공개 경로 추가
-                .requestMatchers("/", "/home").permitAll()
-                // 기존 모바일 공개 경로
-                .requestMatchers("/mobile/login", "/mobile/register", "/mobile/auth/**", "/mobile/public/**").permitAll()
-                // 인증이 필요한 경로들
-                .requestMatchers("/mobile/dashboard/**", "/mobile/memorial/**", "/mobile/video-call/**").authenticated()
-                // 나머지 모든 경로는 허용
-                .requestMatchers("/mobile/**").permitAll()
-            )
-            .addFilterBefore(new MobileJwtFilter(jwtTokenProvider, memberUserDetailsService, cookieUtil), UsernamePasswordAuthenticationFilter.class)
-            .exceptionHandling(ex -> ex
-                .authenticationEntryPoint((request, response, authException) -> {
-                    String requestURI = request.getRequestURI();
-                    // 홈페이지는 리다이렉트하지 않고 계속 진행
-                    if ("/".equals(requestURI) || "/home".equals(requestURI)) {
-                        response.sendRedirect("/mobile/login");
-                    } else {
-                        response.sendRedirect("/mobile/login");
-                    }
-                })
-            );
+                .securityMatcher("/mobile/**")
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        // 인증이 필요한 경로들
+                        .requestMatchers(
+                                "/mobile/dashboard/**",
+                                "/mobile/memorial/create",
+                                "/mobile/memorial/*/edit",
+                                "/mobile/video-call/**",
+                                "/mobile/mypage/**"
+                        ).authenticated()
+                        // 나머지 모든 모바일 경로는 허용 (선택적 인증)
+                        .requestMatchers("/mobile/**").permitAll()
+                )
+                .addFilterBefore(new MobileJwtFilter(jwtTokenProvider, memberUserDetailsService, cookieUtil), UsernamePasswordAuthenticationFilter.class)
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.sendRedirect("/mobile/login");
+                        })
+                );
 
         return http.build();
     }
 
     /**
-     * 4순위: 모바일/앱 공용 API - JWT Bearer 토큰 URL: /api/**
+     * 4순위: API 공개 경로 - 인증 불필요
      */
     @Bean
     @Order(4)
-    public SecurityFilterChain apiFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain publicApiFilterChain(HttpSecurity http) throws Exception {
         http
-            .securityMatcher("/api/**")
-            .csrf(AbstractHttpConfigurer::disable)
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/login", "/api/auth/refresh", "/api/auth/register").permitAll()
-                .requestMatchers("/api/memorial/public/**", "/api/videos/public/**").permitAll()
-                .requestMatchers("/api/**").authenticated()
-            )
-            .addFilterBefore(new ApiJwtFilter(jwtTokenProvider, memberUserDetailsService), UsernamePasswordAuthenticationFilter.class)
-            .exceptionHandling(ex -> ex
-                .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
-                .accessDeniedHandler((req, res, denied) ->
-                    res.sendError(HttpStatus.FORBIDDEN.value(), "Forbidden"))
-            );
+                .securityMatcher(
+                        "/api/auth/login",
+                        "/api/auth/refresh",
+                        "/api/auth/register",
+                        "/api/memorial/public/**",
+                        "/api/videos/public/**"
+                )
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
 
         return http.build();
     }
 
     /**
-     * 5순위: 기본 웹 페이지 - 나머지 모든 요청 (JWT 필터 없음)
+     * 5순위: 모바일/앱 공용 API - JWT Bearer 토큰 URL: /api/**
      */
     @Bean
     @Order(5)
-    public SecurityFilterChain defaultFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain apiFilterChain(HttpSecurity http) throws Exception {
         http
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/about", "/contact", "/terms", "/privacy").permitAll()
-                .anyRequest().permitAll()
-            );
+                .securityMatcher("/api/**")
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
+                .addFilterBefore(new ApiJwtFilter(jwtTokenProvider, memberUserDetailsService), UsernamePasswordAuthenticationFilter.class)
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
+                        .accessDeniedHandler((req, res, denied) ->
+                                res.sendError(HttpStatus.FORBIDDEN.value(), "Forbidden"))
+                );
+
+        return http.build();
+    }
+
+    /**
+     * 6순위: 루트 경로 리다이렉션 - 나머지 모든 요청
+     */
+    @Bean
+    @Order(6)
+    public SecurityFilterChain rootRedirectFilterChain(HttpSecurity http) throws Exception {
+        http
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
 
         return http.build();
     }

@@ -262,6 +262,19 @@ public class Member extends Audit {
         return videoCalls.size();
     }
 
+    public String getProfileImageUrl() {
+        if (this.profileImg != null && !this.profileImg.trim().isEmpty()) {
+            // profileImg가 절대 경로인지 확인
+            if (this.profileImg.startsWith("http://") || this.profileImg.startsWith("https://")) {
+                return this.profileImg;
+            } else {
+                // 상대 경로인 경우 base URL 추가
+                return "http://api.otongtong.net:28080" + this.profileImg;
+            }
+        }
+        return "/images/default-avatar.png"; // 기본 이미지
+    }
+
     public MemberDTO convertDTO() {
         return MemberDTO.builder()
             .id(id)

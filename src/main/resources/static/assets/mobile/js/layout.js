@@ -1,4 +1,4 @@
-// layout.js - 토마토리멤버 모바일 레이아웃 관리 (디버깅 강화)
+// layout.js - 토마토리멤버 모바일 레이아웃 관리 (수정 버전)
 
 /**
  * 모바일 레이아웃 관리 클래스
@@ -40,8 +40,6 @@ class MobileLayoutManager {
     this.initNavigation();
     this.initScrollBehavior();
     this.initOffcanvas();
-    // this.updateActiveNavigation(); -> 알림 뱃지 기능 임시 주석
-    // this.initPWAFeatures();
 
     console.log('✅ 컴포넌트 초기화 완료');
   }
@@ -51,9 +49,6 @@ class MobileLayoutManager {
    */
   bindEvents() {
     console.log('🔗 이벤트 바인딩 시작');
-
-    // 메뉴 버튼 이벤트는 initOffcanvas에서 처리
-    // 나머지 이벤트들...
 
     // 네비게이션 아이템 클릭 이벤트
     const navItems = document.querySelectorAll('.nav-item');
@@ -77,11 +72,10 @@ class MobileLayoutManager {
   }
 
   /**
-   * Offcanvas 메뉴 초기화 (강화된 디버깅)
+   * Offcanvas 메뉴 초기화 (수정된 버전)
    */
   initOffcanvas() {
     console.log('🔍 Offcanvas 초기화 시작');
-    console.log('📊 현재 DOM 상태:', document.readyState);
 
     // DOM 요소 찾기
     const offcanvasElement = document.getElementById('mobileMenu');
@@ -91,24 +85,23 @@ class MobileLayoutManager {
     console.log('  📱 mobileMenu:', offcanvasElement);
     console.log('  🔘 header-menu-btn:', menuButton);
 
-    // 모든 관련 요소 확인
-    const allMenuElements = document.querySelectorAll('[id*="menu"], [class*="menu"]');
-    const allHeaderElements = document.querySelectorAll('[class*="header"]');
-
-    console.log('🔍 모든 메뉴 관련 요소:', allMenuElements);
-    console.log('🔍 모든 헤더 관련 요소:', allHeaderElements);
-
     if (offcanvasElement && menuButton) {
       this.menuElement = offcanvasElement;
       this.menuButton = menuButton;
 
       console.log('✅ 요소 찾기 성공');
 
-      // 커스텀 메뉴 초기화
-      this.initCustomMenu();
+      // 메뉴 초기 상태 설정 (숨김)
+      this.initMenuState();
+
+      // 오버레이 생성
+      this.createOverlay();
 
       // 메뉴 버튼 이벤트 바인딩
       this.bindMenuButtonEvents();
+
+      // 메뉴 내부 이벤트 바인딩
+      this.bindMenuInternalEvents();
 
       console.log('✅ Offcanvas 초기화 완료');
     } else {
@@ -122,6 +115,25 @@ class MobileLayoutManager {
   }
 
   /**
+   * 메뉴 초기 상태 설정
+   */
+  initMenuState() {
+    if (!this.menuElement) return;
+
+    console.log('🎨 메뉴 초기 상태 설정');
+
+    // 메뉴를 완전히 숨김
+    this.menuElement.classList.remove('show');
+    this.menuElement.style.transform = 'translateX(100%)';
+    this.menuElement.style.visibility = 'hidden';
+
+    // 초기 상태 확인
+    this.isMenuOpen = false;
+
+    console.log('✅ 메뉴 초기 상태 설정 완료 (숨김)');
+  }
+
+  /**
    * 메뉴 버튼 이벤트 바인딩
    */
   bindMenuButtonEvents() {
@@ -131,20 +143,15 @@ class MobileLayoutManager {
     }
 
     console.log('🔘 메뉴 버튼 이벤트 바인딩 시작');
-    console.log('🔘 메뉴 버튼 요소:', this.menuButton);
 
     // 기존 이벤트 리스너 제거
-    const existingHandler = this.menuButton.onclick;
-    if (existingHandler) {
-      console.log('🔄 기존 onclick 핸들러 제거');
+    if (this.menuButton.onclick) {
       this.menuButton.onclick = null;
     }
 
     // 새 이벤트 리스너 추가
     this.handleMenuClick = (e) => {
       console.log('🔘 메뉴 버튼 클릭 이벤트 발생!');
-      console.log('  📊 이벤트 타입:', e.type);
-      console.log('  📊 이벤트 target:', e.target);
       console.log('  🔄 현재 메뉴 상태:', this.isMenuOpen ? '열림' : '닫힘');
 
       e.preventDefault();
@@ -153,60 +160,10 @@ class MobileLayoutManager {
       this.toggleMenu();
     };
 
-    // 여러 이벤트 타입으로 바인딩
+    // 클릭 이벤트 바인딩
     this.menuButton.addEventListener('click', this.handleMenuClick);
-    this.menuButton.addEventListener('touchstart', this.handleMenuClick);
 
-    // onclick 속성도 설정 (중복 방지)
-    this.menuButton.onclick = (e) => {
-      console.log('🔘 onclick 속성 이벤트 발생');
-      this.handleMenuClick(e);
-    };
-
-    // 이벤트 바인딩 확인
-    console.log('🔘 이벤트 리스너 바인딩 완료');
-    console.log('  📊 click 이벤트 존재:', !!this.menuButton.onclick);
-    console.log('  📊 addEventListener 완료');
-
-    // 테스트 클릭 시뮬레이션
-    setTimeout(() => {
-      console.log('🧪 5초 후 테스트 클릭 시뮬레이션');
-      console.log('  📊 메뉴 버튼 클릭 시뮬레이션 실행');
-      // this.menuButton.click(); // 자동 테스트 (필요시 주석 해제)
-    }, 5000);
-  }
-
-  /**
-   * 커스텀 메뉴 초기화
-   */
-  initCustomMenu() {
-    if (!this.menuElement) return;
-
-    console.log('🎨 커스텀 메뉴 스타일 설정');
-
-    // 메뉴 스타일 설정
-    this.menuElement.style.cssText = `
-      position: fixed;
-      top: 0;
-      right: 0;
-      height: 100vh;
-      width: 320px;
-      background: white;
-      box-shadow: -10px 0 30px rgba(0, 0, 0, 0.1);
-      transform: translateX(100%);
-      transition: transform 0.3s ease;
-      z-index: 1050;
-      overflow-y: auto;
-      display: block;
-    `;
-
-    // 오버레이 생성
-    this.createOverlay();
-
-    // 메뉴 내부 이벤트 바인딩
-    this.bindMenuInternalEvents();
-
-    console.log('✅ 커스텀 메뉴 초기화 완료');
+    console.log('✅ 메뉴 버튼 이벤트 바인딩 완료');
   }
 
   /**
@@ -222,18 +179,6 @@ class MobileLayoutManager {
     // 새 오버레이 생성
     this.overlay = document.createElement('div');
     this.overlay.className = 'menu-overlay';
-    this.overlay.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.5);
-      z-index: 1040;
-      opacity: 0;
-      visibility: hidden;
-      transition: all 0.3s ease;
-    `;
 
     document.body.appendChild(this.overlay);
 
@@ -287,13 +232,9 @@ class MobileLayoutManager {
   toggleMenu() {
     console.log('🔄 메뉴 토글 시작');
     console.log('  📊 현재 상태:', this.isMenuOpen ? '열림' : '닫힘');
-    console.log('  📊 메뉴 요소 존재:', !!this.menuElement);
-    console.log('  📊 오버레이 존재:', !!this.overlay);
 
     if (!this.menuElement || !this.overlay) {
       console.error('❌ 메뉴 토글 실패 - 필수 요소 누락');
-      console.error('  📊 menuElement:', this.menuElement);
-      console.error('  📊 overlay:', this.overlay);
       return;
     }
 
@@ -322,14 +263,15 @@ class MobileLayoutManager {
     // 햄버거 아이콘 애니메이션
     if (this.menuButton) {
       this.menuButton.classList.add('menu-open');
-      console.log('🔘 햄버거 아이콘 애니메이션 적용');
     }
 
     // 메뉴 표시
+    this.menuElement.classList.add('show');
     this.menuElement.style.transform = 'translateX(0)';
     this.menuElement.style.visibility = 'visible';
-    this.overlay.style.opacity = '1';
-    this.overlay.style.visibility = 'visible';
+
+    // 오버레이 표시
+    this.overlay.classList.add('show');
 
     // 스크롤 방지
     document.body.classList.add('menu-open');
@@ -353,13 +295,15 @@ class MobileLayoutManager {
     // 햄버거 아이콘 애니메이션 리셋
     if (this.menuButton) {
       this.menuButton.classList.remove('menu-open');
-      console.log('🔘 햄버거 아이콘 애니메이션 제거');
     }
 
     // 메뉴 숨김
+    this.menuElement.classList.remove('show');
     this.menuElement.style.transform = 'translateX(100%)';
-    this.overlay.style.opacity = '0';
-    this.overlay.style.visibility = 'hidden';
+    this.menuElement.style.visibility = 'hidden';
+
+    // 오버레이 숨김
+    this.overlay.classList.remove('show');
 
     // 스크롤 복구
     document.body.classList.remove('menu-open');
@@ -378,12 +322,6 @@ class MobileLayoutManager {
       console.log('🔄 지연 초기화 시도');
       this.initOffcanvas();
     }, 500);
-
-    // 1초 후 다시 시도
-    setTimeout(() => {
-      console.log('🔄 재시도 초기화');
-      this.initOffcanvas();
-    }, 1000);
   }
 
   /**
@@ -406,12 +344,6 @@ class MobileLayoutManager {
         ticking = true;
       }
     });
-  }
-
-  initPWAFeatures() {
-    this.initInstallPrompt();
-    this.registerServiceWorker();
-    this.checkForUpdates();
   }
 
   handleNavClick(e, item) {
@@ -495,7 +427,6 @@ class MobileLayoutManager {
 
   async updateNavigationBadges() {
     try {
-      // 로그인 상태 확인
       const accessToken = localStorage.getItem('accessToken');
       if (!accessToken) {
         console.log('🔐 로그인 안됨 - 네비게이션 배지 업데이트 스킵');
@@ -551,8 +482,8 @@ class MobileLayoutManager {
     try {
       const { showConfirm } = await import('./common.js');
       const confirmed = await showConfirm(
-        '로그아웃 하시겠습니까?',
-        '로그인 페이지로 이동합니다.'
+          '로그아웃 하시겠습니까?',
+          '로그인 페이지로 이동합니다.'
       );
       if (!confirmed) return;
 
@@ -602,32 +533,6 @@ class MobileLayoutManager {
     document.documentElement.style.setProperty('--vh', `${vh}px`);
   }
 
-  initInstallPrompt() {
-    // PWA 설치 프롬프트 구현
-  }
-
-  registerServiceWorker() {
-    // 개발 환경에서는 서비스 워커 등록하지 않음
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      console.log('🔧 개발 환경에서는 서비스 워커 등록 스킵');
-      return;
-    }
-
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js')
-        .then((registration) => {
-          console.log('서비스 워커 등록 성공:', registration);
-        })
-        .catch((error) => {
-          console.log('서비스 워커 등록 실패:', error);
-        });
-    }
-  }
-
-  checkForUpdates() {
-    // 앱 업데이트 확인 구현
-  }
-
   destroy() {
     // 이벤트 리스너 정리
     if (this.overlay && this.overlay.parentNode) {
@@ -675,13 +580,6 @@ window.debugMenu = () => {
   console.log('메뉴 버튼:', window.layoutManager?.menuButton);
   console.log('오버레이:', window.layoutManager?.overlay);
   console.log('메뉴 상태:', window.layoutManager?.isMenuOpen ? '열림' : '닫힘');
-
-  // 메뉴 버튼 클릭 테스트
-  if (window.layoutManager?.menuButton) {
-    console.log('🧪 메뉴 버튼 클릭 테스트 시작');
-    window.layoutManager.menuButton.click();
-  }
-
   console.groupEnd();
 };
 
