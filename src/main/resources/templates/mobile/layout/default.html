@@ -8,11 +8,13 @@
   <meta name="mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="theme-color" content="#6c5ce7"/>
 
   <title th:replace="${title}">토마토리멤버</title>
 
-  <!-- Bootstrap CSS -->
-  <link th:href="@{/bootstrap/css/bootstrap.css}" rel="stylesheet"/>
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="/favicon.png"/>
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png"/>
 
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"/>
@@ -21,6 +23,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Bootstrap CSS -->
+  <link th:href="@{/bootstrap/css/bootstrap.css}" rel="stylesheet"/>
 
   <!-- Common CSS -->
   <link th:href="@{/assets/mobile/css/common.css}" rel="stylesheet"/>
@@ -62,43 +67,56 @@
   <!-- 하단 네비게이션 -->
   <nav class="mobile-nav fixed-bottom" id="mobileNav">
     <div class="nav-container">
-      <a href="/mobile/home" class="nav-item" th:classappend="${(activeMenu ?: 'main') == 'main' ? 'active' : ''}">
+      <a href="/mobile/home" class="nav-item" th:classappend="${(activeMenu ?: 'main') == 'main' ? 'active' : ''}"
+         aria-label="홈 페이지로 이동">
         <i class="fas fa-home"></i>
         <span>홈</span>
       </a>
-      <a href="/mobile/memorial" class="nav-item" th:classappend="${(activeMenu ?: 'main') == 'memorial' ? 'active' : ''}">
-        <i class="fas fa-heart"></i>
-        <span>추모하기</span>
+      <a href="/mobile/search" class="nav-item" th:classappend="${(activeMenu ?: 'main') == 'search' ? 'active' : ''}"
+         aria-label="검색 페이지로 이동">
+        <i class="fas fa-search"></i>
+        <span>검색</span>
       </a>
-      <a href="/mobile/family" class="nav-item" th:classappend="${(activeMenu ?: 'main') == 'family' ? 'active' : ''}">
-        <i class="fas fa-users"></i>
-        <span>가족</span>
-      </a>
-      <a href="/mobile/support" class="nav-item" th:classappend="${(activeMenu ?: 'main') == 'support' ? 'active' : ''}">
-        <i class="fas fa-question-circle"></i>
+      <a href="/mobile/support" class="nav-item" th:classappend="${(activeMenu ?: 'main') == 'support' ? 'active' : ''}"
+         aria-label="도움말 페이지로 이동">
+        <i class="fas fa-clock"></i>
         <span>도움말</span>
       </a>
-      <a href="/mobile/mypage" class="nav-item" th:classappend="${(activeMenu ?: 'main') == 'mypage' ? 'active' : ''}">
+      <a href="/mobile/mypage" class="nav-item" th:classappend="${(activeMenu ?: 'main') == 'mypage' ? 'active' : ''}"
+         aria-label="마이페이지로 이동">
         <i class="fas fa-user"></i>
         <span>마이페이지</span>
       </a>
     </div>
   </nav>
 
+  <!-- 채팅 FAB 버튼 (로그인 후에만 표시) -->
+  <button class="chat-fab" id="chatFab" onclick="openChat()"
+          th:if="${currentUser != null}"
+          aria-label="채팅 열기">
+    <i class="fas fa-comments"></i>
+  </button>
+
+  <!-- 햄버거 메뉴 오버레이 -->
+  <div class="menu-overlay" id="menuOverlay"></div>
+
   <!-- 사이드 메뉴 (Offcanvas) -->
   <div class="mobile-offcanvas" tabindex="-1" id="mobileMenu" aria-labelledby="mobileMenuLabel">
     <div class="offcanvas-header">
       <div class="offcanvas-title" id="mobileMenuLabel">
-        <!-- 현재 사용자가 있으면 사용자 정보, 없으면 게스트 정보 표시 -->
+        <!-- 로그인 후 사용자 정보 -->
         <div class="user-info" th:if="${currentUser != null}">
           <div class="user-avatar">
-            <img th:src="${currentUser.profileImageUrl ?: '/images/default-avatar.png'}" th:alt="${currentUser.name}" class="avatar-img">
+            <img th:src="${currentUser.profileImageUrl ?: '/assets/mobile/images/default-avatar.png'}"
+                 th:alt="${currentUser.name}" class="avatar-img">
           </div>
           <div class="user-details">
             <h6 class="user-name" th:text="${currentUser.name ?: '사용자'}">김토마토</h6>
             <p class="user-email" th:text="${currentUser.email ?: ''}">tomato@example.com</p>
           </div>
         </div>
+
+        <!-- 로그인 전 게스트 정보 -->
         <div class="guest-info" th:unless="${currentUser != null}">
           <div class="guest-avatar">
             <i class="fas fa-user"></i>
@@ -109,17 +127,18 @@
           </div>
         </div>
       </div>
+
       <button type="button" class="btn-close" id="menuCloseBtn" aria-label="메뉴 닫기"></button>
     </div>
 
     <div class="offcanvas-body">
       <!-- 로그인 후 메뉴 -->
       <div class="menu-section" th:if="${currentUser != null}">
-        <h6 class="menu-title">주요 기능</h6>
+        <h6 class="menu-title">서비스</h6>
         <ul class="menu-list">
           <li>
             <a href="/mobile/memorial/management" class="menu-link">
-              <i class="fas fa-cog text-danger"></i>
+              <i class="fas fa-heart text-danger"></i>
               <span>메모리얼 관리</span>
             </a>
           </li>
@@ -198,7 +217,7 @@
         <ul class="menu-list">
           <li>
             <a href="/mobile/experience" class="menu-link">
-              <i class="fas fa-play text-warning"></i>
+              <i class="fas fa-gift text-warning"></i>
               <span>3개월 무료체험</span>
             </a>
           </li>
@@ -226,7 +245,7 @@
           </li>
           <li>
             <a href="/mobile/terms" class="menu-link">
-              <i class="fas fa-file-contract text-muted"></i>
+              <i class="fas fa-shield-alt text-muted"></i>
               <span>개인정보처리방침</span>
             </a>
           </li>
@@ -251,7 +270,7 @@
   <!-- Bootstrap JS -->
   <script th:src="@{/bootstrap/js/bootstrap.bundle.js}"></script>
 
-  <!-- 토큰 동기화 스크립트 (기존 fragment 활용) -->
+  <!-- 토큰 동기화 스크립트 -->
   <div th:replace="~{fragments/token-sync :: tokenSync}"></div>
 
   <!-- Common JS -->
@@ -261,14 +280,15 @@
   <!-- Custom JS -->
   <th:block th:replace="${customJS}"></th:block>
 
-  <!-- 전역 설정 (단순화 버전) -->
+  <!-- 전역 설정 스크립트 -->
   <script>
     // 기본 전역 설정
     window.APP_CONFIG = {
       baseUrl: '',
       activeMenu: /*[[ ${activeMenu} ?: 'main' ]]*/ 'main',
       activeSubMenu: /*[[ ${activeSubMenu} ?: null ]]*/ null,
-      currentUser: /*[[ ${currentUser} ?: null ]]*/ null
+      currentUser: /*[[ ${currentUser} ?: null ]]*/ null,
+      isLoggedIn: /*[[ ${currentUser != null} ]]*/ false
     };
 
     // API 엔드포인트 설정
@@ -278,21 +298,180 @@
       REFRESH: '/api/auth/refresh',
       MEMORIAL: '/api/memorial',
       VIDEO_CALL: '/api/video-call',
-      TRIBUTE: '/api/tribute'
+      TRIBUTE: '/api/tribute',
+      USER_PROFILE: '/api/user/profile',
+      TRIAL_STATUS: '/api/user/trial-status'
     };
 
-    // 로그아웃 함수 (사이드 메뉴에서 사용)
-    function logout() {
-      if (confirm('로그아웃 하시겠습니까?')) {
-        // 토큰 정리
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
+    // 전역 유틸리티 함수들
+    window.globalUtils = {
+      // 로그아웃 함수
+      logout: function() {
+        if (confirm('로그아웃 하시겠습니까?')) {
+          // 토큰 정리
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
 
-        // 로그아웃 페이지로 이동 (서버에서 쿠키 정리)
-        window.location.href = '/mobile/logout';
+          // 로그아웃 페이지로 이동 (서버에서 쿠키 정리)
+          window.location.href = '/mobile/logout';
+        }
+      },
+
+      // 채팅 열기 함수
+      openChat: function() {
+        console.log('💬 채팅 열기');
+        // TODO: 채팅 기능 구현 후 주석 해제
+        alert('채팅 기능 준비 중입니다.');
+      },
+
+      // 로그인 모달 표시
+      showLoginModal: function() {
+        alert('이 기능을 사용하려면\\n먼저 로그인해 주세요.');
+        setTimeout(() => {
+          window.location.href = '/mobile/login';
+        }, 1000);
+      },
+
+      // 페이지 로딩 상태 표시
+      showPageLoading: function() {
+        document.body.classList.add('loading');
+      },
+
+      // 페이지 로딩 상태 숨김
+      hidePageLoading: function() {
+        document.body.classList.remove('loading');
       }
+    };
+
+    // 전역 함수들 (하위 호환성을 위해 유지)
+    function logout() {
+      window.globalUtils.logout();
+    }
+
+    function openChat() {
+      window.globalUtils.openChat();
+    }
+
+    function showLoginModal() {
+      window.globalUtils.showLoginModal();
+    }
+
+    // 페이지 로드 완료 이벤트
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('📱 토마토리멤버 페이지 로드 완료');
+      console.log('👤 로그인 상태:', window.APP_CONFIG.isLoggedIn);
+      console.log('📍 활성 메뉴:', window.APP_CONFIG.activeMenu);
+
+      // 페이지별 초기화 로직
+      if (window.pageInitializer) {
+        window.pageInitializer();
+      }
+    });
+
+    // 페이지 가시성 변경 감지
+    document.addEventListener('visibilitychange', function() {
+      if (!document.hidden) {
+        console.log('👁️ 페이지 가시성 복원');
+
+        // 페이지별 새로고침 로직
+        if (window.pageRefresher) {
+          window.pageRefresher();
+        }
+      }
+    });
+
+    // 온라인/오프라인 상태 감지
+    window.addEventListener('online', function() {
+      console.log('🌐 온라인 상태 복원');
+      // 오프라인 상태 알림 제거
+      const offlineAlert = document.querySelector('.offline-alert');
+      if (offlineAlert) {
+        offlineAlert.remove();
+      }
+    });
+
+    window.addEventListener('offline', function() {
+      console.log('📴 오프라인 상태');
+      // 오프라인 상태 알림 표시
+      if (!document.querySelector('.offline-alert')) {
+        const alert = document.createElement('div');
+        alert.className = 'offline-alert';
+        alert.innerHTML = '인터넷 연결이 끊어졌습니다.';
+        alert.style.cssText = `
+          position: fixed;
+          top: 70px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: #f56565;
+          color: white;
+          padding: 8px 16px;
+          border-radius: 8px;
+          font-size: 14px;
+          z-index: 2000;
+          animation: slideDown 0.3s ease;
+        `;
+        document.body.appendChild(alert);
+      }
+    });
+
+    // 키보드 단축키 지원
+    document.addEventListener('keydown', function(e) {
+      // ESC 키로 메뉴 닫기
+      if (e.key === 'Escape') {
+        if (window.layoutManager && window.layoutManager.isMenuOpen) {
+          window.layoutManager.closeMenu();
+        }
+      }
+
+      // 숫자 키로 네비게이션 이동 (1-4)
+      if (e.key >= '1' && e.key <= '4' && !e.ctrlKey && !e.altKey && !e.shiftKey) {
+        const navItems = document.querySelectorAll('.nav-item');
+        const index = parseInt(e.key) - 1;
+        if (navItems[index]) {
+          e.preventDefault();
+          navItems[index].click();
+        }
+      }
+    });
+
+    // 디버그 모드 활성화
+    if (window.location.search.includes('debug=true')) {
+      console.log('🔧 디버그 모드 활성화');
+      window.debugMode = true;
+
+      // 디버그 정보 표시
+      window.showDebugInfo = function() {
+        console.group('🔍 디버그 정보');
+        console.log('APP_CONFIG:', window.APP_CONFIG);
+        console.log('API_ENDPOINTS:', window.API_ENDPOINTS);
+        console.log('Layout Manager:', window.layoutManager);
+        console.log('Current User:', window.APP_CONFIG.currentUser);
+        console.log('Token Info:', {
+          accessToken: localStorage.getItem('accessToken')?.substring(0, 20) + '...',
+          refreshToken: localStorage.getItem('refreshToken')?.substring(0, 20) + '...'
+        });
+        console.groupEnd();
+      };
     }
   </script>
+
+  <!-- 애니메이션 스타일 추가 -->
+  <style>
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-100%);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+    }
+
+    .offline-alert {
+      animation: slideDown 0.3s ease;
+    }
+  </style>
 
 </body>
 </html>
