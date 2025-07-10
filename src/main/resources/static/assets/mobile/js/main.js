@@ -798,7 +798,7 @@ function showLoginModal() {
   if (window.globalFunctions?.showLoginModal) {
     window.globalFunctions.showLoginModal();
   } else {
-    alert('이 기능을 사용하려면\n먼저 로그인해 주세요.');
+    alert('이 기능을 사용하려면\n 먼저 로그인해 주세요.');
     setTimeout(() => {
       window.location.href = window.serverData?.urls?.login || '/mobile/login';
     }, 1000);

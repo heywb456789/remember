@@ -9,6 +9,9 @@ import com.tomato.remember.application.family.entity.FamilyMember;
 import com.tomato.remember.application.memorial.code.AiTrainingStatus;
 import com.tomato.remember.application.memorial.code.InterestType;
 import com.tomato.remember.application.memorial.code.MemorialStatus;
+import com.tomato.remember.application.memorial.dto.MemorialCreateRequestDTO;
+import com.tomato.remember.application.memorial.dto.MemorialResponseDTO;
+import com.tomato.remember.application.memorial.dto.MemorialUpdateRequestDTO;
 import com.tomato.remember.application.videocall.entity.VideoCall;
 import com.tomato.remember.common.audit.Audit;
 import jakarta.persistence.*;
@@ -231,11 +234,11 @@ public class Memorial extends Audit {
 
     public boolean isReadyForVideoCall() {
         return profileImageUrl != null &&
-               voiceFileUrl != null &&
-               videoFileUrl != null &&
-               userImageUrl != null &&
-               aiTrainingCompleted &&
-               status == MemorialStatus.ACTIVE;
+            voiceFileUrl != null &&
+            videoFileUrl != null &&
+            userImageUrl != null &&
+            aiTrainingCompleted &&
+            status == MemorialStatus.ACTIVE;
     }
 
     public int getFamilyMemberCount() {
@@ -274,7 +277,7 @@ public class Memorial extends Audit {
 
     public void addInterest(InterestType interestType) {
         List<InterestType> currentInterests = new ArrayList<>(getInterestTypeList());
-        if (!currentInterests.contains(interestType)) {
+        if (! currentInterests.contains(interestType)) {
             currentInterests.add(interestType);
             setInterestTypes(currentInterests);
         }
@@ -320,9 +323,9 @@ public class Memorial extends Audit {
 
     public boolean hasRequiredFiles() {
         return profileImageUrl != null &&
-               voiceFileUrl != null &&
-               videoFileUrl != null &&
-               userImageUrl != null;
+            voiceFileUrl != null &&
+            videoFileUrl != null &&
+            userImageUrl != null;
     }
 
     public boolean canStartVideoCall() {
@@ -331,17 +334,17 @@ public class Memorial extends Audit {
 
     public boolean canBeEditedBy(Member member) {
         return owner.equals(member) ||
-               familyMembers.stream()
-                   .anyMatch(fm -> fm.getMember().equals(member) &&
-                                  fm.getFamilyRole() == FamilyRole.MAIN);
+            familyMembers.stream()
+                .anyMatch(fm -> fm.getMember().equals(member) &&
+                    fm.getFamilyRole() == FamilyRole.MAIN);
     }
 
     public boolean canBeViewedBy(Member member) {
         return isPublic ||
-               owner.equals(member) ||
-               familyMembers.stream()
-                   .anyMatch(fm -> fm.getMember().equals(member) &&
-                                  fm.getInviteStatus() == InviteStatus.ACCEPTED);
+            owner.equals(member) ||
+            familyMembers.stream()
+                .anyMatch(fm -> fm.getMember().equals(member) &&
+                    fm.getInviteStatus() == InviteStatus.ACCEPTED);
     }
 
     public int getAge() {
@@ -373,5 +376,129 @@ public class Memorial extends Audit {
         return familyMembers.stream()
             .filter(fm -> fm.getInviteStatus() == InviteStatus.ACCEPTED)
             .collect(Collectors.toList());
+    }
+
+    /**
+     * 메모리얼 정보 수정
+     *
+     * @param updateRequest 수정 요청 DTO
+     */
+    public void updateMemorial(MemorialUpdateRequestDTO updateRequest) {
+        this.name = updateRequest.getName();
+        this.nickname = updateRequest.getNickname();
+        this.gender = updateRequest.getGender();
+        this.birthDate = updateRequest.getBirthDate();
+        this.deathDate = updateRequest.getDeathDate();
+        this.relationship = updateRequest.getRelationship();
+        this.profileImageUrl = updateRequest.getProfileImageUrl();
+        this.voiceFileUrl = updateRequest.getVoiceFileUrl();
+        this.videoFileUrl = updateRequest.getVideoFileUrl();
+        this.userImageUrl = updateRequest.getUserImageUrl();
+        this.isPublic = updateRequest.getIsPublic();
+        this.additionalInfo = updateRequest.getAdditionalInfo();
+
+        // 관심사 설정
+        if (updateRequest.getInterests() != null) {
+            this.setInterestTypes(updateRequest.getInterests());
+        } else {
+            this.interests = null;
+        }
+    }
+    //########################## 변환 메서드 ###########################
+
+    /**
+     * Memorial Entity를 MemorialResponseDTO로 변환
+     *
+     * @return MemorialResponseDTO
+     */
+    public MemorialResponseDTO toResponseDTO() {
+        return MemorialResponseDTO.builder()
+            .id(this.id)
+            .name(this.name)
+            .nickname(this.nickname)
+            .gender(this.gender)
+            .birthDate(this.birthDate)
+            .deathDate(this.deathDate)
+            .relationship(this.relationship)
+            .interests(this.getInterestTypeList())
+            .profileImageUrl(this.profileImageUrl)
+            .voiceFileUrl(this.voiceFileUrl)
+            .videoFileUrl(this.videoFileUrl)
+            .userImageUrl(this.userImageUrl)
+            .aiTrainingCompleted(this.aiTrainingCompleted)
+            .aiTrainingStatus(this.aiTrainingStatus)
+            .lastVisitAt(this.lastVisitAt)
+            .totalVisits(this.totalVisits)
+            .memoryCount(this.memoryCount)
+            .status(this.status)
+            .isPublic(this.isPublic)
+            .additionalInfo(this.additionalInfo)
+            .ownerId(this.owner.getId())
+            .ownerName(this.owner.getName())
+            .createdAt(this.getCreatedAt())
+            .updatedAt(this.getUpdatedAt())
+            .age(this.getAge())
+            .formattedAge(this.getFormattedAge())
+            .interestDisplayNames(this.getInterestDisplayNames())
+            .familyMemberCount(this.getFamilyMemberCount())
+            .canStartVideoCall(this.canStartVideoCall())
+            .hasRequiredFiles(this.hasRequiredFiles())
+            .build();
+    }
+
+    /**
+     * MemorialCreateRequestDTO를 Memorial Entity로 변환
+     *
+     * @param dto   MemorialCreateRequestDTO
+     * @param owner 소유자 Member
+     * @return Memorial Entity
+     */
+    public static Memorial fromCreateRequestDTO(MemorialCreateRequestDTO dto, Member owner) {
+        Memorial memorial = Memorial.builder()
+            .name(dto.getName())
+            .nickname(dto.getNickname())
+            .gender(dto.getGender())
+            .birthDate(dto.getBirthDate())
+            .deathDate(dto.getDeathDate())
+            .relationship(dto.getRelationship())
+            .profileImageUrl(dto.getProfileImageUrl())
+            .voiceFileUrl(dto.getVoiceFileUrl())
+            .videoFileUrl(dto.getVideoFileUrl())
+            .userImageUrl(dto.getUserImageUrl())
+            .isPublic(dto.getIsPublic())
+            .additionalInfo(dto.getAdditionalInfo())
+            .owner(owner)
+            .build();
+
+        // 관심사 설정
+        if (dto.getInterests() != null && ! dto.getInterests().isEmpty()) {
+            memorial.setInterestTypes(dto.getInterests());
+        }
+
+        return memorial;
+    }
+
+
+    /**
+     * MemorialUpdateRequestDTO를 생성하여 반환
+     *
+     * @return MemorialUpdateRequestDTO
+     */
+    public MemorialUpdateRequestDTO toUpdateRequestDTO() {
+        return MemorialUpdateRequestDTO.builder()
+            .name(this.name)
+            .nickname(this.nickname)
+            .gender(this.gender)
+            .birthDate(this.birthDate)
+            .deathDate(this.deathDate)
+            .relationship(this.relationship)
+            .interests(this.getInterestTypeList())
+            .profileImageUrl(this.profileImageUrl)
+            .voiceFileUrl(this.voiceFileUrl)
+            .videoFileUrl(this.videoFileUrl)
+            .userImageUrl(this.userImageUrl)
+            .isPublic(this.isPublic)
+            .additionalInfo(this.additionalInfo)
+            .build();
     }
 }
