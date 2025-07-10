@@ -142,12 +142,14 @@
   cursor: pointer;
   transition: var(--transition-smooth);
   text-decoration: none;
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  justify-content: center;
   gap: var(--spacing-xs);
   position: relative;
   z-index: 2;
   margin: 0 auto;
+  width: fit-content;
 }
 
 .new-memorial-btn:hover {

@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{mobile/layout/default :: html(
+        ~{::title},
+        ~{::section},
+        ~{::customCSS},
+        ~{::customJS},
+        'memorial',
+        'create'
+      )}">
+<head>
+  <title>고인에 대한 정보 - 토마토리멤버</title>
+
+  <!-- Custom CSS -->
+  <customCSS>
+    <link th:href="@{/assets/mobile/css/memorial-create.css}" rel="stylesheet">
+  </customCSS>
+</head>
+<body>
+<section>
+  <div class="container">
+    <!-- 페이지 헤더 -->
+    <div class="page-header">
+      <button class="back-btn" type="button" onclick="history.back()">
+        <i class="fas fa-arrow-left"></i>
+      </button>
+      <h1 class="page-title">고인에 대한 정보</h1>
+    </div>
+
+    <!-- 진행 상태 표시 -->
+    <div class="progress-container">
+      <div class="progress-bar">
+        <div class="progress-fill" style="width: 50%"></div>
+      </div>
+      <div class="progress-steps">
+        <div class="step completed">
+          <div class="step-number">
+            <i class="fas fa-check"></i>
+          </div>
+          <div class="step-label">기본 정보</div>
+        </div>
+        <div class="step active">
+          <div class="step-number">2</div>
+          <div class="step-label">고인 정보</div>
+        </div>
+        <div class="step">
+          <div class="step-number">3</div>
+          <div class="step-label">미디어</div>
+        </div>
+        <div class="step">
+          <div class="step-number">4</div>
+          <div class="step-label">완료</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 고인 정보 입력 폼 -->
+    <form id="memorialStep2Form" class="memorial-form">
+      <!-- 고인 학습 정보 섹션 -->
+      <div class="form-section">
+        <div class="section-header">
+          <h2 class="section-title">고인 학습을 위한 정보</h2>
+          <p class="section-description">AI가 고인의 성격과 말투를 학습할 수 있도록 도와주세요.</p>
+        </div>
+
+        <!-- 성격 및 특징 -->
+        <div class="form-group">
+          <label class="form-label" for="personality">성격 및 특징</label>
+          <textarea id="personality" name="personality" class="form-textarea"
+                    placeholder="예: 항상 밝고 긍정적이셨고, 가족들을 매우 사랑하셨습니다. 요리를 좋아하시고 웃음이 많으셨어요."
+                    rows="4" maxlength="500"></textarea>
+          <div class="character-count">
+            <span id="personalityCount">0</span> / 500자
+          </div>
+          <div class="form-error" id="personalityError"></div>
+        </div>
+
+        <!-- 자주 하던 말 -->
+        <div class="form-group">
+          <label class="form-label" for="favoriteWords">자주 하던 말</label>
+          <textarea id="favoriteWords" name="favoriteWords" class="form-textarea"
+                    placeholder="예: '사랑한다', '밥 먹었냐?', '건강이 최고야' 같은 평소 자주 하시던 말씀을 적어주세요."
+                    rows="3" maxlength="300"></textarea>
+          <div class="character-count">
+            <span id="favoriteWordsCount">0</span> / 300자
+          </div>
+          <div class="form-error" id="favoriteWordsError"></div>
+        </div>
+
+        <!-- 말투 및 억양 -->
+        <div class="form-group">
+          <label class="form-label" for="speakingStyle">말투 및 억양</label>
+          <textarea id="speakingStyle" name="speakingStyle" class="form-textarea"
+                    placeholder="예: 따뜻하고 부드러운 말투, 사투리 사용 여부, 특별한 억양이나 말버릇 등을 적어주세요."
+                    rows="3" maxlength="300"></textarea>
+          <div class="character-count">
+            <span id="speakingStyleCount">0</span> / 300자
+          </div>
+          <div class="form-error" id="speakingStyleError"></div>
+        </div>
+      </div>
+
+      <!-- 관심사 및 취미 섹션 -->
+      <div class="form-section">
+        <div class="section-header">
+          <h2 class="section-title">관심사 및 취미</h2>
+          <p class="section-description">고인이 좋아하시던 것들을 선택해주세요.</p>
+        </div>
+
+        <!-- 관심사 선택 -->
+        <div class="form-group">
+          <label class="form-label">관심사 선택</label>
+          <div class="interests-grid">
+            <label class="interest-option">
+              <input type="checkbox" name="interests" value="COOKING">
+              <div class="interest-card">
+                <i class="fas fa-utensils"></i>
+                <span>요리</span>
+              </div>
+            </label>
+            <label class="interest-option">
+              <input type="checkbox" name="interests" value="GARDENING">
+              <div class="interest-card">
+                <i class="fas fa-seedling"></i>
+                <span>원예</span>
+              </div>
+            </label>
+            <label class="interest-option">
+              <input type="checkbox" name="interests" value="READING">
+              <div class="interest-card">
+                <i class="fas fa-book"></i>
+                <span>독서</span>
+              </div>
+            </label>
+            <label class="interest-option">
+              <input type="checkbox" name="interests" value="MUSIC">
+              <div class="interest-card">
+                <i class="fas fa-music"></i>
+                <span>음악</span>
+              </div>
+            </label>
+            <label class="interest-option">
+              <input type="checkbox" name="interests" value="TRAVEL">
+              <div class="interest-card">
+                <i class="fas fa-plane"></i>
+                <span>여행</span>
+              </div>
+            </label>
+            <label class="interest-option">
+              <input type="checkbox" name="interests" value="SPORTS">
+              <div class="interest-card">
+                <i class="fas fa-running"></i>
+                <span>운동</span>
+              </div>
+            </label>
+            <label class="interest-option">
+              <input type="checkbox" name="interests" value="MOVIES">
+              <div class="interest-card">
+                <i class="fas fa-film"></i>
+                <span>영화</span>
+              </div>
+            </label>
+            <label class="interest-option">
+              <input type="checkbox" name="interests" value="GAMES">
+              <div class="interest-card">
+                <i class="fas fa-gamepad"></i>
+                <span>게임</span>
+              </div>
+            </label>
+            <label class="interest-option">
+              <input type="checkbox" name="interests" value="CRAFT">
+              <div class="interest-card">
+                <i class="fas fa-cut"></i>
+                <span>수공예</span>
+              </div>
+            </label>
+            <label class="interest-option">
+              <input type="checkbox" name="interests" value="RELIGION">
+              <div class="interest-card">
+                <i class="fas fa-pray"></i>
+                <span>종교</span>
+              </div>
+            </label>
+            <label class="interest-option">
+              <input type="checkbox" name="interests" value="VOLUNTEER">
+              <div class="interest-card">
+                <i class="fas fa-hands-helping"></i>
+                <span>봉사활동</span>
+              </div>
+            </label>
+            <label class="interest-option">
+              <input type="checkbox" name="interests" value="OTHER">
+              <div class="interest-card">
+                <i class="fas fa-ellipsis-h"></i>
+                <span>기타</span>
+              </div>
+            </label>
+          </div>
+          <div class="form-error" id="interestsError"></div>
+        </div>
+
+        <!-- 기타 관심사 입력 -->
+        <div class="form-group" id="otherInterestGroup" style="display: none;">
+          <label class="form-label" for="otherInterest">기타 관심사</label>
+          <input type="text" id="otherInterest" name="otherInterest" class="form-input"
+                 placeholder="다른 관심사가 있다면 적어주세요" maxlength="50">
+          <div class="form-error" id="otherInterestError"></div>
+        </div>
+      </div>
+
+      <!-- 소중한 추억 섹션 -->
+      <div class="form-section">
+        <div class="section-header">
+          <h2 class="section-title">소중한 추억</h2>
+          <p class="section-description">고인과 함께했던 특별한 추억을 공유해주세요.</p>
+        </div>
+
+        <!-- 특별한 추억 -->
+        <div class="form-group">
+          <label class="form-label" for="specialMemories">특별한 추억</label>
+          <textarea id="specialMemories" name="specialMemories" class="form-textarea"
+                    placeholder="예: 매년 생일마다 함께 케이크를 만들어 주셨던 추억, 여행에서 있었던 재미있는 일 등을 적어주세요."
+                    rows="4" maxlength="500"></textarea>
+          <div class="character-count">
+            <span id="specialMemoriesCount">0</span> / 500자
+          </div>
+          <div class="form-error" id="specialMemoriesError"></div>
+        </div>
+
+        <!-- 가족에게 했던 말 -->
+        <div class="form-group">
+          <label class="form-label" for="familyMessages">가족에게 했던 말</label>
+          <textarea id="familyMessages" name="familyMessages" class="form-textarea"
+                    placeholder="예: 가족들에게 자주 해주시던 조언이나 따뜻한 말씀들을 적어주세요."
+                    rows="3" maxlength="300"></textarea>
+          <div class="character-count">
+            <span id="familyMessagesCount">0</span> / 300자
+          </div>
+          <div class="form-error" id="familyMessagesError"></div>
+        </div>
+      </div>
+
+      <!-- 하단 버튼 -->
+      <div class="form-actions">
+        <button type="button" class="btn btn-outline" onclick="history.back()">
+          <i class="fas fa-arrow-left"></i>
+          이전
+        </button>
+        <button type="submit" class="btn btn-primary" id="nextBtn">
+          다음 단계
+          <i class="fas fa-arrow-right"></i>
+        </button>
+      </div>
+    </form>
+
+    <!-- 로딩 상태 -->
+    <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+      <div class="loading-spinner">
+        <div class="spinner"></div>
+        <p>정보를 저장하는 중입니다...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 정보 안내 모달 -->
+  <div class="modal fade" id="infoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">AI 학습 정보 안내</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="modal-icon mb-3">
+            <i class="fas fa-info-circle text-primary" style="font-size: 3rem;"></i>
+          </div>
+          <h4>더 자세한 정보를 입력할수록</h4>
+          <p class="mb-4">AI가 고인의 성격과 말투를 더 정확하게 학습할 수 있습니다.</p>
+          <div class="info-tips">
+            <div class="tip-item mb-3">
+              <i class="fas fa-lightbulb text-warning me-2"></i>
+              <span>평소 자주 하시던 말씀이나 말버릇을 적어주세요</span>
+            </div>
+            <div class="tip-item mb-3">
+              <i class="fas fa-lightbulb text-warning me-2"></i>
+              <span>성격적 특징을 구체적으로 설명해 주세요</span>
+            </div>
+            <div class="tip-item">
+              <i class="fas fa-lightbulb text-warning me-2"></i>
+              <span>함께했던 추억을 상세히 기록해 주세요</span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" data-bs-dismiss="modal">
+            확인
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 건너뛰기 확인 모달 -->
+  <div class="modal fade" id="skipModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">정보 입력 건너뛰기</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body text-center">
+          <div class="modal-icon mb-3">
+            <i class="fas fa-exclamation-triangle text-warning" style="font-size: 3rem;"></i>
+          </div>
+          <h4>정말 건너뛰시겠습니까?</h4>
+          <p class="mb-4">고인에 대한 정보를 입력하지 않으면 AI 학습 정확도가 떨어질 수 있습니다.</p>
+          <div class="warning-info">
+            <div class="warning-item mb-2">
+              <i class="fas fa-minus-circle text-danger me-2"></i>
+              <span>AI 대화 정확도 감소</span>
+            </div>
+            <div class="warning-item">
+              <i class="fas fa-minus-circle text-danger me-2"></i>
+              <span>개인화된 응답 제한</span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+            계속 입력하기
+          </button>
+          <button type="button" class="btn btn-warning" id="confirmSkipBtn">
+            건너뛰기
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Custom JavaScript -->
+<customJS>
+  <!-- 서버 사이드 데이터 전달 -->
+  <script th:inline="javascript">
+    window.memorialStep2Data = {
+      currentStep: 2,
+      maxStep: 4,
+      tempMemorialId: /*[[${tempMemorialId}]]*/ null,
+      formData: {
+        personality: '',
+        favoriteWords: '',
+        speakingStyle: '',
+        interests: [],
+        otherInterest: '',
+        specialMemories: '',
+        familyMessages: ''
+      },
+      interestOptions: [
+        { value: 'COOKING', label: '요리' },
+        { value: 'GARDENING', label: '원예' },
+        { value: 'READING', label: '독서' },
+        { value: 'MUSIC', label: '음악' },
+        { value: 'TRAVEL', label: '여행' },
+        { value: 'SPORTS', label: '운동' },
+        { value: 'MOVIES', label: '영화' },
+        { value: 'GAMES', label: '게임' },
+        { value: 'CRAFT', label: '수공예' },
+        { value: 'RELIGION', label: '종교' },
+        { value: 'VOLUNTEER', label: '봉사활동' },
+        { value: 'OTHER', label: '기타' }
+      ],
+      urls: {
+        saveStep2: '/api/memorial/create/step2',
+        nextStep: '/mobile/memorial/create/step3',
+        skipStep: '/mobile/memorial/create/step3?skip=true'
+      }
+    };
+
+    // 개발 모드 활성화
+    if (window.location.search.includes('debug=true')) {
+      window.debugMode = true;
+      console.log('🔧 메모리얼 등록 2단계 디버그 모드 활성화');
+      console.log('📊 2단계 데이터:', window.memorialStep2Data);
+    }
+  </script>
+
+  <!-- 메모리얼 등록 2단계 JavaScript 로드 -->
+  <script th:src="@{/assets/mobile/js/memorial-create-step2.js}" type="module"></script>
+</customJS>
+</body>
+</html>

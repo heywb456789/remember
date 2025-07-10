@@ -1,28 +1,34 @@
 package com.tomato.remember.application.memorial.entity;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tomato.remember.application.family.code.FamilyRole;
 import com.tomato.remember.application.family.code.InviteStatus;
+import com.tomato.remember.application.family.entity.FamilyMember;
 import com.tomato.remember.application.member.code.Gender;
 import com.tomato.remember.application.member.code.Relationship;
 import com.tomato.remember.application.member.entity.Member;
-import com.tomato.remember.application.family.entity.FamilyMember;
 import com.tomato.remember.application.memorial.code.AiTrainingStatus;
-import com.tomato.remember.application.memorial.code.InterestType;
 import com.tomato.remember.application.memorial.code.MemorialStatus;
-import com.tomato.remember.application.memorial.dto.MemorialCreateRequestDTO;
 import com.tomato.remember.application.memorial.dto.MemorialResponseDTO;
-import com.tomato.remember.application.memorial.dto.MemorialUpdateRequestDTO;
 import com.tomato.remember.application.videocall.entity.VideoCall;
 import com.tomato.remember.common.audit.Audit;
 import jakarta.persistence.*;
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
+import lombok.extern.slf4j.Slf4j;
 import org.hibernate.annotations.Comment;
 
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * 메모리얼 엔티티
+ */
+@Slf4j
 @Table(
     name = "t_memorial",
     indexes = {
@@ -42,18 +48,38 @@ import org.hibernate.annotations.Comment;
 @AllArgsConstructor
 public class Memorial extends Audit {
 
-    @Comment("망자 이름")
+    // ===== 기본 정보 =====
+
+    @Comment("메모리얼 이름")
     @Column(nullable = false, length = 50)
     private String name;
 
-    @Comment("망자 호칭 (할머니, 아버지 등)")
-    @Column(nullable = false, length = 30)
-    private String nickname;
+    @Comment("메모리얼 설명")
+    @Column(length = 500)
+    private String description;
+
+    @Comment("공개 여부")
+    @Column(nullable = false, name = "is_public")
+    @Builder.Default
+    private Boolean isPublic = false;
+
+    @Comment("메모리얼 상태")
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private MemorialStatus status = MemorialStatus.DRAFT;
+
+    // ===== 고인 정보 =====
 
     @Comment("성별")
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 10)
+    @Column(length = 10)
     private Gender gender;
+
+    @Comment("등록자와의 관계")
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private Relationship relationship;
 
     @Comment("생년월일")
     @Column(name = "birth_date")
@@ -63,30 +89,87 @@ public class Memorial extends Audit {
     @Column(name = "death_date")
     private LocalDate deathDate;
 
-    @Comment("등록자와의 관계")
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private Relationship relationship;
+    @Comment("출생지")
+    @Column(length = 100, name = "birth_place")
+    private String birthPlace;
 
-    @Comment("관심사 목록 (JSON 형태)")
-    @Column(length = 1000)
-    private String interests;
+    @Comment("거주지")
+    @Column(length = 100)
+    private String residence;
 
-    @Comment("프로필 이미지 URL")
-    @Column(name = "profile_image_url")
-    private String profileImageUrl;
+    @Comment("직업")
+    @Column(length = 100)
+    private String occupation;
 
-    @Comment("음성 파일 URL")
-    @Column(name = "voice_file_url")
-    private String voiceFileUrl;
+    @Comment("연락처")
+    @Column(length = 15, name = "contact_number")
+    private String contactNumber;
+
+    @Comment("이메일")
+    @Column(length = 100)
+    private String email;
+
+    @Comment("생전 이야기")
+    @Column(length = 1000, name = "life_story")
+    private String lifeStory;
+
+    @Comment("취미")
+    @Column(length = 500)
+    private String hobbies;
+
+    @Comment("성격")
+    @Column(length = 500)
+    private String personality;
+
+    @Comment("특별한 기억")
+    @Column(length = 1000, name = "special_memories")
+    private String specialMemories;
+
+    @Comment("말버릇")
+    @Column(length = 500, name = "speech_habits")
+    private String speechHabits;
+
+    @Comment("좋아하는 음식")
+    @Column(length = 500, name = "favorite_food")
+    private String favoriteFood;
+
+    @Comment("좋아하는 장소")
+    @Column(length = 500, name = "favorite_place")
+    private String favoritePlace;
+
+    @Comment("좋아하는 음악")
+    @Column(length = 500, name = "favorite_music")
+    private String favoriteMusic;
+
+    // ===== 미디어 파일 URL (다중 파일 지원) =====
+
+    @Comment("프로필 이미지 URL들 (JSON 배열, 최대 5개)")
+    @Column(name = "profile_image_urls", columnDefinition = "TEXT")
+    private String profileImageUrls;
+
+    @Comment("음성 파일 URL들 (JSON 배열, 최대 3개)")
+    @Column(name = "voice_file_urls", columnDefinition = "TEXT")
+    private String voiceFileUrls;
 
     @Comment("영상 파일 URL")
-    @Column(name = "video_file_url")
+    @Column(name = "video_file_url", columnDefinition = "TEXT")
     private String videoFileUrl;
 
     @Comment("사용자 이미지 URL (AI 학습용)")
-    @Column(name = "user_image_url")
+    @Column(name = "user_image_url", columnDefinition = "TEXT")
     private String userImageUrl;
+
+    // ===== 하위 호환성을 위한 단일 파일 URL =====
+
+    @Comment("대표 프로필 이미지 URL (하위 호환성)")
+    @Column(name = "profile_image_url", columnDefinition = "TEXT")
+    private String profileImageUrl;
+
+    @Comment("대표 음성 파일 URL (하위 호환성)")
+    @Column(name = "voice_file_url", columnDefinition = "TEXT")
+    private String voiceFileUrl;
+
+    // ===== AI 학습 관련 =====
 
     @Comment("AI 학습 완료 여부")
     @Column(nullable = false, name = "ai_training_completed")
@@ -98,6 +181,8 @@ public class Memorial extends Audit {
     @Column(nullable = false, length = 20, name = "ai_training_status")
     @Builder.Default
     private AiTrainingStatus aiTrainingStatus = AiTrainingStatus.PENDING;
+
+    // ===== 방문 및 통계 =====
 
     @Comment("마지막 방문 일시")
     @Column(name = "last_visit_at")
@@ -113,22 +198,8 @@ public class Memorial extends Audit {
     @Builder.Default
     private Integer memoryCount = 0;
 
-    @Comment("메모리얼 상태")
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    @Builder.Default
-    private MemorialStatus status = MemorialStatus.ACTIVE;
+    // ===== 연관관계 =====
 
-    @Comment("공개 여부")
-    @Column(nullable = false, name = "is_public")
-    @Builder.Default
-    private Boolean isPublic = false;
-
-    @Comment("추가 정보 (JSON)")
-    @Column(columnDefinition = "TEXT", name = "additional_info")
-    private String additionalInfo;
-
-    // 연관관계
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id", nullable = false)
     private Member owner;
@@ -141,170 +212,316 @@ public class Memorial extends Audit {
     @Builder.Default
     private List<VideoCall> videoCalls = new ArrayList<>();
 
-    // 비즈니스 메서드
-    public void setName(String name) {
-        this.name = name;
-    }
+    // ===== 새로운 단계별 생성 메서드 =====
 
-    public void setNickname(String nickname) {
-        this.nickname = nickname;
-    }
-
-    public void setGender(Gender gender) {
+    /**
+     * 고인 정보 업데이트 (2단계)
+     */
+    public void updateDeceasedInfo(Gender gender, Relationship relationship,
+                                   LocalDate birthDate, LocalDate deathDate,
+                                   String birthPlace, String residence, String occupation,
+                                   String contactNumber, String email, String lifeStory,
+                                   String hobbies, String personality, String specialMemories,
+                                   String speechHabits, String favoriteFood, String favoritePlace,
+                                   String favoriteMusic) {
         this.gender = gender;
-    }
-
-    public void setBirthDate(LocalDate birthDate) {
-        this.birthDate = birthDate;
-    }
-
-    public void setDeathDate(LocalDate deathDate) {
-        this.deathDate = deathDate;
-    }
-
-    public void setRelationship(Relationship relationship) {
         this.relationship = relationship;
+        this.birthDate = birthDate;
+        this.deathDate = deathDate;
+        this.birthPlace = birthPlace;
+        this.residence = residence;
+        this.occupation = occupation;
+        this.contactNumber = contactNumber;
+        this.email = email;
+        this.lifeStory = lifeStory;
+        this.hobbies = hobbies;
+        this.personality = personality;
+        this.specialMemories = specialMemories;
+        this.speechHabits = speechHabits;
+        this.favoriteFood = favoriteFood;
+        this.favoritePlace = favoritePlace;
+        this.favoriteMusic = favoriteMusic;
     }
 
-    public void setInterests(String interests) {
-        this.interests = interests;
+    /**
+     * 프로필 이미지들 업데이트 (JSON 배열로 저장)
+     */
+    public void updateProfileImages(List<String> imageUrls) {
+        if (imageUrls == null || imageUrls.isEmpty()) {
+            this.profileImageUrls = null;
+            this.profileImageUrl = null;
+            return;
+        }
+
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            this.profileImageUrls = objectMapper.writeValueAsString(imageUrls);
+            this.profileImageUrl = imageUrls.get(0); // 첫 번째를 대표 이미지로 설정
+        } catch (JsonProcessingException e) {
+            log.error("Failed to serialize profile image URLs", e);
+            // 실패 시 첫 번째 이미지만 저장
+            this.profileImageUrl = imageUrls.get(0);
+        }
     }
 
-    public void setProfileImageUrl(String profileImageUrl) {
-        this.profileImageUrl = profileImageUrl;
+    /**
+     * 음성 파일들 업데이트 (JSON 배열로 저장)
+     */
+    public void updateVoiceFiles(List<String> voiceUrls) {
+        if (voiceUrls == null || voiceUrls.isEmpty()) {
+            this.voiceFileUrls = null;
+            this.voiceFileUrl = null;
+            return;
+        }
+
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            this.voiceFileUrls = objectMapper.writeValueAsString(voiceUrls);
+            this.voiceFileUrl = voiceUrls.get(0); // 첫 번째를 대표 파일로 설정
+        } catch (JsonProcessingException e) {
+            log.error("Failed to serialize voice file URLs", e);
+            // 실패 시 첫 번째 파일만 저장
+            this.voiceFileUrl = voiceUrls.get(0);
+        }
     }
 
-    public void setVoiceFileUrl(String voiceFileUrl) {
-        this.voiceFileUrl = voiceFileUrl;
+    /**
+     * 비디오 파일 업데이트
+     */
+    public void updateVideoFile(String videoUrl) {
+        this.videoFileUrl = videoUrl;
     }
 
-    public void setVideoFileUrl(String videoFileUrl) {
-        this.videoFileUrl = videoFileUrl;
-    }
-
-    public void setUserImageUrl(String userImageUrl) {
+    /**
+     * 사용자 이미지 업데이트
+     */
+    public void updateUserImage(String userImageUrl) {
         this.userImageUrl = userImageUrl;
     }
 
+    // ===== 파일 URL 목록 조회 메서드 =====
+
+    /**
+     * 프로필 이미지 URL 목록 조회
+     */
+    public List<String> getProfileImageUrlList() {
+        if (this.profileImageUrls == null || this.profileImageUrls.trim().isEmpty()) {
+            // 하위 호환성: 기존 단일 URL이 있으면 반환
+            if (this.profileImageUrl != null) {
+                return Arrays.asList(this.profileImageUrl);
+            }
+            return new ArrayList<>();
+        }
+
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            return objectMapper.readValue(this.profileImageUrls,
+                    objectMapper.getTypeFactory().constructCollectionType(List.class, String.class));
+        } catch (JsonProcessingException e) {
+            log.error("Failed to deserialize profile image URLs", e);
+            return new ArrayList<>();
+        }
+    }
+
+    /**
+     * 음성 파일 URL 목록 조회
+     */
+    public List<String> getVoiceFileUrlList() {
+        if (this.voiceFileUrls == null || this.voiceFileUrls.trim().isEmpty()) {
+            // 하위 호환성: 기존 단일 URL이 있으면 반환
+            if (this.voiceFileUrl != null) {
+                return Arrays.asList(this.voiceFileUrl);
+            }
+            return new ArrayList<>();
+        }
+
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            return objectMapper.readValue(this.voiceFileUrls,
+                    objectMapper.getTypeFactory().constructCollectionType(List.class, String.class));
+        } catch (JsonProcessingException e) {
+            log.error("Failed to deserialize voice file URLs", e);
+            return new ArrayList<>();
+        }
+    }
+
+    // ===== 상태 관리 메서드 =====
+
+    /**
+     * 상태 설정
+     */
     public void setStatus(MemorialStatus status) {
         this.status = status;
     }
 
-    public void setIsPublic(Boolean isPublic) {
-        this.isPublic = isPublic;
+    /**
+     * 상태 확인 메서드들
+     */
+    public boolean isDraft() {
+        return this.status == MemorialStatus.DRAFT;
     }
 
-    public void setAdditionalInfo(String additionalInfo) {
-        this.additionalInfo = additionalInfo;
+    public boolean isActive() {
+        return this.status == MemorialStatus.ACTIVE;
     }
 
-    public void setAiTrainingStatus(AiTrainingStatus aiTrainingStatus) {
-        this.aiTrainingStatus = aiTrainingStatus;
+    public boolean isInactive() {
+        return this.status == MemorialStatus.INACTIVE;
     }
 
-    public void completeAiTraining() {
-        this.aiTrainingCompleted = true;
-        this.aiTrainingStatus = AiTrainingStatus.COMPLETED;
+    public boolean isDeleted() {
+        return this.status == MemorialStatus.DELETED;
     }
 
-    public void failAiTraining() {
-        this.aiTrainingCompleted = false;
-        this.aiTrainingStatus = AiTrainingStatus.FAILED;
+    // ===== 권한 확인 메서드 =====
+
+    /**
+     * 볼 수 있는 권한 확인
+     */
+    public boolean canBeViewedBy(Member member) {
+        // 삭제된 메모리얼은 볼 수 없음
+        if (this.isDeleted()) {
+            return false;
+        }
+
+        // 소유자는 항상 볼 수 있음
+        if (this.owner.equals(member)) {
+            return true;
+        }
+
+        // 공개 메모리얼이고 활성 상태면 볼 수 있음
+        if (this.isPublic && this.isActive()) {
+            return true;
+        }
+
+        // 가족 구성원은 볼 수 있음
+        return familyMembers.stream()
+                .anyMatch(fm -> fm.getMember().equals(member) &&
+                        fm.getInviteStatus() == InviteStatus.ACCEPTED);
     }
 
+    /**
+     * 수정할 수 있는 권한 확인
+     */
+    public boolean canBeEditedBy(Member member) {
+        // 삭제된 메모리얼은 수정할 수 없음
+        if (this.isDeleted()) {
+            return false;
+        }
+
+        // 소유자는 항상 수정 가능
+        if (this.owner.equals(member)) {
+            return true;
+        }
+
+        // 메인 가족 구성원은 수정 가능
+        return familyMembers.stream()
+                .anyMatch(fm -> fm.getMember().equals(member) &&
+                        fm.getFamilyRole() == FamilyRole.MAIN &&
+                        fm.getInviteStatus() == InviteStatus.ACCEPTED);
+    }
+
+    // ===== 비즈니스 로직 메서드 =====
+
+    /**
+     * 방문 기록
+     */
+    public void recordVisit() {
+        this.lastVisitAt = LocalDate.now();
+        this.totalVisits = (this.totalVisits == null ? 0 : this.totalVisits) + 1;
+    }
+
+    /**
+     * 필수 파일 확인
+     */
+    public boolean hasRequiredFiles() {
+        List<String> profileImages = getProfileImageUrlList();
+        List<String> voiceFiles = getVoiceFileUrlList();
+
+        // 프로필 이미지 최소 1개, 음성 파일 최소 1개 필요
+        return !profileImages.isEmpty() && !voiceFiles.isEmpty();
+    }
+
+    /**
+     * 권장 파일 확인 (AI 학습용)
+     */
+    public boolean hasRecommendedFiles() {
+        List<String> profileImages = getProfileImageUrlList();
+        List<String> voiceFiles = getVoiceFileUrlList();
+
+        // 프로필 이미지 5개, 음성 파일 3개, 비디오 파일 1개 권장
+        return profileImages.size() >= 5 &&
+               voiceFiles.size() >= 3 &&
+               this.videoFileUrl != null;
+    }
+
+    /**
+     * 완전성 확인
+     */
+    public boolean isComplete() {
+        return this.name != null && !this.name.trim().isEmpty() &&
+               this.gender != null &&
+               this.relationship != null &&
+               hasRequiredFiles();
+    }
+
+    /**
+     * 영상통화 가능 여부 확인
+     */
+    public boolean canStartVideoCall() {
+        return this.isActive() &&
+               this.aiTrainingCompleted &&
+               this.aiTrainingStatus == AiTrainingStatus.COMPLETED &&
+               hasRecommendedFiles();
+    }
+
+    /**
+     * 나이 계산
+     */
+    public int getAge() {
+        if (birthDate == null || deathDate == null) {
+            return 0;
+        }
+        return deathDate.getYear() - birthDate.getYear();
+    }
+
+    /**
+     * 나이 포맷팅
+     */
+    public String getFormattedAge() {
+        int age = getAge();
+        return age > 0 ? age + "세" : "나이 정보 없음";
+    }
+
+    // ===== AI 학습 관련 메서드 =====
+
+    /**
+     * AI 학습 시작
+     */
     public void startAiTraining() {
         this.aiTrainingCompleted = false;
         this.aiTrainingStatus = AiTrainingStatus.IN_PROGRESS;
     }
 
-    public void recordVisit() {
-        this.lastVisitAt = LocalDate.now();
-        this.totalVisits++;
+    /**
+     * AI 학습 완료
+     */
+    public void completeAiTraining() {
+        this.aiTrainingCompleted = true;
+        this.aiTrainingStatus = AiTrainingStatus.COMPLETED;
     }
 
-    public void increaseMemoryCount() {
-        this.memoryCount++;
+    /**
+     * AI 학습 실패
+     */
+    public void failAiTraining() {
+        this.aiTrainingCompleted = false;
+        this.aiTrainingStatus = AiTrainingStatus.FAILED;
     }
 
-    public void decreaseMemoryCount() {
-        if (this.memoryCount > 0) {
-            this.memoryCount--;
-        }
-    }
-
-    public boolean isReadyForVideoCall() {
-        return profileImageUrl != null &&
-            voiceFileUrl != null &&
-            videoFileUrl != null &&
-            userImageUrl != null &&
-            aiTrainingCompleted &&
-            status == MemorialStatus.ACTIVE;
-    }
-
-    public int getFamilyMemberCount() {
-        return familyMembers.size();
-    }
-
-    public List<InterestType> getInterestTypeList() {
-        if (interests == null || interests.trim().isEmpty()) {
-            return new ArrayList<>();
-        }
-
-        List<InterestType> interestList = new ArrayList<>();
-        String[] interestStrings = interests.split(",");
-
-        for (String interestString : interestStrings) {
-            try {
-                InterestType interest = InterestType.valueOf(interestString.trim());
-                interestList.add(interest);
-            } catch (IllegalArgumentException e) {
-                // 잘못된 관심사 무시
-            }
-        }
-
-        return interestList;
-    }
-
-    public void setInterestTypes(List<InterestType> interestTypes) {
-        if (interestTypes == null || interestTypes.isEmpty()) {
-            this.interests = null;
-        } else {
-            this.interests = interestTypes.stream()
-                .map(InterestType::name)
-                .collect(Collectors.joining(","));
-        }
-    }
-
-    public void addInterest(InterestType interestType) {
-        List<InterestType> currentInterests = new ArrayList<>(getInterestTypeList());
-        if (! currentInterests.contains(interestType)) {
-            currentInterests.add(interestType);
-            setInterestTypes(currentInterests);
-        }
-    }
-
-    public void removeInterest(InterestType interestType) {
-        List<InterestType> currentInterests = new ArrayList<>(getInterestTypeList());
-        currentInterests.remove(interestType);
-        setInterestTypes(currentInterests);
-    }
-
-    public boolean hasInterest(InterestType interestType) {
-        return getInterestTypeList().contains(interestType);
-    }
-
-    public boolean isActive() {
-        return status == MemorialStatus.ACTIVE;
-    }
-
-    public boolean isInactive() {
-        return status == MemorialStatus.INACTIVE;
-    }
-
-    public boolean isDeleted() {
-        return status == MemorialStatus.DELETED;
-    }
-
+    /**
+     * AI 학습 상태 확인
+     */
     public boolean isAiTrainingCompleted() {
         return aiTrainingCompleted && aiTrainingStatus == AiTrainingStatus.COMPLETED;
     }
@@ -321,184 +538,105 @@ public class Memorial extends Audit {
         return aiTrainingStatus == AiTrainingStatus.FAILED;
     }
 
-    public boolean hasRequiredFiles() {
-        return profileImageUrl != null &&
-            voiceFileUrl != null &&
-            videoFileUrl != null &&
-            userImageUrl != null;
+    // ===== 가족 구성원 관련 메서드 =====
+
+    /**
+     * 가족 구성원 수 조회
+     */
+    public int getFamilyMemberCount() {
+        return familyMembers.size();
     }
 
-    public boolean canStartVideoCall() {
-        return isActive() && isReadyForVideoCall();
-    }
-
-    public boolean canBeEditedBy(Member member) {
-        return owner.equals(member) ||
-            familyMembers.stream()
-                .anyMatch(fm -> fm.getMember().equals(member) &&
-                    fm.getFamilyRole() == FamilyRole.MAIN);
-    }
-
-    public boolean canBeViewedBy(Member member) {
-        return isPublic ||
-            owner.equals(member) ||
-            familyMembers.stream()
-                .anyMatch(fm -> fm.getMember().equals(member) &&
-                    fm.getInviteStatus() == InviteStatus.ACCEPTED);
-    }
-
-    public int getAge() {
-        if (birthDate == null || deathDate == null) {
-            return 0;
-        }
-        return deathDate.getYear() - birthDate.getYear();
-    }
-
-    public String getFormattedAge() {
-        int age = getAge();
-        return age > 0 ? age + "세" : "나이 정보 없음";
-    }
-
-    public String getInterestDisplayNames() {
-        return getInterestTypeList().stream()
-            .map(InterestType::getDisplayName)
-            .collect(Collectors.joining(", "));
-    }
-
-    public List<VideoCall> getRecentVideoCalls(int limit) {
-        return videoCalls.stream()
-            .sorted((v1, v2) -> v2.getCreatedAt().compareTo(v1.getCreatedAt()))
-            .limit(limit)
-            .collect(Collectors.toList());
-    }
-
+    /**
+     * 활성 가족 구성원 조회
+     */
     public List<FamilyMember> getActiveFamilyMembers() {
         return familyMembers.stream()
-            .filter(fm -> fm.getInviteStatus() == InviteStatus.ACCEPTED)
-            .collect(Collectors.toList());
+                .filter(fm -> fm.getInviteStatus() == InviteStatus.ACCEPTED)
+                .collect(Collectors.toList());
+    }
+
+    // ===== 영상통화 관련 메서드 =====
+
+    /**
+     * 최근 영상통화 기록 조회
+     */
+    public List<VideoCall> getRecentVideoCalls(int limit) {
+        return videoCalls.stream()
+                .sorted((v1, v2) -> v2.getCreatedAt().compareTo(v1.getCreatedAt()))
+                .limit(limit)
+                .collect(Collectors.toList());
+    }
+
+    // ===== 메모리 관련 메서드 =====
+
+    /**
+     * 메모리 개수 증가
+     */
+    public void increaseMemoryCount() {
+        this.memoryCount++;
     }
 
     /**
-     * 메모리얼 정보 수정
-     *
-     * @param updateRequest 수정 요청 DTO
+     * 메모리 개수 감소
      */
-    public void updateMemorial(MemorialUpdateRequestDTO updateRequest) {
-        this.name = updateRequest.getName();
-        this.nickname = updateRequest.getNickname();
-        this.gender = updateRequest.getGender();
-        this.birthDate = updateRequest.getBirthDate();
-        this.deathDate = updateRequest.getDeathDate();
-        this.relationship = updateRequest.getRelationship();
-        this.profileImageUrl = updateRequest.getProfileImageUrl();
-        this.voiceFileUrl = updateRequest.getVoiceFileUrl();
-        this.videoFileUrl = updateRequest.getVideoFileUrl();
-        this.userImageUrl = updateRequest.getUserImageUrl();
-        this.isPublic = updateRequest.getIsPublic();
-        this.additionalInfo = updateRequest.getAdditionalInfo();
-
-        // 관심사 설정
-        if (updateRequest.getInterests() != null) {
-            this.setInterestTypes(updateRequest.getInterests());
-        } else {
-            this.interests = null;
+    public void decreaseMemoryCount() {
+        if (this.memoryCount > 0) {
+            this.memoryCount--;
         }
     }
-    //########################## 변환 메서드 ###########################
+
+    // ===== DTO 변환 메서드 =====
 
     /**
-     * Memorial Entity를 MemorialResponseDTO로 변환
-     *
-     * @return MemorialResponseDTO
+     * MemorialResponseDTO로 변환
      */
     public MemorialResponseDTO toResponseDTO() {
         return MemorialResponseDTO.builder()
-            .id(this.id)
-            .name(this.name)
-            .nickname(this.nickname)
-            .gender(this.gender)
-            .birthDate(this.birthDate)
-            .deathDate(this.deathDate)
-            .relationship(this.relationship)
-            .interests(this.getInterestTypeList())
-            .profileImageUrl(this.profileImageUrl)
-            .voiceFileUrl(this.voiceFileUrl)
-            .videoFileUrl(this.videoFileUrl)
-            .userImageUrl(this.userImageUrl)
-            .aiTrainingCompleted(this.aiTrainingCompleted)
-            .aiTrainingStatus(this.aiTrainingStatus)
-            .lastVisitAt(this.lastVisitAt)
-            .totalVisits(this.totalVisits)
-            .memoryCount(this.memoryCount)
-            .status(this.status)
-            .isPublic(this.isPublic)
-            .additionalInfo(this.additionalInfo)
-            .ownerId(this.owner.getId())
-            .ownerName(this.owner.getName())
-            .createdAt(this.getCreatedAt())
-            .updatedAt(this.getUpdatedAt())
-            .age(this.getAge())
-            .formattedAge(this.getFormattedAge())
-            .interestDisplayNames(this.getInterestDisplayNames())
-            .familyMemberCount(this.getFamilyMemberCount())
-            .canStartVideoCall(this.canStartVideoCall())
-            .hasRequiredFiles(this.hasRequiredFiles())
-            .build();
-    }
-
-    /**
-     * MemorialCreateRequestDTO를 Memorial Entity로 변환
-     *
-     * @param dto   MemorialCreateRequestDTO
-     * @param owner 소유자 Member
-     * @return Memorial Entity
-     */
-    public static Memorial fromCreateRequestDTO(MemorialCreateRequestDTO dto, Member owner) {
-        Memorial memorial = Memorial.builder()
-            .name(dto.getName())
-            .nickname(dto.getNickname())
-            .gender(dto.getGender())
-            .birthDate(dto.getBirthDate())
-            .deathDate(dto.getDeathDate())
-            .relationship(dto.getRelationship())
-            .profileImageUrl(dto.getProfileImageUrl())
-            .voiceFileUrl(dto.getVoiceFileUrl())
-            .videoFileUrl(dto.getVideoFileUrl())
-            .userImageUrl(dto.getUserImageUrl())
-            .isPublic(dto.getIsPublic())
-            .additionalInfo(dto.getAdditionalInfo())
-            .owner(owner)
-            .build();
-
-        // 관심사 설정
-        if (dto.getInterests() != null && ! dto.getInterests().isEmpty()) {
-            memorial.setInterestTypes(dto.getInterests());
-        }
-
-        return memorial;
-    }
-
-
-    /**
-     * MemorialUpdateRequestDTO를 생성하여 반환
-     *
-     * @return MemorialUpdateRequestDTO
-     */
-    public MemorialUpdateRequestDTO toUpdateRequestDTO() {
-        return MemorialUpdateRequestDTO.builder()
-            .name(this.name)
-            .nickname(this.nickname)
-            .gender(this.gender)
-            .birthDate(this.birthDate)
-            .deathDate(this.deathDate)
-            .relationship(this.relationship)
-            .interests(this.getInterestTypeList())
-            .profileImageUrl(this.profileImageUrl)
-            .voiceFileUrl(this.voiceFileUrl)
-            .videoFileUrl(this.videoFileUrl)
-            .userImageUrl(this.userImageUrl)
-            .isPublic(this.isPublic)
-            .additionalInfo(this.additionalInfo)
-            .build();
+                .id(this.id)
+                .name(this.name)
+                .description(this.description)
+                .gender(this.gender)
+                .relationship(this.relationship)
+                .birthDate(this.birthDate)
+                .deathDate(this.deathDate)
+                .birthPlace(this.birthPlace)
+                .residence(this.residence)
+                .occupation(this.occupation)
+                .contactNumber(this.contactNumber)
+                .email(this.email)
+                .lifeStory(this.lifeStory)
+                .hobbies(this.hobbies)
+                .personality(this.personality)
+                .specialMemories(this.specialMemories)
+                .speechHabits(this.speechHabits)
+                .favoriteFood(this.favoriteFood)
+                .favoritePlace(this.favoritePlace)
+                .favoriteMusic(this.favoriteMusic)
+                .profileImageUrls(this.getProfileImageUrlList())
+                .voiceFileUrls(this.getVoiceFileUrlList())
+                .profileImageUrl(this.profileImageUrl) // 하위 호환성
+                .voiceFileUrl(this.voiceFileUrl) // 하위 호환성
+                .videoFileUrl(this.videoFileUrl)
+                .userImageUrl(this.userImageUrl)
+                .aiTrainingCompleted(this.aiTrainingCompleted)
+                .aiTrainingStatus(this.aiTrainingStatus)
+                .lastVisitAt(this.lastVisitAt)
+                .totalVisits(this.totalVisits)
+                .memoryCount(this.memoryCount)
+                .status(this.status)
+                .isPublic(this.isPublic)
+                .ownerId(this.owner.getId())
+                .ownerName(this.owner.getName())
+                .createdAt(this.getCreatedAt())
+                .updatedAt(this.getUpdatedAt())
+                .age(this.getAge())
+                .formattedAge(this.getFormattedAge())
+                .familyMemberCount(this.getFamilyMemberCount())
+                .canStartVideoCall(this.canStartVideoCall())
+                .hasRequiredFiles(this.hasRequiredFiles())
+                .hasRecommendedFiles(this.hasRecommendedFiles())
+                .isComplete(this.isComplete())
+                .build();
     }
 }

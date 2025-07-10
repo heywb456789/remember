@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{mobile/layout/default :: html(
+        ~{::title},
+        ~{::section},
+        ~{::customCSS},
+        ~{::customJS},
+        'memorial',
+        'complete'
+      )}">
+<head>
+  <title>메모리얼 등록 완료 - 토마토리멤버</title>
+
+  <!-- Custom CSS -->
+  <customCSS>
+    <link th:href="@{/assets/mobile/css/memorial-create.css}" rel="stylesheet">
+  </customCSS>
+</head>
+<body>
+<section>
+  <div class="container">
+    <!-- 페이지 헤더 -->
+    <div class="page-header">
+      <h1 class="page-title">메모리얼 등록 완료</h1>
+    </div>
+
+    <!-- 진행 상태 표시 -->
+    <div class="progress-container">
+      <div class="progress-bar">
+        <div class="progress-fill" style="width: 100%"></div>
+      </div>
+      <div class="progress-steps">
+        <div class="step completed">
+          <div class="step-number">
+            <i class="fas fa-check"></i>
+          </div>
+          <div class="step-label">기본 정보</div>
+        </div>
+        <div class="step completed">
+          <div class="step-number">
+            <i class="fas fa-check"></i>
+          </div>
+          <div class="step-label">고인 정보</div>
+        </div>
+        <div class="step completed">
+          <div class="step-number">
+            <i class="fas fa-check"></i>
+          </div>
+          <div class="step-label">미디어</div>
+        </div>
+        <div class="step completed">
+          <div class="step-number">
+            <i class="fas fa-check"></i>
+          </div>
+          <div class="step-label">완료</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 완료 메시지 -->
+    <div class="completion-message">
+      <div class="success-icon">
+        <i class="fas fa-check-circle"></i>
+      </div>
+      <h2>메모리얼 등록이 완료되었습니다!</h2>
+      <p>소중한 추억을 함께 만들어가요.</p>
+    </div>
+
+    <!-- 메모리얼 정보 카드 -->
+    <div class="memorial-info-card">
+      <div class="memorial-avatar">
+        <img th:src="${memorial.profileImageUrls != null && !memorial.profileImageUrls.empty ? memorial.profileImageUrls[0] : '/assets/images/default-avatar.png'}"
+             th:alt="${memorial.name}"
+             class="avatar-image">
+      </div>
+      <div class="memorial-details">
+        <h3 th:text="${memorial.name}">김할머니</h3>
+        <p class="memorial-relationship" th:text="${memorial.relationship?.displayName}">할머니</p>
+        <div class="memorial-dates" th:if="${memorial.birthDate != null || memorial.deathDate != null}">
+          <span th:if="${memorial.birthDate != null}" th:text="${#temporals.format(memorial.birthDate, 'yyyy년 MM월 dd일')}">1950년 3월 15일</span>
+          <span th:if="${memorial.birthDate != null && memorial.deathDate != null}"> ~ </span>
+          <span th:if="${memorial.deathDate != null}" th:text="${#temporals.format(memorial.deathDate, 'yyyy년 MM월 dd일')}">2024년 6월 10일</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI 학습 상태 -->
+    <div class="ai-learning-status">
+      <h3>AI 학습 진행 상황</h3>
+      <div class="learning-progress">
+        <div class="progress-bar">
+          <div class="progress-fill ai-progress" id="aiProgressBar"></div>
+        </div>
+        <div class="progress-text">
+          <span id="aiProgressText">AI 학습 준비 중...</span>
+        </div>
+      </div>
+
+      <div class="learning-steps">
+        <div class="learning-step" id="step-image">
+          <div class="step-icon">
+            <i class="fas fa-image"></i>
+          </div>
+          <div class="step-content">
+            <h5>이미지 분석</h5>
+            <p id="step-image-status">대기 중...</p>
+          </div>
+          <div class="step-status">
+            <i class="fas fa-clock"></i>
+          </div>
+        </div>
+
+        <div class="learning-step" id="step-voice">
+          <div class="step-icon">
+            <i class="fas fa-volume-up"></i>
+          </div>
+          <div class="step-content">
+            <h5>음성 학습</h5>
+            <p id="step-voice-status">대기 중...</p>
+          </div>
+          <div class="step-status">
+            <i class="fas fa-clock"></i>
+          </div>
+        </div>
+
+        <div class="learning-step" id="step-video">
+          <div class="step-icon">
+            <i class="fas fa-video"></i>
+          </div>
+          <div class="step-content">
+            <h5>영상 분석</h5>
+            <p id="step-video-status">대기 중...</p>
+          </div>
+          <div class="step-status">
+            <i class="fas fa-clock"></i>
+          </div>
+        </div>
+
+        <div class="learning-step" id="step-complete">
+          <div class="step-icon">
+            <i class="fas fa-check"></i>
+          </div>
+          <div class="step-content">
+            <h5>학습 완료</h5>
+            <p id="step-complete-status">대기 중...</p>
+          </div>
+          <div class="step-status">
+            <i class="fas fa-clock"></i>
+          </div>
+        </div>
+      </div>
+
+      <div class="learning-time-info">
+        <i class="fas fa-info-circle"></i>
+        <span>AI 학습은 약 30분~1시간 소요되며, 완료 후 영상통화가 가능합니다.</span>
+      </div>
+    </div>
+
+    <!-- 완료 후 액션 -->
+    <div class="completion-actions">
+      <div class="action-grid">
+        <div class="action-card" onclick="goToMemorialDetail()">
+          <div class="action-icon">
+            <i class="fas fa-eye"></i>
+          </div>
+          <div class="action-content">
+            <h4>메모리얼 보기</h4>
+            <p>등록된 메모리얼을 확인해보세요</p>
+          </div>
+        </div>
+
+        <div class="action-card" onclick="goToVideoCall()" id="videoCallAction">
+          <div class="action-icon">
+            <i class="fas fa-video"></i>
+          </div>
+          <div class="action-content">
+            <h4>영상통화</h4>
+            <p>AI 학습 완료 후 가능합니다</p>
+          </div>
+        </div>
+
+        <div class="action-card" onclick="goToTribute()">
+          <div class="action-icon">
+            <i class="fas fa-heart"></i>
+          </div>
+          <div class="action-content">
+            <h4>추모하기</h4>
+            <p>소중한 추억을 남겨보세요</p>
+          </div>
+        </div>
+
+        <div class="action-card" onclick="showShareModal()">
+          <div class="action-icon">
+            <i class="fas fa-share-alt"></i>
+          </div>
+          <div class="action-content">
+            <h4>공유하기</h4>
+            <p>가족과 친구들과 함께해요</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 메인 액션 버튼 -->
+    <div class="main-actions">
+      <button type="button" class="btn btn-primary btn-lg" onclick="goToHome()">
+        <i class="fas fa-home"></i>
+        홈으로 가기
+      </button>
+      <button type="button" class="btn btn-outline-primary btn-lg" onclick="goToMemorialDetail()">
+        <i class="fas fa-eye"></i>
+        메모리얼 보기
+      </button>
+    </div>
+  </div>
+
+  <!-- 공유 모달 -->
+  <div class="modal fade" id="shareModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="fas fa-share-alt"></i>
+            메모리얼 공유하기
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="share-content">
+            <p>소중한 추억을 가족과 친구들과 함께 나눠보세요.</p>
+
+            <div class="share-link">
+              <div class="form-group">
+                <label class="form-label">공유 링크</label>
+                <div class="input-group">
+                  <input type="text" class="form-control" id="shareLink" readonly>
+                  <button type="button" class="btn btn-outline-primary" onclick="copyShareLink()">
+                    <i class="fas fa-copy"></i>
+                    복사
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="share-buttons">
+              <button type="button" class="btn-share" onclick="shareToKakao()">
+                <i class="fab fa-kakaotalk"></i>
+                <span>카카오톡</span>
+              </button>
+              <button type="button" class="btn-share" onclick="shareToFacebook()">
+                <i class="fab fa-facebook"></i>
+                <span>페이스북</span>
+              </button>
+              <button type="button" class="btn-share" onclick="shareToInstagram()">
+                <i class="fab fa-instagram"></i>
+                <span>인스타그램</span>
+              </button>
+              <button type="button" class="btn-share" onclick="shareToTwitter()">
+                <i class="fab fa-twitter"></i>
+                <span>트위터</span>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            닫기
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI 학습 완료 축하 모달 -->
+  <div class="modal fade" id="aiCompleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="fas fa-star text-warning"></i>
+            AI 학습 완료!
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body text-center">
+          <div class="celebration-content">
+            <div class="celebration-icon">
+              <i class="fas fa-trophy"></i>
+            </div>
+            <h4>축하합니다!</h4>
+            <p>AI 학습이 완료되어 이제 영상통화를 시작할 수 있습니다.</p>
+
+            <div class="celebration-features">
+              <div class="feature-item">
+                <i class="fas fa-video text-primary"></i>
+                <span>실시간 영상통화</span>
+              </div>
+              <div class="feature-item">
+                <i class="fas fa-comments text-success"></i>
+                <span>자연스러운 대화</span>
+              </div>
+              <div class="feature-item">
+                <i class="fas fa-heart text-danger"></i>
+                <span>따뜻한 추억</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" onclick="goToVideoCall()">
+            <i class="fas fa-video"></i>
+            영상통화 시작하기
+          </button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            나중에 하기
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Custom JavaScript -->
+<customJS>
+  <!-- 서버 사이드 데이터 전달 -->
+  <script th:inline="javascript">
+    window.memorialCompleteData = {
+      currentStep: 4,
+      maxStep: 4,
+      memorial: {
+        id: /*[[${memorial.id}]]*/ null,
+        name: /*[[${memorial.name}]]*/ '김할머니',
+        relationship: /*[[${memorial.relationship?.displayName}]]*/ '할머니',
+        birthDate: /*[[${memorial.birthDate}]]*/ null,
+        deathDate: /*[[${memorial.deathDate}]]*/ null,
+        profileImageUrls: /*[[${memorial.profileImageUrls}]]*/ [],
+        voiceFileUrls: /*[[${memorial.voiceFileUrls}]]*/ [],
+        videoFileUrl: /*[[${memorial.videoFileUrl}]]*/ null,
+        userImageUrl: /*[[${memorial.userImageUrl}]]*/ null,
+        aiTrainingStatus: /*[[${memorial.aiTrainingStatus}]]*/ 'PENDING',
+        aiTrainingCompleted: /*[[${memorial.aiTrainingCompleted}]]*/ false,
+        status: /*[[${memorial.status}]]*/ 'ACTIVE'
+      },
+      aiLearningSteps: [
+        { id: 'step-image', label: '이미지 분석', progress: 0, status: '대기 중...', icon: 'fas fa-image' },
+        { id: 'step-voice', label: '음성 학습', progress: 0, status: '대기 중...', icon: 'fas fa-volume-up' },
+        { id: 'step-video', label: '영상 분석', progress: 0, status: '대기 중...', icon: 'fas fa-video' },
+        { id: 'step-complete', label: '학습 완료', progress: 0, status: '대기 중...', icon: 'fas fa-check' }
+      ],
+      urls: {
+        memorial: '/memorial/' + /*[[${memorial.id}]]*/ '1',
+        home: '/mobile/home',
+        videoCall: '/mobile/video-call/' + /*[[${memorial.id}]]*/ '1',
+        tribute: '/mobile/memorial/' + /*[[${memorial.id}]]*/ '1' + '/tribute',
+        family: '/mobile/family',
+        share: window.location.origin + '/memorial/' + /*[[${memorial.id}]]*/ '1'
+      }
+    };
+
+    // 개발 모드 활성화
+    if (window.location.search.includes('debug=true')) {
+      window.debugMode = true;
+      console.log('🔧 메모리얼 완료 페이지 디버그 모드 활성화');
+      console.log('📊 완료 페이지 데이터:', window.memorialCompleteData);
+    }
+  </script>
+
+  <!-- 메모리얼 완료 페이지 JavaScript 로드 -->
+  <script th:src="@{/assets/mobile/js/memorial-create-complete.js}" type="module"></script>
+</customJS>
+</body>
+</html>

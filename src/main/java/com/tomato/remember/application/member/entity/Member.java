@@ -1,5 +1,6 @@
 package com.tomato.remember.application.member.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.tomato.remember.admin.user.dto.AppUserResponse;
 import com.tomato.remember.application.family.entity.FamilyMember;
 import com.tomato.remember.application.member.dto.MemberDTO;
@@ -125,18 +126,22 @@ public class Member extends Audit {
     // 연관관계
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
+    @JsonIgnore
     private List<Memorial> ownedMemorials = new ArrayList<>();
 
     @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
+    @JsonIgnore
     private List<FamilyMember> familyMemberships = new ArrayList<>();
 
     @OneToMany(mappedBy = "caller", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
+    @JsonIgnore
     private List<VideoCall> videoCalls = new ArrayList<>();
 
     @OneToMany(mappedBy = "author", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
+    @JsonIgnore
     private List<MemberActivity> memberActivities = new ArrayList<>();
 
     // 비즈니스 메서드
@@ -288,6 +293,7 @@ public class Member extends Audit {
             .name(name)
             .lastAccessAt(lastAccessAt)
             .profileImg(profileImg)
+            .profileImageUrl(getProfileImageUrl())
             .preferredLanguage(preferredLanguage)
             .marketingAgreed(marketingAgreed)
             .pushNotification(pushNotification)

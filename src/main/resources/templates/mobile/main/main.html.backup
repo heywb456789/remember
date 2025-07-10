@@ -36,8 +36,7 @@
           블록체인 기술로 안전하게 보관되는<br>
           영원한 추모 공간을 만들어보세요.
         </div>
-        <!-- onclick 제거, 클래스로 이벤트 바인딩 -->
-        <button class="new-memorial-btn" type="button">
+        <button class="new-memorial-btn" onclick="showLoginModal()">
           <i class="fas fa-plus"></i>
           새 메모리얼 등록하기
         </button>
@@ -49,6 +48,15 @@
           <i class="fas fa-shield-alt"></i>
           안전하고 투명한 서비스
         </div>
+<!--        <div class="service-item">-->
+<!--          <div class="service-icon">-->
+<!--            <i class="fas fa-check"></i>-->
+<!--          </div>-->
+<!--          <div class="service-content">-->
+<!--            <h4>블록체인 보안 시스템</h4>-->
+<!--            <p>투명하고 공정한 서비스 이용</p>-->
+<!--          </div>-->
+<!--        </div>-->
       </div>
 
       <!-- 추가 서비스 카드들 -->
@@ -89,7 +97,7 @@
 
       <!-- 3개월 무료체험 시작하기 -->
       <div class="free-trial-section">
-        <button class="free-trial-btn" type="button">
+        <button class="free-trial-btn">
           <i class="fas fa-play"></i>
           3개월 무료체험 시작하기
         </button>
@@ -131,7 +139,7 @@
     <div class="logged-in-only" th:if="${isLoggedIn}">
       <!-- 새 메모리얼 등록 버튼 -->
       <div class="add-memorial-section">
-        <button class="add-memorial-btn" type="button">
+        <button class="add-memorial-btn">
           <i class="fas fa-user-plus"></i>
           새 메모리얼 등록하기
         </button>
@@ -142,9 +150,7 @@
         <div class="memorial-list-title">등록된 메모리얼</div>
         <div id="memorialList">
           <!-- 메모리얼 카드 템플릿 -->
-          <div class="memorial-card" th:each="memorial, iterStat : ${memorialList}"
-               th:data-memorial-id="${memorial.id}"
-               data-memorial-name="${memorial.name}">
+          <div class="memorial-card" th:each="memorial, iterStat : ${memorialList}" th:data-memorial-id="${memorial.id}">
             <div class="memorial-header">
               <div class="memorial-avatar">
                 <img th:src="${memorial.profileImageUrl ?: '/assets/mobile/images/default-avatar.png'}"
@@ -164,6 +170,12 @@
               </div>
             </div>
           </div>
+
+          <!-- 검색 기능 추가 (필요시) -->
+<!--          <div class="search-section" th:if="${isLoggedIn and memorialCount > 0}">-->
+<!--            <input type="text" id="memorialSearch" placeholder="메모리얼 검색..." -->
+<!--                   class="search-input" onkeyup="searchMemorials(this.value)">-->
+<!--          </div>-->
         </div>
       </div>
 
@@ -171,7 +183,7 @@
       <div class="empty-state" th:if="${memorialCount == 0}">
         <h3>등록된 메모리얼이 없습니다.</h3>
         <p>소중한 분과의 영원한 추억을 만들어보세요.</p>
-        <button class="btn empty-state-create-btn" type="button">
+        <button class="btn empty-state-create-btn">
           <i class="fas fa-plus"></i>
           새 메모리얼 등록하기
         </button>
@@ -179,18 +191,18 @@
 
       <!-- 하단 액션 버튼 -->
       <div class="bottom-actions">
-        <button class="action-btn btn-video" type="button">
+        <button class="action-btn btn-video">
           <i class="fas fa-video"></i>
           영상통화
         </button>
-        <button class="action-btn btn-gift" type="button">
+        <button class="action-btn btn-gift">
           <i class="fas fa-gift"></i>
           선물하기
         </button>
       </div>
     </div>
 
-    <!-- 로딩 스켈레톤 -->
+    <!-- 로딩 스켈레톤 (JavaScript로 동적 생성) -->
     <div class="loading-skeleton" id="loadingSkeleton" style="display: none;">
       <div class="skeleton-card">
         <div class="skeleton-avatar"></div>
@@ -215,21 +227,21 @@
       </div>
     </div>
 
-    <!-- 에러 상태 -->
+    <!-- 에러 상태 (JavaScript로 동적 생성) -->
     <div class="error-state" id="errorState" style="display: none;">
       <div class="error-icon">
         <i class="fas fa-exclamation-triangle"></i>
       </div>
       <h4>오류가 발생했습니다</h4>
       <p id="errorMessage">메모리얼 목록을 불러오는 중 오류가 발생했습니다.</p>
-      <button class="btn retry-btn" type="button">
+      <button class="btn">
         <i class="fas fa-refresh"></i>
         다시 시도
       </button>
     </div>
   </div>
 
-  <!-- 잔액 부족 모달 -->
+  <!-- 잔액 부족 모달 (동적 생성) -->
   <div class="modal fade" id="insufficientBalanceModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
@@ -310,18 +322,20 @@
 
 <!-- Custom JavaScript -->
 <customJS>
-  <!-- 서버 사이드 데이터 전달 (단순화) -->
+  <script th:src="@{/assets/mobile/js/main.js}" type="module"></script>
+
+  <!-- 서버 사이드 데이터 전달 -->
   <script th:inline="javascript">
-    // 서버에서 전달받은 데이터 (단순화)
+    // 서버에서 전달받은 데이터
     window.serverData = {
       isLoggedIn: /*[[${isLoggedIn}]]*/ false,
       memorialCount: /*[[${memorialCount}]]*/ 0,
       memorialList: /*[[${memorialList}]]*/ [],
-      currentUser: /*[[${currentUser}]]*/ null,
       showTrialBanner: /*[[${showTrialBanner}]]*/ false,
       trialDaysRemaining: /*[[${trialDaysRemaining}]]*/ 0,
       freeTrialMonths: /*[[${freeTrialMonths}]]*/ 3,
       maxFamilyMembers: /*[[${maxFamilyMembers}]]*/ 8,
+      currentUser: /*[[${currentUser}]]*/ null,
       urls: {
         login: /*[[${loginUrl}]]*/ '/mobile/login',
         register: /*[[${registerUrl}]]*/ '/mobile/register',
@@ -330,16 +344,148 @@
       }
     };
 
-    // 개발 모드 활성화
-    if (window.location.search.includes('debug=true')) {
-      window.debugMode = true;
-      console.log('🔧 메인 페이지 디버그 모드 활성화');
+    // 전역 함수들
+    window.globalFunctions = {
+      // 로그인 모달 표시
+      showLoginModal: function() {
+        alert('이 기능을 사용하려면\\n먼저 로그인해 주세요.');
+        setTimeout(() => {
+          window.location.href = window.serverData.urls.login;
+        }, 1000);
+      },
+
+      // 메모리얼 생성 처리
+      handleCreateMemorial: function() {
+        console.log('📝 메모리얼 생성 요청');
+
+        if (!window.serverData.isLoggedIn) {
+          this.showLoginModal();
+          return;
+        }
+
+        // 메모리얼 생성 페이지로 이동
+        window.location.href = window.serverData.urls.memorialCreate;
+      },
+
+      // 영상통화 표시
+      showVideoCall: function() {
+        if (window.serverData.memorialCount === 0) {
+          alert('먼저 메모리얼을 등록해주세요.');
+          return;
+        }
+        alert('영상통화 기능 준비 중입니다.');
+      },
+
+      // 선물하기 표시
+      showGiftInfo: function() {
+        alert('선물하기 기능 준비 중입니다.');
+      },
+
+      // 메모리얼 목록 새로고침
+      refreshMemorialList: function() {
+        if (window.mainPageManager && window.mainPageManager.loadMemorialList) {
+          window.mainPageManager.loadMemorialList();
+        } else {
+          window.location.reload();
+        }
+      },
+
+      // 잔액 부족 모달 표시
+      showInsufficientBalanceModal: function(balance, required) {
+        const modal = document.getElementById('insufficientBalanceModal');
+        const currentBalance = document.getElementById('currentBalance');
+        const requiredAmount = document.getElementById('requiredAmount');
+
+        if (currentBalance) {
+          currentBalance.textContent = (balance || 0).toLocaleString() + '원';
+        }
+        if (requiredAmount) {
+          requiredAmount.textContent = (required || 0).toLocaleString() + '원';
+        }
+
+        if (typeof bootstrap !== 'undefined' && modal) {
+          const bsModal = new bootstrap.Modal(modal);
+          bsModal.show();
+        }
+      },
+
+      // 체험 제한 모달 표시
+      showTrialLimitModal: function(maxMemorials) {
+        const modal = document.getElementById('trialLimitModal');
+        const maxMemorialsSpan = document.getElementById('maxMemorials');
+
+        if (maxMemorialsSpan) {
+          maxMemorialsSpan.textContent = maxMemorials || 3;
+        }
+
+        if (typeof bootstrap !== 'undefined' && modal) {
+          const bsModal = new bootstrap.Modal(modal);
+          bsModal.show();
+        }
+      }
+    };
+
+    // 전역 함수 바인딩 (하위 호환성)
+    window.showLoginModal = window.globalFunctions.showLoginModal;
+    window.handleCreateMemorial = window.globalFunctions.handleCreateMemorial;
+    window.showVideoCall = window.globalFunctions.showVideoCall;
+    window.showGiftInfo = window.globalFunctions.showGiftInfo;
+    window.refreshMemorialList = window.globalFunctions.refreshMemorialList;
+
+    // 페이지 초기화 함수
+    window.pageInitializer = function() {
+      console.log('🏠 메인 페이지 초기화');
       console.log('📊 서버 데이터:', window.serverData);
+
+      // 메모리얼 카드 클릭 이벤트 바인딩
+      document.querySelectorAll('.memorial-card').forEach(card => {
+        card.addEventListener('click', function() {
+          const memorialId = this.dataset.memorialId;
+          if (memorialId) {
+            console.log('📱 메모리얼 카드 클릭:', memorialId);
+            // TODO: 메모리얼 상세 페이지로 이동
+            alert('메모리얼 상세 페이지로 이동합니다.');
+          }
+        });
+      });
+
+      // 애니메이션 효과
+      const animatedElements = document.querySelectorAll('.memorial-card, .memorial-intro-card, .service-intro');
+      animatedElements.forEach((element, index) => {
+        element.style.animationDelay = `${index * 0.1}s`;
+      });
+    };
+
+    // 페이지 새로고침 함수
+    window.pageRefresher = function() {
+      console.log('🔄 메인 페이지 새로고침');
+
+      if (window.serverData.isLoggedIn && window.mainPageManager) {
+        if (typeof window.mainPageManager.refreshMemorialStatus === 'function') {
+          window.mainPageManager.refreshMemorialStatus();
+        }
+      }
+    };
+
+    // 디버그 정보 (개발 모드에서만)
+    if (window.debugMode) {
+      console.log('🔧 메인 페이지 디버그 정보:');
+      console.log('  서버 데이터:', window.serverData);
+      console.log('  전역 함수:', window.globalFunctions);
+
+      // 디버그 함수 등록
+      window.debugMainPage = function() {
+        console.group('🔍 메인 페이지 디버그');
+        console.log('서버 데이터:', window.serverData);
+        console.log('로그인 상태:', window.serverData.isLoggedIn);
+        console.log('메모리얼 개수:', window.serverData.memorialCount);
+        console.log('메모리얼 목록:', window.serverData.memorialList);
+        console.log('체험 배너 표시:', window.serverData.showTrialBanner);
+        console.log('현재 사용자:', window.serverData.currentUser);
+        console.groupEnd();
+      };
     }
   </script>
-
-  <!-- 메인 페이지 JavaScript 로드 -->
-  <script th:src="@{/assets/mobile/js/main.js}" type="module"></script>
 </customJS>
 </body>
 </html>

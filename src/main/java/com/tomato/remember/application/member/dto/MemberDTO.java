@@ -23,6 +23,7 @@ public class MemberDTO {
     private String name;
     private LocalDateTime lastAccessAt;
     private String profileImg;
+    private String profileImageUrl;
     private String preferredLanguage;
     private Boolean marketingAgreed;
     private Boolean pushNotification;
