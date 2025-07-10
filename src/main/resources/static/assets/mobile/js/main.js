@@ -200,6 +200,19 @@ function bindMainPageEvents() {
     giftBtn.addEventListener('click', handleGiftClick);
   }
 
+  // 3개월 무료체험 시작 버튼
+  const freeTrialBtn = document.querySelector('.free-trial-btn');
+  if (freeTrialBtn) {
+    freeTrialBtn.addEventListener('click', handleFreeTrialStart);
+  }
+
+  // 서비스 카드 호버 효과
+  const serviceCards = document.querySelectorAll('.service-card');
+  serviceCards.forEach(card => {
+    card.addEventListener('mouseenter', handleServiceCardHover);
+    card.addEventListener('mouseleave', handleServiceCardLeave);
+  });
+
   // 메모리얼 카드 클릭 이벤트
   bindMemorialCardEvents();
 
@@ -427,6 +440,146 @@ async function handleVideoCallClick(e) {
   } catch (error) {
     console.error('❌ 영상통화 처리 실패:', error);
     handleFetchError(error);
+  }
+}
+
+/**
+ * 3개월 무료체험 시작 처리
+ */
+function handleFreeTrialStart(e) {
+  e.preventDefault();
+  console.log('🎁 3개월 무료체험 시작');
+
+  if (mainPageState.isLoggedIn) {
+    // 이미 로그인한 경우 - 체험 상태 확인
+    handleExistingUserTrial();
+  } else {
+    // 로그인하지 않은 경우 - 회원가입 페이지로 이동
+    handleNewUserTrial();
+  }
+}
+
+/**
+ * 기존 사용자 체험 처리
+ */
+async function handleExistingUserTrial() {
+  console.log('👤 기존 사용자 체험 처리');
+
+  try {
+    const loadingInstance = showLoading('체험 상태 확인 중...');
+    const trialStatus = await checkTrialStatus();
+    loadingInstance.hide();
+
+    if (trialStatus.isTrialUser) {
+      if (trialStatus.daysRemaining > 0) {
+        showToast(`이미 무료체험 중입니다. (${trialStatus.daysRemaining}일 남음)`, 'info');
+      } else {
+        showTrialExpiredModal();
+      }
+    } else {
+      showToast('이미 정식 회원입니다.', 'success');
+    }
+  } catch (error) {
+    console.error('❌ 체험 상태 확인 실패:', error);
+    showToast('체험 상태를 확인할 수 없습니다.', 'error');
+  }
+}
+
+/**
+ * 신규 사용자 체험 처리
+ */
+async function handleNewUserTrial() {
+  console.log('🆕 신규 사용자 체험 처리');
+
+  const confirmed = await showConfirm(
+    '3개월 무료체험',
+    '3개월 무료체험을 시작하시겠습니까?\n\n• 모든 기능 무료 이용\n• 최대 8명 가족 공유\n• 언제든지 해지 가능',
+    '체험 시작',
+    '취소'
+  );
+
+  if (confirmed) {
+    // 회원가입 페이지로 이동 (체험 모드)
+    const signupUrl = window.serverData?.urls?.register || '/mobile/register';
+    window.location.href = `${signupUrl}?trial=true`;
+  }
+}
+
+/**
+ * 체험 만료 모달 표시
+ */
+function showTrialExpiredModal() {
+  console.log('⏰ 체험 만료 모달 표시');
+
+  const modalHtml = `
+    <div class="modal fade" id="trialExpiredModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">무료체험 만료</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body text-center">
+            <div class="modal-icon mb-3">
+              <i class="fas fa-clock text-warning" style="font-size: 3rem;"></i>
+            </div>
+            <h4>무료체험이 만료되었습니다</h4>
+            <p class="mb-4">계속해서 서비스를 이용하려면 프리미엄으로 업그레이드해주세요.</p>
+            <div class="premium-benefits mb-4">
+              <div class="benefit-item mb-2">
+                <i class="fas fa-check text-success me-2"></i>
+                <span>무제한 메모리얼 등록</span>
+              </div>
+              <div class="benefit-item mb-2">
+                <i class="fas fa-check text-success me-2"></i>
+                <span>고급 AI 기능</span>
+              </div>
+              <div class="benefit-item">
+                <i class="fas fa-check text-success me-2"></i>
+                <span>우선 고객지원</span>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <a href="/mobile/payment/upgrade" class="btn btn-primary me-2">
+              <i class="fas fa-crown"></i>
+              프리미엄 업그레이드
+            </a>
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+              나중에 결정
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // 기존 모달 제거
+  const existingModal = document.getElementById('trialExpiredModal');
+  if (existingModal) {
+    existingModal.remove();
+  }
+
+  // 새 모달 추가
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+  // Bootstrap 모달 표시
+  if (typeof bootstrap !== 'undefined') {
+    const modal = new bootstrap.Modal(document.getElementById('trialExpiredModal'));
+    modal.show();
+  }
+}
+
+/**
+ * 서비스 카드 호버 효과
+ */
+function handleServiceCardHover(e) {
+  const card = e.currentTarget;
+  const icon = card.querySelector('.service-card-icon');
+
+  if (icon) {
+    icon.style.transform = 'scale(1.1)';
+    icon.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)';
   }
 }
 
@@ -801,6 +954,7 @@ window.refreshMemorialList = loadMemorialList;
 window.handleCreateMemorial = handleCreateMemorialClick;
 window.showVideoCall = handleVideoCallClick;
 window.showGiftInfo = handleGiftClick;
+window.handleFreeTrialStart = handleFreeTrialStart;
 
 // 디버그 함수
 window.debugMainPage = function() {
@@ -842,5 +996,6 @@ export {
   destroyMainPage,
   handleCreateMemorialClick,
   handleVideoCallClick,
-  handleGiftClick
+  handleGiftClick,
+  handleFreeTrialStart
 };
