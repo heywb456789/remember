@@ -1,315 +1,336 @@
-/* main.css - 토마토리멤버 메인 페이지 스타일 (운영 버전) */
+/* main.css - 토마토리멤버 메인 페이지 스타일 (main_page_improved.html 기반) */
 
 /* 기본 변수 */
 :root {
-  --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
-  --shadow-lg: 0 8px 25px rgba(0, 0, 0, 0.2);
-  --border-radius: 16px;
+  --primary-color: #ff6b35;
+  --primary-gradient: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%);
+  --secondary-gradient: linear-gradient(135deg, #ff6b6b 0%, #ffa500 100%);
+  --success-gradient: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+  --warning-gradient: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);
+  --memorial-gradient: linear-gradient(135deg, #6c5ce7 0%, #764ba2 100%);
+
+  --text-primary: #2d3748;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --text-light: #a0aec0;
+
+  --bg-primary: #ffffff;
+  --bg-secondary: #f7fafc;
+  --bg-muted: #edf2f7;
+  --bg-gradient: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
+
+  --border-light: #e2e8f0;
+  --border-medium: #cbd5e0;
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.15), 0 10px 10px rgba(0, 0, 0, 0.04);
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+
   --spacing-xs: 8px;
   --spacing-sm: 12px;
-  --spacing-md: 20px;
-  --spacing-lg: 32px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+
+  --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ======================
-   로그인 전 안내 영역
-====================== */
-.login-required-section {
+/* 기본 컨테이너 */
+.container {
+  max-width: 375px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-md);
+  background: var(--bg-primary);
+  min-height: 100vh;
+}
+
+/* ===== 환영 메시지 ===== */
+.welcome-message {
   padding: var(--spacing-lg) 0;
-  background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
-  min-height: calc(100vh - 180px);
-  display: flex;
-  align-items: center;
-}
-
-.login-guide-card {
-  background: white;
-  border-radius: var(--border-radius);
-  padding: var(--spacing-lg);
   text-align: center;
-  box-shadow: var(--shadow-lg);
 }
 
-.guide-icon {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background: var(--primary-gradient);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto var(--spacing-lg);
-}
-
-.guide-icon i {
-  font-size: 32px;
-  color: white;
-}
-
-.login-guide-card h3 {
-  font-size: 20px;
+.welcome-text {
+  font-size: 18px;
   font-weight: 700;
-  color: #2d3748;
-  margin-bottom: var(--spacing-sm);
-}
-
-.login-guide-card p {
-  color: #718096;
-  margin-bottom: var(--spacing-lg);
-  line-height: 1.5;
-}
-
-.service-benefits {
-  display: flex;
-  justify-content: center;
-  gap: var(--spacing-md);
-  margin-bottom: var(--spacing-lg);
-  flex-wrap: wrap;
-}
-
-.benefit-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: #667eea;
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.benefit-item i {
-  width: 16px;
-  text-align: center;
-}
-
-.login-actions {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-}
-
-.login-actions .btn {
-  padding: 14px 24px;
-  border-radius: 12px;
-  font-weight: 600;
-  text-decoration: none;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-xs);
-}
-
-.login-actions .btn-primary {
-  background: var(--primary-gradient);
-  border: none;
-  color: white;
-}
-
-.login-actions .btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
-  color: white;
-}
-
-.login-actions .btn-outline-primary {
-  background: white;
-  border: 2px solid #667eea;
-  color: #667eea;
-}
-
-.login-actions .btn-outline-primary:hover {
-  background: #667eea;
-  color: white;
-  transform: translateY(-2px);
-}
-
-/* ======================
-   로그인 후 빈 상태
-====================== */
-.memorial-empty-section {
-  padding: var(--spacing-lg) 0;
-  min-height: calc(100vh - 180px);
-  display: flex;
-  align-items: center;
-}
-
-.empty-state-card {
-  background: white;
-  border-radius: var(--border-radius);
-  padding: var(--spacing-lg);
-  text-align: center;
-  box-shadow: var(--shadow-md);
-}
-
-.empty-icon {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #ffeaa7, #fdcb6e);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto var(--spacing-lg);
-}
-
-.empty-icon i {
-  font-size: 32px;
-  color: white;
-}
-
-.empty-state-card h3 {
-  font-size: 20px;
-  font-weight: 700;
-  color: #2d3748;
-  margin-bottom: var(--spacing-sm);
-}
-
-.empty-state-card p {
-  color: #718096;
-  margin-bottom: var(--spacing-lg);
-  line-height: 1.5;
-}
-
-.empty-actions {
-  margin-bottom: var(--spacing-lg);
-}
-
-.btn-create-memorial {
-  background: var(--primary-gradient);
-  border: none;
-  color: white;
-  font-weight: 600;
-  padding: 14px 24px;
-  border-radius: 12px;
-  text-decoration: none;
-  transition: all 0.3s ease;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-xs);
-}
-
-.btn-create-memorial:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
-  color: white;
-}
-
-.free-trial-info {
-  background: linear-gradient(135deg, #667eea15, #764ba215);
-  border-radius: 12px;
-  padding: var(--spacing-md);
-  border: 1px solid #667eea30;
-}
-
-.trial-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--primary-gradient);
-  color: white;
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-  margin-bottom: var(--spacing-sm);
-}
-
-.free-trial-info p {
-  font-size: 13px;
-  color: #667eea;
-  margin: 0;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-xs);
   line-height: 1.4;
 }
 
-/* ======================
-   메모리얼 목록
-====================== */
-.memorial-list-section {
-  padding: var(--spacing-md) 0;
+.welcome-subtitle {
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin-bottom: var(--spacing-lg);
 }
 
+/* ===== 로그인 전: 디지털 추모 공간 카드 ===== */
+.memorial-intro-card {
+  background: var(--memorial-gradient);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+}
+
+.memorial-intro-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255,255,255,0.1) 20%, transparent 70%);
+  pointer-events: none;
+}
+
+.memorial-intro-icon {
+  width: 60px;
+  height: 60px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto var(--spacing-md);
+  position: relative;
+  z-index: 2;
+}
+
+.memorial-intro-icon i {
+  font-size: 24px;
+  color: white;
+}
+
+.memorial-intro-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: white;
+  margin-bottom: var(--spacing-xs);
+  position: relative;
+  z-index: 2;
+  text-align: center;
+}
+
+.memorial-intro-subtitle {
+  font-size: 14px;
+  color: rgba(255,255,255,0.9);
+  margin-bottom: var(--spacing-lg);
+  line-height: 1.5;
+  position: relative;
+  z-index: 2;
+  text-align: center;
+}
+
+.new-memorial-btn {
+  background: white;
+  color: #6c5ce7;
+  border: none;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  position: relative;
+  z-index: 2;
+  margin: 0 auto;
+}
+
+.new-memorial-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  color: #6c5ce7;
+  text-decoration: none;
+}
+
+/* ===== 로그인 후: 메모리얼 등록 버튼 ===== */
 .add-memorial-section {
   margin-bottom: var(--spacing-lg);
 }
 
-.add-memorial-section .btn-create-memorial {
+.add-memorial-btn {
   width: 100%;
-  background: var(--primary-gradient);
-  border: none;
+  background: var(--memorial-gradient);
   color: white;
+  border: none;
+  padding: 14px var(--spacing-lg);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
   font-weight: 600;
-  padding: 14px 24px;
-  border-radius: 12px;
+  cursor: pointer;
+  transition: var(--transition-smooth);
   text-decoration: none;
-  transition: all 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: var(--spacing-xs);
+  box-shadow: var(--shadow-md);
 }
 
-.memorial-grid {
-  display: grid;
-  gap: var(--spacing-md);
-  grid-template-columns: 1fr;
+.add-memorial-btn:hover {
+  background: linear-gradient(135deg, #5a4fcf 0%, #6c5ce7 100%);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-lg);
+  color: white;
+  text-decoration: none;
+}
+
+/* ===== 서비스 안내 섹션 ===== */
+.service-intro {
+  margin-bottom: var(--spacing-lg);
+}
+
+.service-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-sm);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.service-title i {
+  color: #6c5ce7;
+}
+
+.service-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.service-item:last-child {
+  border-bottom: none;
+}
+
+.service-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #e8f5e8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.service-icon i {
+  color: #27ae60;
+  font-size: 16px;
+}
+
+.service-content {
+  flex: 1;
+}
+
+.service-content h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.service-content p {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* ===== 메모리얼 목록 섹션 ===== */
+.memorial-list-section {
+  margin-bottom: var(--spacing-lg);
+}
+
+.memorial-list-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-md);
 }
 
 .memorial-card {
   background: white;
-  border-radius: var(--border-radius);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
   padding: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
   box-shadow: var(--shadow-md);
-  transition: all 0.3s ease;
-  border: 1px solid #e2e8f0;
+  transition: var(--transition-smooth);
+  cursor: pointer;
+  position: relative;
 }
 
 .memorial-card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
+}
+
+.memorial-card:last-child {
+  margin-bottom: 0;
 }
 
 .memorial-header {
   display: flex;
   align-items: center;
-  gap: var(--spacing-md);
-  margin-bottom: var(--spacing-md);
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
 }
 
 .memorial-avatar {
-  position: relative;
-  width: 60px;
-  height: 60px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
-  overflow: hidden;
+  background: var(--bg-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+  overflow: hidden;
+  position: relative;
 }
 
-.avatar-img {
+.memorial-avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.avatar-status {
-  position: absolute;
-  bottom: 2px;
-  right: 2px;
-  width: 16px;
-  height: 16px;
+.memorial-avatar i {
+  font-size: 20px;
+  color: var(--text-light);
+}
+
+.memorial-status {
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
+  background: #27ae60;
+  position: absolute;
+  top: 2px;
+  right: 2px;
   border: 2px solid white;
 }
 
-.avatar-status.online {
-  background: #48bb78;
-}
-
-.avatar-status.offline {
-  background: #a0aec0;
+.memorial-status.offline {
+  background: #bbb;
 }
 
 .memorial-info {
@@ -319,187 +340,137 @@
 .memorial-name {
   font-size: 16px;
   font-weight: 700;
-  color: #2d3748;
-  margin: 0 0 4px 0;
+  color: var(--text-primary);
+  margin-bottom: 2px;
 }
 
 .memorial-relationship {
-  font-size: 13px;
-  color: #667eea;
-  background: #667eea15;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-weight: 500;
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
 }
 
 .memorial-last-visit {
   font-size: 12px;
-  color: #718096;
-  margin: 8px 0 0 0;
+  color: var(--text-light);
+  margin: 0;
 }
 
-.memorial-actions {
-  display: flex;
-  gap: var(--spacing-sm);
+/* ===== 빈 상태 ===== */
+.empty-state {
+  text-align: center;
+  padding: 40px var(--spacing-lg);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  margin: var(--spacing-lg) 0;
 }
 
-.btn-video-call {
-  flex: 1;
-  background: var(--secondary-gradient);
-  border: none;
-  color: white;
+.empty-state h3 {
+  font-size: 16px;
   font-weight: 600;
-  padding: 12px 16px;
-  border-radius: 10px;
-  text-decoration: none;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  font-size: 14px;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-xs);
 }
 
-.btn-video-call:hover {
+.empty-state p {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: var(--spacing-lg);
+}
+
+.empty-state .btn {
+  background: var(--memorial-gradient);
+  color: white;
+  border: none;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.empty-state .btn:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
   color: white;
-}
-
-.btn-manage {
-  background: white;
-  border: 1px solid #e2e8f0;
-  color: #718096;
-  font-weight: 500;
-  padding: 12px 16px;
-  border-radius: 10px;
   text-decoration: none;
-  transition: all 0.3s ease;
+}
+
+/* ===== 하단 액션 버튼 ===== */
+.bottom-actions {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  font-size: 14px;
-}
-
-.btn-manage:hover {
-  background: #f7fafc;
-  border-color: #cbd5e0;
-  color: #4a5568;
-}
-
-/* 로그인 후 체험 배너 */
-.logged-in-trial-banner {
+  gap: var(--spacing-sm);
   margin-top: var(--spacing-lg);
+  padding-bottom: var(--spacing-xl);
 }
 
-.trial-info-card {
-  background: linear-gradient(135deg, #667eea15, #764ba215);
-  border: 1px solid #667eea30;
-  border-radius: 12px;
-  padding: var(--spacing-md);
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-}
-
-.trial-info-card .trial-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: var(--primary-gradient);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  flex-shrink: 0;
-}
-
-.trial-text {
+.action-btn {
   flex: 1;
-}
-
-.trial-text h5 {
+  padding: 14px var(--spacing-md);
+  border: none;
+  border-radius: var(--radius-sm);
   font-size: 14px;
   font-weight: 600;
-  color: #667eea;
-  margin: 0 0 4px 0;
-}
-
-.trial-text p {
-  font-size: 12px;
-  color: #718096;
-  margin: 0;
-  line-height: 1.4;
-}
-
-.trial-remaining {
-  text-align: center;
-}
-
-.days-left {
-  display: block;
-  font-size: 20px;
-  font-weight: 700;
-  color: #667eea;
-  line-height: 1;
-}
-
-.days-text {
-  font-size: 11px;
-  color: #718096;
-  font-weight: 500;
-}
-
-/* ======================
-   잔액 부족 모달
-====================== */
-.balance-info {
-  background: #f7fafc;
-  border-radius: 8px;
-  padding: var(--spacing-md);
-  margin: var(--spacing-md) 0;
-}
-
-.balance-item {
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  text-decoration: none;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid #e2e8f0;
+  justify-content: center;
+  gap: var(--spacing-xs);
 }
 
-.balance-item:last-child {
-  border-bottom: none;
+.btn-video {
+  background: var(--secondary-gradient);
+  color: white;
 }
 
-.balance-item strong {
-  color: #667eea;
-  font-weight: 700;
+.btn-video:hover {
+  background: linear-gradient(135deg, #e63946 0%, #f77f00 100%);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+  color: white;
+  text-decoration: none;
 }
 
-/* ======================
-   로딩 및 스켈레톤
-====================== */
+.btn-gift {
+  background: var(--warning-gradient);
+  color: white;
+}
+
+.btn-gift:hover {
+  background: linear-gradient(135deg, #d69e2e 0%, #b7791f 100%);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+  color: white;
+  text-decoration: none;
+}
+
+/* ===== 로딩 스켈레톤 ===== */
 .loading-skeleton {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
+  gap: var(--spacing-sm);
 }
 
 .skeleton-card {
   background: white;
-  border-radius: var(--border-radius);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
   padding: var(--spacing-md);
-  box-shadow: var(--shadow-sm);
   display: flex;
   align-items: center;
-  gap: var(--spacing-md);
+  gap: var(--spacing-sm);
 }
 
 .skeleton-avatar {
-  width: 60px;
-  height: 60px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
   background-size: 200% 100%;
@@ -516,11 +487,15 @@
   background-size: 200% 100%;
   animation: loading 1.5s infinite;
   border-radius: 4px;
-  margin-bottom: 8px;
+  margin-bottom: var(--spacing-xs);
 }
 
 .skeleton-line.short {
   width: 60%;
+}
+
+.skeleton-line:last-child {
+  margin-bottom: 0;
 }
 
 @keyframes loading {
@@ -532,98 +507,16 @@
   }
 }
 
-/* ======================
-   반응형 디자인
-====================== */
-@media (min-width: 768px) {
-  .memorial-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .login-actions {
-    flex-direction: row;
-    justify-content: center;
-  }
-
-  .service-benefits {
-    gap: var(--spacing-lg);
-  }
-}
-
-@media (min-width: 1024px) {
-  .memorial-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-/* ======================
-   애니메이션
-====================== */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.memorial-card,
-.empty-state-card,
-.login-guide-card {
-  animation: fadeInUp 0.6s ease forwards;
-}
-
-.memorial-card:nth-child(2) { animation-delay: 0.1s; }
-.memorial-card:nth-child(3) { animation-delay: 0.2s; }
-.memorial-card:nth-child(4) { animation-delay: 0.3s; }
-
-/* ======================
-   접근성 개선
-====================== */
-.memorial-card:focus,
-.btn-create-memorial:focus,
-.btn-video-call:focus {
-  outline: 2px solid #667eea;
-  outline-offset: 2px;
-}
-
-/* ======================
-   로딩 상태
-====================== */
-.memorial-card.loading {
-  opacity: 0.7;
-  pointer-events: none;
-}
-
-.memorial-card.loading::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(255, 255, 255, 0.8);
-  border-radius: var(--border-radius);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* ======================
-   에러 상태
-====================== */
-.error-state,
-.empty-state {
+/* ===== 에러 상태 ===== */
+.error-state {
   text-align: center;
-  padding: var(--spacing-lg);
-  color: #718096;
+  padding: 40px var(--spacing-lg);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  margin: var(--spacing-lg) 0;
 }
 
-.error-icon,
-.empty-state .empty-icon {
+.error-icon {
   width: 60px;
   height: 60px;
   border-radius: 50%;
@@ -639,35 +532,251 @@
   font-size: 24px;
 }
 
-.error-state h4,
-.empty-state h4 {
-  color: #2d3748;
-  margin-bottom: var(--spacing-sm);
+.error-state h4 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-xs);
 }
 
-/* ======================
-   다크모드 대응 (향후)
-====================== */
+.error-state p {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: var(--spacing-lg);
+}
+
+.error-state .btn {
+  background: var(--memorial-gradient);
+  color: white;
+  border: none;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.error-state .btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  color: white;
+  text-decoration: none;
+}
+
+/* ===== 토스트 메시지 ===== */
+.toast-message {
+  position: fixed;
+  top: 90px;
+  right: 20px;
+  max-width: 350px;
+  background: white;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xl);
+  border-left: 4px solid #667eea;
+  z-index: 9999;
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+}
+
+.toast-message.show {
+  transform: translateX(0);
+}
+
+.toast-success { border-left-color: #48bb78; }
+.toast-error { border-left-color: #e53e3e; }
+.toast-warning { border-left-color: #ed8936; }
+.toast-info { border-left-color: #4299e1; }
+
+.toast-content {
+  display: flex;
+  align-items: center;
+  padding: var(--spacing-md);
+  gap: var(--spacing-sm);
+}
+
+.toast-content i {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.toast-success i { color: #48bb78; }
+.toast-error i { color: #e53e3e; }
+.toast-warning i { color: #ed8936; }
+.toast-info i { color: #4299e1; }
+
+.toast-text {
+  flex: 1;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--text-primary);
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  color: var(--text-light);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: var(--transition-smooth);
+}
+
+.toast-close:hover {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+/* ===== 반응형 디자인 ===== */
+@media (max-width: 375px) {
+  .container {
+    padding: 0 var(--spacing-sm);
+  }
+
+  .welcome-text {
+    font-size: 16px;
+  }
+
+  .memorial-intro-title {
+    font-size: 18px;
+  }
+
+  .memorial-card {
+    padding: var(--spacing-sm);
+  }
+
+  .bottom-actions {
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+
+  .action-btn {
+    padding: var(--spacing-sm);
+  }
+
+  .toast-message {
+    right: 16px;
+    left: 16px;
+    max-width: none;
+  }
+}
+
+@media (min-width: 768px) {
+  .container {
+    max-width: 768px;
+    padding: 0 var(--spacing-lg);
+  }
+
+  .memorial-list-section {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-md);
+  }
+
+  .memorial-list-title {
+    grid-column: 1 / -1;
+  }
+
+  .bottom-actions {
+    max-width: 400px;
+    margin: var(--spacing-lg) auto 0;
+  }
+}
+
+/* ===== 애니메이션 ===== */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.memorial-card,
+.memorial-intro-card,
+.service-intro,
+.empty-state {
+  animation: fadeInUp 0.6s ease forwards;
+}
+
+.memorial-card:nth-child(2) { animation-delay: 0.1s; }
+.memorial-card:nth-child(3) { animation-delay: 0.2s; }
+.memorial-card:nth-child(4) { animation-delay: 0.3s; }
+.memorial-card:nth-child(5) { animation-delay: 0.4s; }
+
+/* ===== 접근성 개선 ===== */
+.memorial-card:focus,
+.new-memorial-btn:focus,
+.add-memorial-btn:focus,
+.action-btn:focus {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
+}
+
+/* ===== 다크모드 대응 ===== */
 @media (prefers-color-scheme: dark) {
+  :root {
+    --text-primary: #e2e8f0;
+    --text-secondary: #cbd5e0;
+    --text-muted: #a0aec0;
+    --text-light: #718096;
+
+    --bg-primary: #1a202c;
+    --bg-secondary: #2d3748;
+    --bg-muted: #4a5568;
+    --bg-gradient: linear-gradient(180deg, #2d3748 0%, #1a202c 100%);
+
+    --border-light: #4a5568;
+    --border-medium: #718096;
+  }
+
   .memorial-card,
-  .empty-state-card,
-  .login-guide-card {
-    background: #2d3748;
-    color: #e2e8f0;
-    border-color: #4a5568;
-  }
-
-  .memorial-name {
-    color: #e2e8f0;
-  }
-
-  .memorial-last-visit {
-    color: #a0aec0;
+  .empty-state,
+  .error-state {
+    background: var(--bg-secondary);
+    border-color: var(--border-light);
   }
 
   .skeleton-avatar,
   .skeleton-line {
     background: linear-gradient(90deg, #2d3748 25%, #4a5568 50%, #2d3748 75%);
     background-size: 200% 100%;
+  }
+
+  .toast-message {
+    background: var(--bg-secondary);
+    border-color: var(--border-light);
+  }
+}
+
+/* ===== 인쇄 스타일 ===== */
+@media print {
+  .bottom-actions,
+  .toast-message,
+  .loading-skeleton {
+    display: none !important;
+  }
+
+  .memorial-card {
+    break-inside: avoid;
+    box-shadow: none;
+    border: 1px solid #000;
+  }
+
+  .memorial-intro-card {
+    background: none !important;
+    border: 2px solid #000;
+  }
+
+  .memorial-intro-title,
+  .memorial-intro-subtitle {
+    color: #000 !important;
   }
 }

@@ -18,142 +18,221 @@
 </head>
 <body>
 <section>
-  <!-- 로그인 전 안내 영역 -->
-  <div class="login-required-section" th:if="${!isLoggedIn}">
-    <div class="container">
-      <div class="login-guide-card">
-        <div class="guide-icon">
+  <div class="container">
+    <!-- 환영 메시지 -->
+    <div class="welcome-message">
+      <div class="welcome-text">'토마토리멤버'에 오신 것을 환영합니다.</div>
+      <div class="welcome-subtitle">소중한 분과의 영원한 추억을 만들어보세요.</div>
+    </div>
+
+    <!-- 로그인 전 - 디지털 추모 공간 카드 -->
+    <div class="logged-out-only" th:if="${!isLoggedIn}">
+      <div class="memorial-intro-card">
+        <div class="memorial-intro-icon">
           <i class="fas fa-heart"></i>
         </div>
-        <h3>토마토리멤버에 오신 것을 환영합니다</h3>
-        <p>소중한 분과의 영원한 추억을 만들어보세요</p>
-
-        <div class="service-benefits">
-          <div class="benefit-item">
-            <i class="fas fa-gift"></i>
-            <span>3개월 무료 체험</span>
-          </div>
-          <div class="benefit-item">
-            <i class="fas fa-users"></i>
-            <span>최대 8명 가족 공유</span>
-          </div>
-          <div class="benefit-item">
-            <i class="fas fa-mobile-alt"></i>
-            <span>언제 어디서나 접속</span>
-          </div>
+        <div class="memorial-intro-title">디지털 추모 공간</div>
+        <div class="memorial-intro-subtitle">
+          블록체인 기술로 안전하게 보관되는<br>
+          영원한 추모 공간을 만들어보세요.
         </div>
-
-        <div class="login-actions">
-          <a th:href="${loginUrl}" class="btn btn-primary">
-            <i class="fas fa-sign-in-alt"></i>
-            로그인
-          </a>
-          <a th:href="${registerUrl}" class="btn btn-outline-primary">
-            <i class="fas fa-user-plus"></i>
-            회원가입
-          </a>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 로그인 후 - 메모리얼 없는 경우 -->
-  <div class="memorial-empty-section" th:if="${isLoggedIn and memorialCount == 0}">
-    <div class="container">
-      <div class="empty-state-card">
-        <div class="empty-icon">
-          <i class="fas fa-heart"></i>
-        </div>
-        <h3>등록된 메모리얼이 없습니다.</h3>
-        <p>소중한 분과의 영원한 추억을 만들어보세요</p>
-
-        <div class="empty-actions">
-          <a th:href="${memorialCreateUrl}" class="btn btn-primary btn-create-memorial">
-            <i class="fas fa-plus"></i>
-            새 메모리얼 등록하기
-          </a>
-        </div>
-
-        <!-- 3개월 무료체험 안내 -->
-        <div class="free-trial-info" th:if="${showTrialBanner}">
-          <div class="trial-badge">
-            <i class="fas fa-gift"></i>
-            <span>3개월 무료 이용</span>
-          </div>
-          <p th:text="|가입 후 ${freeTrialMonths}개월간 서비스 전 기능 무료 체험|">
-            가입 후 3개월간 서비스 전 기능 무료 체험
-          </p>
-          <p th:text="|최대 ${maxFamilyMembers}명까지 가족 구성원과 추모 공간 공유 가능|">
-            최대 8명까지 가족 구성원과 추모 공간 공유 가능
-          </p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 로그인 후 - 등록된 메모리얼이 있는 경우 -->
-  <div class="memorial-list-section" th:if="${isLoggedIn and memorialCount > 0}">
-    <div class="container">
-      <!-- 새 메모리얼 등록 버튼 -->
-      <div class="add-memorial-section">
-        <a th:href="${memorialCreateUrl}" class="btn btn-create-memorial">
+        <button class="new-memorial-btn" onclick="showLoginModal()">
           <i class="fas fa-plus"></i>
           새 메모리얼 등록하기
-        </a>
+        </button>
       </div>
 
-      <!-- 등록된 메모리얼 목록 -->
-      <div class="memorial-grid">
-        <div class="memorial-card" th:each="memorial, iterStat : ${memorialList}">
-          <div class="memorial-header">
-            <div class="memorial-avatar">
-              <img th:src="${memorial.profileImageUrl ?: '/assets/mobile/images/default-avatar.png'}"
-                   th:alt="${memorial.name}" class="avatar-img">
-              <div class="avatar-status"
-                   th:classappend="${memorial.isOnline ? 'online' : 'offline'}"></div>
-            </div>
-            <div class="memorial-info">
-              <h4 class="memorial-name" th:text="${memorial.name}">김순자 님</h4>
-              <span class="memorial-relationship" th:text="${memorial.relationship ?: '관계 없음'}">할머니</span>
-              <p class="memorial-last-visit">
-                마지막 방문:
-                <span th:text="${#temporals.format(memorial.lastVisitDate, 'yyyy-MM-dd') ?: '방문 기록 없음'}">
-                  2025-06-15
-                </span>
-              </p>
-            </div>
+      <!-- 서비스 안내 -->
+      <div class="service-intro">
+        <div class="service-title">
+          <i class="fas fa-shield-alt"></i>
+          안전하고 투명한 서비스
+        </div>
+        <div class="service-item">
+          <div class="service-icon">
+            <i class="fas fa-check"></i>
           </div>
+          <div class="service-content">
+            <h4>블록체인 보안 시스템</h4>
+            <p>투명하고 공정한 서비스 이용</p>
+          </div>
+        </div>
+      </div>
+    </div>
 
-          <div class="memorial-actions">
-            <a th:href="@{/mobile/memorial/call/{id}(id=${memorial.id})}"
-               class="btn btn-video-call"
-               th:onclick="|return handleVideoCall(this, ${memorial.id})|">
-              <i class="fas fa-video"></i>
-              영상통화
-            </a>
-            <a th:href="@{/mobile/memorial/detail/{id}(id=${memorial.id})}"
-               class="btn btn-outline-secondary btn-manage">
-              <i class="fas fa-cog"></i>
-              관리
-            </a>
+    <!-- 로그인 후 - 메모리얼 관리 -->
+    <div class="logged-in-only" th:if="${isLoggedIn}">
+      <!-- 새 메모리얼 등록 버튼 -->
+      <div class="add-memorial-section">
+        <button class="add-memorial-btn" onclick="handleCreateMemorial()">
+          <i class="fas fa-user-plus"></i>
+          새 메모리얼 등록하기
+        </button>
+      </div>
+
+      <!-- 등록된 메모리얼이 있는 경우 -->
+      <div class="memorial-list-section" th:if="${memorialCount > 0}">
+        <div class="memorial-list-title">등록된 메모리얼</div>
+        <div id="memorialList">
+          <!-- 메모리얼 카드 템플릿 -->
+          <div class="memorial-card" th:each="memorial, iterStat : ${memorialList}">
+            <div class="memorial-header">
+              <div class="memorial-avatar">
+                <img th:src="${memorial.profileImageUrl ?: '/assets/mobile/images/default-avatar.png'}"
+                     th:alt="${memorial.name}" class="avatar-img">
+                <div class="memorial-status"
+                     th:classappend="${memorial.isOnline ? 'online' : 'offline'}"></div>
+              </div>
+              <div class="memorial-info">
+                <div class="memorial-name" th:text="${memorial.name}">김순자</div>
+                <div class="memorial-relationship" th:text="${memorial.relationship ?: '관계 없음'}">할머니</div>
+                <div class="memorial-last-visit">
+                  마지막 방문:
+                  <span th:text="${memorial.lastVisitDate != null ? #temporals.format(memorial.lastVisitDate, 'yyyy-MM-dd') : '방문 기록 없음'}">
+                    2025-06-15
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- 무료체험 안내 (로그인 후에도 표시) -->
-      <div class="logged-in-trial-banner" th:if="${showTrialBanner}">
-        <div class="trial-info-card">
-          <div class="trial-icon">
-            <i class="fas fa-gift"></i>
+      <!-- 등록된 메모리얼이 없는 경우 -->
+      <div class="empty-state" th:if="${memorialCount == 0}">
+        <h3>등록된 메모리얼이 없습니다.</h3>
+        <p>소중한 분과의 영원한 추억을 만들어보세요.</p>
+        <button class="btn" onclick="handleCreateMemorial()">
+          <i class="fas fa-plus"></i>
+          새 메모리얼 등록하기
+        </button>
+      </div>
+
+      <!-- 하단 액션 버튼 -->
+      <div class="bottom-actions">
+        <button class="action-btn btn-video" onclick="showVideoCall()">
+          <i class="fas fa-video"></i>
+          영상통화
+        </button>
+        <button class="action-btn btn-gift" onclick="showGiftInfo()">
+          <i class="fas fa-gift"></i>
+          선물하기
+        </button>
+      </div>
+    </div>
+
+    <!-- 로딩 스켈레톤 (JavaScript로 동적 생성) -->
+    <div class="loading-skeleton" id="loadingSkeleton" style="display: none;">
+      <div class="skeleton-card">
+        <div class="skeleton-avatar"></div>
+        <div class="skeleton-content">
+          <div class="skeleton-line"></div>
+          <div class="skeleton-line short"></div>
+        </div>
+      </div>
+      <div class="skeleton-card">
+        <div class="skeleton-avatar"></div>
+        <div class="skeleton-content">
+          <div class="skeleton-line"></div>
+          <div class="skeleton-line short"></div>
+        </div>
+      </div>
+      <div class="skeleton-card">
+        <div class="skeleton-avatar"></div>
+        <div class="skeleton-content">
+          <div class="skeleton-line"></div>
+          <div class="skeleton-line short"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 에러 상태 (JavaScript로 동적 생성) -->
+    <div class="error-state" id="errorState" style="display: none;">
+      <div class="error-icon">
+        <i class="fas fa-exclamation-triangle"></i>
+      </div>
+      <h4>오류가 발생했습니다</h4>
+      <p id="errorMessage">메모리얼 목록을 불러오는 중 오류가 발생했습니다.</p>
+      <button class="btn" onclick="refreshMemorialList()">
+        <i class="fas fa-refresh"></i>
+        다시 시도
+      </button>
+    </div>
+  </div>
+
+  <!-- 잔액 부족 모달 (동적 생성) -->
+  <div class="modal fade" id="insufficientBalanceModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">잔액이 부족합니다</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body text-center">
+          <div class="modal-icon mb-3">
+            <i class="fas fa-exclamation-triangle text-warning" style="font-size: 3rem;"></i>
           </div>
-          <div class="trial-text">
-            <h5 th:text="|${freeTrialMonths}개월 무료 체험 중|">3개월 무료 체험 중</h5>
-            <p>무제한 영상통화와 모든 기능을 자유롭게 이용하세요</p>
+          <div class="balance-info">
+            <div class="balance-item mb-2">
+              <span>현재 잔액: </span>
+              <strong id="currentBalance">0원</strong>
+            </div>
+            <div class="balance-item">
+              <span>필요 금액: </span>
+              <strong id="requiredAmount">0원</strong>
+            </div>
           </div>
-          <div class="trial-remaining" th:if="${trialDaysRemaining != null and trialDaysRemaining > 0}">
-            <span class="days-left" th:text="${trialDaysRemaining}">92</span>
-            <span class="days-text">일 남음</span>
+        </div>
+        <div class="modal-footer">
+          <a href="/mobile/payment/charge" class="btn btn-primary">
+            <i class="fas fa-credit-card"></i>
+            토큰 충전하기
+          </a>
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+            나중에 충전
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 체험 제한 모달 -->
+  <div class="modal fade" id="trialLimitModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">무료체험 제한</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body text-center">
+          <div class="modal-icon mb-3">
+            <i class="fas fa-info-circle text-primary" style="font-size: 3rem;"></i>
           </div>
+          <h4>무료체험 제한</h4>
+          <p class="mb-4">무료체험에서는 최대 <span id="maxMemorials">3</span>개의 메모리얼만 등록할 수 있습니다.</p>
+          <div class="trial-upgrade-info mb-4">
+            <div class="upgrade-item mb-2">
+              <i class="fas fa-check text-success me-2"></i>
+              <span>무제한 메모리얼 등록</span>
+            </div>
+            <div class="upgrade-item mb-2">
+              <i class="fas fa-check text-success me-2"></i>
+              <span>고급 AI 기능 이용</span>
+            </div>
+            <div class="upgrade-item">
+              <i class="fas fa-check text-success me-2"></i>
+              <span>가족 공유 기능</span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <a href="/mobile/payment/upgrade" class="btn btn-primary me-2">
+            <i class="fas fa-crown"></i>
+            프리미엄 업그레이드
+          </a>
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+            나중에 업그레이드
+          </button>
         </div>
       </div>
     </div>
@@ -163,146 +242,168 @@
 <!-- Custom JavaScript -->
 <customJS>
   <script th:src="@{/assets/mobile/js/main.js}" type="module"></script>
-  <script>
-    // 영상통화 처리
-    async function handleVideoCall(element, memorialId) {
-      try {
-        // 로딩 상태 표시
-        showCallPreparation(element);
 
-        // 통화 가능 상태 확인
-        const response = await fetch(`/api/memorial/${memorialId}/call-status`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('accessToken') || ''}`
+  <!-- 서버 사이드 데이터 전달 -->
+  <script th:inline="javascript">
+    // 서버에서 전달받은 데이터
+    window.serverData = {
+      isLoggedIn: /*[[${isLoggedIn}]]*/ false,
+      memorialCount: /*[[${memorialCount}]]*/ 0,
+      memorialList: /*[[${memorialList}]]*/ [],
+      showTrialBanner: /*[[${showTrialBanner}]]*/ false,
+      trialDaysRemaining: /*[[${trialDaysRemaining}]]*/ 0,
+      freeTrialMonths: /*[[${freeTrialMonths}]]*/ 3,
+      maxFamilyMembers: /*[[${maxFamilyMembers}]]*/ 8,
+      currentUser: /*[[${currentUser}]]*/ null,
+      urls: {
+        login: /*[[${loginUrl}]]*/ '/mobile/login',
+        register: /*[[${registerUrl}]]*/ '/mobile/register',
+        memorialCreate: /*[[${memorialCreateUrl}]]*/ '/mobile/memorial/create',
+        payment: /*[[${paymentUrl}]]*/ '/mobile/payment'
+      }
+    };
+
+    // 전역 함수들
+    window.globalFunctions = {
+      // 로그인 모달 표시
+      showLoginModal: function() {
+        alert('이 기능을 사용하려면\\n먼저 로그인해 주세요.');
+        setTimeout(() => {
+          window.location.href = window.serverData.urls.login;
+        }, 1000);
+      },
+
+      // 메모리얼 생성 처리
+      handleCreateMemorial: function() {
+        console.log('📝 메모리얼 생성 요청');
+
+        if (!window.serverData.isLoggedIn) {
+          this.showLoginModal();
+          return;
+        }
+
+        // 메모리얼 생성 페이지로 이동
+        window.location.href = window.serverData.urls.memorialCreate;
+      },
+
+      // 영상통화 표시
+      showVideoCall: function() {
+        if (window.serverData.memorialCount === 0) {
+          alert('먼저 메모리얼을 등록해주세요.');
+          return;
+        }
+        alert('영상통화 기능 준비 중입니다.');
+      },
+
+      // 선물하기 표시
+      showGiftInfo: function() {
+        alert('선물하기 기능 준비 중입니다.');
+      },
+
+      // 메모리얼 목록 새로고침
+      refreshMemorialList: function() {
+        if (window.mainPageManager && window.mainPageManager.loadMemorialList) {
+          window.mainPageManager.loadMemorialList();
+        } else {
+          window.location.reload();
+        }
+      },
+
+      // 잔액 부족 모달 표시
+      showInsufficientBalanceModal: function(balance, required) {
+        const modal = document.getElementById('insufficientBalanceModal');
+        const currentBalance = document.getElementById('currentBalance');
+        const requiredAmount = document.getElementById('requiredAmount');
+
+        if (currentBalance) {
+          currentBalance.textContent = (balance || 0).toLocaleString() + '원';
+        }
+        if (requiredAmount) {
+          requiredAmount.textContent = (required || 0).toLocaleString() + '원';
+        }
+
+        if (typeof bootstrap !== 'undefined' && modal) {
+          const bsModal = new bootstrap.Modal(modal);
+          bsModal.show();
+        }
+      },
+
+      // 체험 제한 모달 표시
+      showTrialLimitModal: function(maxMemorials) {
+        const modal = document.getElementById('trialLimitModal');
+        const maxMemorialsSpan = document.getElementById('maxMemorials');
+
+        if (maxMemorialsSpan) {
+          maxMemorialsSpan.textContent = maxMemorials || 3;
+        }
+
+        if (typeof bootstrap !== 'undefined' && modal) {
+          const bsModal = new bootstrap.Modal(modal);
+          bsModal.show();
+        }
+      }
+    };
+
+    // 전역 함수 바인딩 (하위 호환성)
+    window.showLoginModal = window.globalFunctions.showLoginModal;
+    window.handleCreateMemorial = window.globalFunctions.handleCreateMemorial;
+    window.showVideoCall = window.globalFunctions.showVideoCall;
+    window.showGiftInfo = window.globalFunctions.showGiftInfo;
+    window.refreshMemorialList = window.globalFunctions.refreshMemorialList;
+
+    // 페이지 초기화 함수
+    window.pageInitializer = function() {
+      console.log('🏠 메인 페이지 초기화');
+      console.log('📊 서버 데이터:', window.serverData);
+
+      // 메모리얼 카드 클릭 이벤트 바인딩
+      document.querySelectorAll('.memorial-card').forEach(card => {
+        card.addEventListener('click', function() {
+          const memorialId = this.dataset.memorialId;
+          if (memorialId) {
+            console.log('📱 메모리얼 카드 클릭:', memorialId);
+            // TODO: 메모리얼 상세 페이지로 이동
+            alert('메모리얼 상세 페이지로 이동합니다.');
           }
         });
+      });
 
-        if (!response.ok) {
-          throw new Error('통화 상태를 확인할 수 없습니다.');
+      // 애니메이션 효과
+      const animatedElements = document.querySelectorAll('.memorial-card, .memorial-intro-card, .service-intro');
+      animatedElements.forEach((element, index) => {
+        element.style.animationDelay = `${index * 0.1}s`;
+      });
+    };
+
+    // 페이지 새로고침 함수
+    window.pageRefresher = function() {
+      console.log('🔄 메인 페이지 새로고침');
+
+      if (window.serverData.isLoggedIn && window.mainPageManager) {
+        if (typeof window.mainPageManager.refreshMemorialStatus === 'function') {
+          window.mainPageManager.refreshMemorialStatus();
         }
-
-        const data = await response.json();
-
-        if (data.status?.code !== 'OK_0000') {
-          throw new Error(data.status?.message || '통화 상태 확인 실패');
-        }
-
-        const callStatus = data.response;
-
-        // 잔액 확인
-        if (callStatus.balance < callStatus.requiredTokens) {
-          showInsufficientBalanceModal(callStatus);
-          return false;
-        }
-
-        // 통화 시작 확인
-        const confirmed = confirm(
-          `${callStatus.memorialName}님과 영상통화를 시작하시겠습니까?\n\n` +
-          `• 예상 비용: ${callStatus.costPerMinute?.toLocaleString() || '알 수 없음'}원/분\n` +
-          `• 현재 잔액: ${callStatus.balance?.toLocaleString() || '알 수 없음'}원`
-        );
-
-        if (confirmed) {
-          // 통화 연결
-          window.location.href = `/mobile/memorial/call/${memorialId}`;
-        }
-
-        return false;
-
-      } catch (error) {
-        console.error('영상통화 시작 실패:', error);
-        alert(`영상통화를 시작할 수 없습니다.\n오류: ${error.message}`);
-        return false;
-      } finally {
-        hideCallPreparation(element);
       }
+    };
+
+    // 디버그 정보 (개발 모드에서만)
+    if (window.debugMode) {
+      console.log('🔧 메인 페이지 디버그 정보:');
+      console.log('  서버 데이터:', window.serverData);
+      console.log('  전역 함수:', window.globalFunctions);
+
+      // 디버그 함수 등록
+      window.debugMainPage = function() {
+        console.group('🔍 메인 페이지 디버그');
+        console.log('서버 데이터:', window.serverData);
+        console.log('로그인 상태:', window.serverData.isLoggedIn);
+        console.log('메모리얼 개수:', window.serverData.memorialCount);
+        console.log('메모리얼 목록:', window.serverData.memorialList);
+        console.log('체험 배너 표시:', window.serverData.showTrialBanner);
+        console.log('현재 사용자:', window.serverData.currentUser);
+        console.groupEnd();
+      };
     }
-
-    // 통화 준비 로딩 표시
-    function showCallPreparation(element) {
-      if (element && !element.dataset.originalHtml) {
-        element.dataset.originalHtml = element.innerHTML;
-        element.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 연결 중...';
-        element.style.pointerEvents = 'none';
-      }
-    }
-
-    // 통화 준비 로딩 숨김
-    function hideCallPreparation(element) {
-      if (element && element.dataset.originalHtml) {
-        element.innerHTML = element.dataset.originalHtml;
-        element.style.pointerEvents = 'auto';
-        delete element.dataset.originalHtml;
-      }
-    }
-
-    // 잔액 부족 모달
-    function showInsufficientBalanceModal(callStatus) {
-      const modalId = 'insufficientBalanceModal';
-      const modalHtml = `
-        <div class="modal fade" id="${modalId}" tabindex="-1">
-          <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-              <div class="modal-header">
-                <h5 class="modal-title">잔액이 부족합니다</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-              </div>
-              <div class="modal-body text-center">
-                <div class="modal-icon mb-3">
-                  <i class="fas fa-exclamation-triangle text-warning" style="font-size: 3rem;"></i>
-                </div>
-                <div class="balance-info">
-                  <div class="balance-item mb-2">
-                    <span>현재 잔액: </span>
-                    <strong>${(callStatus.balance || 0).toLocaleString()}원</strong>
-                  </div>
-                  <div class="balance-item">
-                    <span>필요 금액: </span>
-                    <strong>${(callStatus.requiredTokens || 0).toLocaleString()}원</strong>
-                  </div>
-                </div>
-              </div>
-              <div class="modal-footer">
-                <a href="${/*[[${paymentUrl}]]*/ '/mobile/payment'}/charge" class="btn btn-primary">
-                  <i class="fas fa-credit-card"></i>
-                  토큰 충전하기
-                </a>
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-                  나중에 충전
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      `;
-
-      // 기존 모달 제거
-      const existingModal = document.getElementById(modalId);
-      if (existingModal) {
-        existingModal.remove();
-      }
-
-      // 새 모달 추가
-      document.body.insertAdjacentHTML('beforeend', modalHtml);
-
-      // Bootstrap 모달 표시
-      if (typeof bootstrap !== 'undefined') {
-        const modal = new bootstrap.Modal(document.getElementById(modalId));
-        modal.show();
-      } else {
-        // Bootstrap이 없는 경우 alert로 대체
-        alert(`잔액이 부족합니다.\n현재 잔액: ${(callStatus.balance || 0).toLocaleString()}원\n필요 금액: ${(callStatus.requiredTokens || 0).toLocaleString()}원`);
-      }
-    }
-
-    // 페이지 로드 시 초기화
-    document.addEventListener('DOMContentLoaded', function() {
-      console.log('메인 페이지 로드 완료');
-      console.log('로그인 상태:', /*[[${isLoggedIn}]]*/ false);
-      console.log('메모리얼 수:', /*[[${memorialCount}]]*/ 0);
-    });
   </script>
 </customJS>
 </body>
