@@ -55,6 +55,8 @@ public enum ResponseStatus {
     MEMORIAL_INCOMPLETE_DATA("ER-2021", "데이터 저장에 실패하였습니다.", HttpStatus.BAD_REQUEST),
     MEMORIAL_TEMP_DATA_CLEAR_FAILED("ER-2023", "임시 데이터 클렌징에 실패하였습니다.", HttpStatus.BAD_REQUEST),
     MEMORIAL_FILE_NOT_FOUND("ER-2024", "파일을 찾을 수 없습니다.", HttpStatus.BAD_REQUEST),
+    FILE_COUNT_EXCEEDED("ER-2025", "파일 갯수 초과", HttpStatus.BAD_REQUEST),
+    FILE_ACCESS_DENIED("ER-2026", "파일 접근 오류", HttpStatus.BAD_REQUEST),
 
     // 메모리얼 관련 에러 코드
     MEMORIAL_NOT_DRAFT("ER_M001", "메모리얼이 임시저장 상태가 아닙니다.", HttpStatus.BAD_REQUEST),
@@ -78,6 +80,8 @@ public enum ResponseStatus {
     VOICE_FILE_LIMIT_EXCEEDED("ER_F008", "음성 파일은 최대 3개까지 업로드 가능합니다.", HttpStatus.BAD_REQUEST),
     VIDEO_FILE_LIMIT_EXCEEDED("ER_F009", "비디오 파일은 1개만 업로드 가능합니다.", HttpStatus.BAD_REQUEST),
     USER_IMAGE_LIMIT_EXCEEDED("ER_F010", "사용자 이미지는 1개만 업로드 가능합니다.", HttpStatus.BAD_REQUEST),
+    FILE_EMPTY("ER_F011", "파일이 없습니다.", HttpStatus.INTERNAL_SERVER_ERROR),
+    FILE_TYPE_NOT_SUPPORTED("ER_F012", "지원하지 않는 파일 타입입니다.", HttpStatus.INTERNAL_SERVER_ERROR),
 
     // 권한 관련 에러 코드
     MEMORIAL_ACCESS_DENIED("ER_A001", "메모리얼에 접근할 권한이 없습니다.", HttpStatus.FORBIDDEN),

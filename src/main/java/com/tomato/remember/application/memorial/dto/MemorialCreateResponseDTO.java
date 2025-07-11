@@ -9,15 +9,24 @@ public class MemorialCreateResponseDTO {
     
     private Long memorialId;
     private String name;
-    private String status;
+    private String nickname;
     private String message;
-    
-    public static MemorialCreateResponseDTO of(Long memorialId, String name) {
+    private Boolean success;
+
+    public static MemorialCreateResponseDTO success(Long memorialId, String name, String nickname) {
         return MemorialCreateResponseDTO.builder()
                 .memorialId(memorialId)
                 .name(name)
-                .status("DRAFT")
-                .message("메모리얼이 임시 생성되었습니다.")
+                .nickname(nickname)
+                .message("메모리얼이 성공적으로 등록되었습니다.")
+                .success(true)
+                .build();
+    }
+
+    public static MemorialCreateResponseDTO failure(String message) {
+        return MemorialCreateResponseDTO.builder()
+                .message(message)
+                .success(false)
                 .build();
     }
 }

@@ -24,48 +24,32 @@
       <button class="back-btn" type="button" onclick="history.back()">
         <i class="fas fa-arrow-left"></i>
       </button>
-      <h1 class="page-title">새 메모리얼 등록</h1>
+      <div class="header-content">
+        <h1 class="page-title">새 메모리얼 등록</h1>
+      </div>
     </div>
 
-    <!-- 진행 상태 표시 -->
-    <div class="progress-container">
-      <div class="progress-bar">
-        <div class="progress-fill" style="width: 25%"></div>
-      </div>
-      <div class="progress-steps">
-        <div class="step active">
-          <div class="step-number">1</div>
-          <div class="step-label">기본 정보</div>
-        </div>
-        <div class="step">
-          <div class="step-number">2</div>
-          <div class="step-label">고인 정보</div>
-        </div>
-        <div class="step">
-          <div class="step-number">3</div>
-          <div class="step-label">미디어</div>
-        </div>
-        <div class="step">
-          <div class="step-number">4</div>
-          <div class="step-label">완료</div>
-        </div>
-      </div>
+    <div class="page-intro">
+      <p class="intro-description">소중한 분의 정보를 입력해주세요.</p>
     </div>
 
     <!-- 메모리얼 등록 폼 -->
     <form id="memorialCreateForm" class="memorial-form">
-      <!-- 기본 정보 섹션 -->
-      <div class="form-section">
+
+      <!-- 1. 기본 정보 섹션 -->
+      <div class="form-section" id="basicInfoSection">
         <div class="section-header">
-          <h2 class="section-title">기본 정보 (망자 정보)</h2>
-          <p class="section-description">소중한 분의 기본 정보를 입력해주세요.</p>
+          <h2 class="section-title">
+            <i class="fas fa-user"></i>
+            기본 정보
+          </h2>
         </div>
 
         <!-- 이름 입력 -->
         <div class="form-group">
           <label class="form-label required" for="name">이름</label>
           <input type="text" id="name" name="name" class="form-input"
-                 placeholder="예: 김할머니" required maxlength="50">
+                 placeholder="이름을 입력해주세요" required maxlength="50">
           <div class="form-error" id="nameError"></div>
         </div>
 
@@ -74,7 +58,6 @@
           <label class="form-label required" for="nickname">호칭</label>
           <input type="text" id="nickname" name="nickname" class="form-input"
                  placeholder="예: 할머니, 아버지, 어머니" required maxlength="30">
-          <div class="form-hint">가족들이 부르던 호칭을 입력해주세요.</div>
           <div class="form-error" id="nicknameError"></div>
         </div>
 
@@ -113,125 +96,441 @@
           <input type="date" id="deathDate" name="deathDate" class="form-input date-input">
           <div class="form-error" id="deathDateError"></div>
         </div>
+
+        <!-- 나와의 관계 -->
+        <div class="form-group">
+          <label class="form-label required" for="relationship">나와의 관계</label>
+          <select id="relationship" name="relationship" class="form-select" required>
+            <option value="">관계를 선택해주세요</option>
+            <option value="본인">본인</option>
+            <option value="배우자">배우자</option>
+            <option value="부">부</option>
+            <option value="모">모</option>
+            <option value="자">자</option>
+            <option value="자부">자부</option>
+            <option value="사위">사위</option>
+            <option value="배우자부">배우자부</option>
+            <option value="배우자모">배우자모</option>
+            <option value="형제/자매">형제/자매</option>
+            <option value="손">손</option>
+            <option value="증손">증손</option>
+            <option value="조부">조부</option>
+            <option value="조모">조모</option>
+            <option value="증조부">증조부</option>
+            <option value="증조모">증조모</option>
+            <option value="동거인">동거인</option>
+            <option value="기타">기타</option>
+          </select>
+          <div class="form-error" id="relationshipError"></div>
+        </div>
       </div>
 
-      <!-- 나와의 관계 섹션 -->
-      <div class="form-section">
+      <!-- 2. 고인에 대한 정보 섹션 -->
+      <div class="form-section" id="personalitySection">
         <div class="section-header">
-          <h2 class="section-title">나와의 관계</h2>
-          <p class="section-description">망자와 나와의 관계를 선택해주세요.</p>
+          <h2 class="section-title">
+            고인에 대한 정보
+          </h2>
+          <p class="section-description">AI가 더 생생하게 재현할 수 있도록 고인에 대한 자세한 정보를 알려주세요.</p>
         </div>
 
         <div class="form-group">
-          <label class="form-label required" for="relationship">관계 선택</label>
-          <select id="relationship" name="relationship" class="form-select" required>
-            <option value="">관계를 선택해주세요</option>
-            <option value="FATHER">아버지</option>
-            <option value="MOTHER">어머니</option>
-            <option value="GRANDFATHER">할아버지</option>
-            <option value="GRANDMOTHER">할머니</option>
-            <option value="HUSBAND">남편</option>
-            <option value="WIFE">아내</option>
-            <option value="SON">아들</option>
-            <option value="DAUGHTER">딸</option>
-            <option value="BROTHER">형/동생</option>
-            <option value="SISTER">누나/언니/여동생</option>
-            <option value="UNCLE">삼촌/외삼촌</option>
-            <option value="AUNT">이모/고모</option>
-            <option value="NEPHEW">조카(남)</option>
-            <option value="NIECE">조카(여)</option>
-            <option value="COUSIN">사촌</option>
-            <option value="FRIEND">친구</option>
-            <option value="OTHER">기타</option>
-          </select>
-          <div class="form-error" id="relationshipError"></div>
+          <label class="form-label" for="personality">성격이나 특징은 어떠셨나요?</label>
+          <textarea id="personality" name="personality" class="form-textarea"
+                    placeholder="예: 항상 밝고 긍정적이셨고, 사람들을 따뜻하게 대해주셨어요."
+                    rows="4" maxlength="500"></textarea>
+          <div class="character-count">
+            <span id="personalityCount">0</span> / 500자
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="favoriteWords">평소 즐기던 취미나 관심사는 무엇이었나요?</label>
+          <textarea id="favoriteWords" name="favoriteWords" class="form-textarea"
+                    placeholder="예: 정원 가꾸기를 좋아하셨고, 드라마 보는 것을 즐기셨어요."
+                    rows="3" maxlength="300"></textarea>
+          <div class="character-count">
+            <span id="favoriteWordsCount">0</span> / 300자
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="favoriteFoods">좋아하시던 음식이나 요리가 있었나요?</label>
+          <textarea id="favoriteFoods" name="favoriteFoods" class="form-textarea"
+                    placeholder="예: 김치찌개를 정말 좋아하셨고, 직접 만든 된장찌개가 유명했어요."
+                    rows="3" maxlength="300"></textarea>
+          <div class="character-count">
+            <span id="favoriteFoodsCount">0</span> / 300자
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="memories">가장 기억에 남은 일화나 추억이 있나요?</label>
+          <textarea id="memories" name="memories" class="form-textarea"
+                    placeholder="예: 어릴 때 할머니가 들려주신 옛날이야기가 가장 기억에 남아요."
+                    rows="3" maxlength="300"></textarea>
+          <div class="character-count">
+            <span id="memoriesCount">0</span> / 300자
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="habits">평소 습관이나 말버릇이 있었나요?</label>
+          <textarea id="habits" name="habits" class="form-textarea"
+                    placeholder="예: 아침마다 산책을 하셨고, '건강이 최고다' 라는 말을 자주하셨어요."
+                    rows="3" maxlength="300"></textarea>
+          <div class="character-count">
+            <span id="habitsCount">0</span> / 300자
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. 미디어 자료 업로드 섹션 -->
+      <div class="form-section" id="mediaSection">
+        <div class="section-header">
+          <h2 class="section-title">
+            <i class="fas fa-photo-video"></i>
+            미디어 자료
+          </h2>
+          <p class="section-description">AI 학습을 위한 파일들을 업로드해주세요.</p>
+        </div>
+
+        <!-- 대표사진 업로드 -->
+        <div class="upload-container">
+          <h3 class="upload-title">
+            <i class="fas fa-camera"></i>
+            대표사진 (5장 필수)
+            <button type="button" class="btn-guide" onclick="showProfileImageGuide()">
+              <i class="fas fa-question-circle"></i>
+            </button>
+          </h3>
+
+          <div class="upload-area multiple-upload" id="profileImageUpload">
+            <input type="file" id="profileImageInput" accept="image/*" multiple style="display: none;">
+            <div class="upload-placeholder">
+              <i class="fas fa-images"></i>
+              <h4>사진 5장 선택</h4>
+              <p>JPG, PNG 파일을 선택하거나<br>이곳에 드래그하세요</p>
+              <div class="upload-specs">최대 5MB씩 5장</div>
+              <button type="button" class="btn btn-primary" onclick="showProfileImageGuide()">
+                사진 선택
+              </button>
+            </div>
+            <div class="upload-preview-grid" id="profileImagePreview"></div>
+          </div>
+        </div>
+
+        <!-- 음성파일 업로드 -->
+        <div class="upload-container">
+          <h3 class="upload-title">
+            <i class="fas fa-microphone"></i>
+            음성파일 (3개 필수)
+            <button type="button" class="btn-guide" onclick="showVoiceFileGuide()">
+              <i class="fas fa-question-circle"></i>
+            </button>
+          </h3>
+
+          <div class="upload-area multiple-upload" id="voiceFileUpload">
+            <input type="file" id="voiceFileInput" accept="audio/*" multiple style="display: none;">
+            <div class="upload-placeholder">
+              <i class="fas fa-volume-up"></i>
+              <h4>음성 파일 3개 선택</h4>
+              <p>MP3, WAV, M4A 파일을 선택하거나<br>이곳에 드래그하세요</p>
+              <div class="upload-specs">최대 50MB씩 3개</div>
+              <div class="upload-actions">
+                <button type="button" class="btn btn-primary" onclick="showVoiceFileGuide()">
+                  파일 선택
+                </button>
+              </div>
+            </div>
+            <div class="upload-preview-list" id="voiceFilePreview"></div>
+          </div>
+        </div>
+
+        <!-- 영상파일 업로드 -->
+        <div class="upload-container">
+          <h3 class="upload-title">
+            <i class="fas fa-video"></i>
+            영상파일 (1개 필수)
+            <button type="button" class="btn-guide" onclick="showVideoFileGuide()">
+              <i class="fas fa-question-circle"></i>
+            </button>
+          </h3>
+
+          <div class="upload-area" id="videoFileUpload">
+            <input type="file" id="videoFileInput" accept="video/*" style="display: none;">
+            <div class="upload-placeholder">
+              <i class="fas fa-video"></i>
+              <h4>영상 파일 1개 선택</h4>
+              <p>MP4, MOV, AVI 파일을 선택하거나<br>이곳에 드래그하세요</p>
+              <div class="upload-specs">최대 100MB</div>
+              <button type="button" class="btn btn-primary" onclick="showVideoFileGuide()">
+                파일 선택
+              </button>
+            </div>
+            <div class="upload-preview" id="videoFilePreview"></div>
+          </div>
         </div>
       </div>
 
       <!-- 하단 버튼 -->
       <div class="form-actions">
         <button type="button" class="btn btn-outline" onclick="history.back()">
-          <i class="fas fa-arrow-left"></i>
-          이전
+          취소
         </button>
-        <button type="submit" class="btn btn-primary" id="nextBtn">
-          다음 단계
-          <i class="fas fa-arrow-right"></i>
+        <button type="submit" class="btn btn-primary" id="submitBtn">
+          등록하기
         </button>
       </div>
     </form>
-
-    <!-- 로딩 상태 -->
-    <div class="loading-overlay" id="loadingOverlay" style="display: none;">
-      <div class="loading-spinner">
-        <div class="spinner"></div>
-        <p>정보를 저장하는 중입니다...</p>
-      </div>
-    </div>
   </div>
 
-  <!-- 필수 항목 확인 모달 -->
-  <div class="modal fade" id="validationModal" tabindex="-1" aria-hidden="true">
+  <!-- 대표 사진 가이드 모달 -->
+  <div class="modal fade" id="profileImageGuideModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title">필수 정보 확인</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <h5 class="modal-title">
+            📸 대표사진 업로드 가이드
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal">&times;</button>
         </div>
         <div class="modal-body">
-          <div class="modal-icon mb-3">
-            <i class="fas fa-exclamation-triangle text-warning" style="font-size: 3rem;"></i>
+          <div class="guide-content">
+            <div class="guide-tip">
+              <div class="tip-header">
+                <span class="tip-icon">✨</span>
+                <h6>고화질 사진 선택</h6>
+              </div>
+              <p>최소 1080x1080 이상의 고화질 사진을 사용하세요.</p>
+            </div>
+
+            <div class="guide-tip">
+              <div class="tip-header">
+                <span class="tip-icon">👤</span>
+                <h6>얼굴이 선명한 사진</h6>
+              </div>
+              <p>얼굴이 정면에서 잘 보이는 사진이 좋습니다.</p>
+            </div>
+
+            <div class="guide-tip">
+              <div class="tip-header">
+                <span class="tip-icon">😊</span>
+                <h6>밝고 자연스러운 표정</h6>
+              </div>
+              <p>밝고 자연스러운 표정의 사진을 선택하세요.</p>
+            </div>
+
+            <div class="guide-tip">
+              <div class="tip-header">
+                <span class="tip-icon">🎯</span>
+                <h6>단독 사진 추천</h6>
+              </div>
+              <p>다른 사람이 함께 있지 않은 단독 사진을 선택하세요.</p>
+            </div>
+
+            <div class="file-info">
+              <h6>📂 파일 정보</h6>
+              <ul>
+                <li>JPG, PNG, HEIC 형식 지원</li>
+                <li>최대 10MB까지 업로드 가능</li>
+              </ul>
+            </div>
+
+            <div class="examples">
+              <h6>👍 좋은 예시 vs 나쁜 예시</h6>
+              <ul>
+                <li class="good">정면에서 촬영한 증명사진</li>
+                <li class="good">자연스러운 일상 사진</li>
+                <li class="good">밝은 조명의 실내외 사진</li>
+                <li class="bad">흐릿하거나 어두운 사진</li>
+                <li class="bad">측면이나 뒷모습 사진</li>
+                <li class="bad">여러 명이 함께 있는 사진</li>
+              </ul>
+            </div>
+
+            <div class="warning">
+              <h6>⚠️ 중요한 안내</h6>
+              <p>업로드된 모든 자료들은 AI 학습에 사용되며, 블록체인 기술로 안전하게 보관됩니다. 개인정보 보호를 위해 타인의 개인정보가 포함된 자료는 업로드하지 마세요.</p>
+            </div>
           </div>
-          <h4>입력되지 않은 필수 정보가 있습니다</h4>
-          <div id="validationErrors" class="validation-errors"></div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-primary" data-bs-dismiss="modal">
-            확인
+            파일 선택하기
           </button>
         </div>
       </div>
     </div>
   </div>
+
+  <!-- 음성 파일 가이드 모달 -->
+  <div class="modal fade" id="voiceFileGuideModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            🎤 목소리 파일 업로드 가이드
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="guide-content">
+            <div class="guide-tip">
+              <div class="tip-header">
+                <span class="tip-icon">🔇</span>
+                <h6>조용한 환경에서 녹음</h6>
+              </div>
+              <p>배경 소음이 없는 조용한 곳에서 녹음하세요.</p>
+            </div>
+
+            <div class="guide-tip">
+              <div class="tip-header">
+                <span class="tip-icon">💬</span>
+                <h6>자연스러운 말투</h6>
+              </div>
+              <p>평소 말하시던 자연스러운 말투로 녹음하세요.</p>
+            </div>
+
+            <div class="guide-tip">
+              <div class="tip-header">
+                <span class="tip-icon">⏱️</span>
+                <h6>적절한 길이</h6>
+              </div>
+              <p>각 파일당 30초 이상 2분 이하로 녹음해주세요.</p>
+            </div>
+
+            <div class="guide-tip">
+              <div class="tip-header">
+                <span class="tip-icon">🎭</span>
+                <h6>다양한 상황별 녹음</h6>
+              </div>
+              <p>일상 대화, 인사말, 감정 표현 등 다양한 상황의 목소리 3개를 준비하세요.</p>
+            </div>
+
+            <div class="file-info">
+              <h6>📂 파일 정보</h6>
+              <ul>
+                <li>MP3, WAV, M4A 형식 지원</li>
+                <li>각 파일 최대 20MB, 총 3개 필수</li>
+              </ul>
+            </div>
+
+            <div class="examples">
+              <h6>👍 좋은 예시 vs 나쁜 예시</h6>
+              <ul>
+                <li class="good">"안녕하세요, 사랑하는 가족들아" (인사)</li>
+                <li class="good">"오늘 날씨가 참 좋네요" (일상 대화)</li>
+                <li class="good">"건강하게 잘 지내고 있어요" (안부)</li>
+                <li class="good">웃음소리나 감탄사가 포함된 자연스러운 대화</li>
+                <li class="bad">너무 짧은 단어나 인사 (30초 미만)</li>
+                <li class="bad">배경음이 큰 환경에서 녹음</li>
+                <li class="bad">인위적이거나 어색한 말투</li>
+                <li class="bad">같은 내용을 반복한 파일들</li>
+              </ul>
+            </div>
+
+            <div class="warning">
+              <h6>⚠️ 중요한 안내</h6>
+              <p>업로드된 모든 자료들은 AI 학습에 사용되며, 정확한 AI 기능을 위한 목적으로만 여러분이 인허되며 자료의 일자 보안지해 자유로운 디습니다.</p>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" data-bs-dismiss="modal">
+            파일 선택하기
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 영상 파일 가이드 모달 -->
+  <div class="modal fade" id="videoFileGuideModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            🎬 영상 자료 업로드 가이드
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="guide-content">
+            <div class="guide-tip">
+              <div class="tip-header">
+                <span class="tip-icon">📱</span>
+                <h6>세로 영상 권장</h6>
+              </div>
+              <p>모바일 환경에 최적화된 세로(9:16) 영상을 권장합니다.</p>
+            </div>
+
+            <div class="guide-tip">
+              <div class="tip-header">
+                <span class="tip-icon">🎥</span>
+                <h6>안정적인 촬영</h6>
+              </div>
+              <p>삼각대나 고정 장치를 사용해 흔들림 없이 촬영하세요.</p>
+            </div>
+
+            <div class="guide-tip">
+              <div class="tip-header">
+                <span class="tip-icon">⏰</span>
+                <h6>적절한 길이</h6>
+              </div>
+              <p>1분 이상 5분 이하의 영상으로 제작해주세요.</p>
+            </div>
+
+            <div class="guide-tip">
+              <div class="tip-header">
+                <span class="tip-icon">🗣️</span>
+                <h6>말하는 모습 포함</h6>
+              </div>
+              <p>자연스럽게 말하는 모습이 포함된 영상을 촬영하세요.</p>
+            </div>
+
+            <div class="file-info">
+              <h6>📂 파일 정보</h6>
+              <ul>
+                <li>MP4, MOV, AVI 형식 지원</li>
+                <li>최대 200MB, 1개 필수</li>
+              </ul>
+            </div>
+
+            <div class="examples">
+              <h6>👍 좋은 예시 vs 나쁜 예시</h6>
+              <ul>
+                <li class="good">정면에서 촬영한 인사 영상</li>
+                <li class="good">자연스러운 대화나 이야기하는 장면</li>
+                <li class="good">밝은 표정으로 말하는 모습</li>
+                <li class="good">다양한 표정과 제스처가 포함된 영상</li>
+                <li class="bad">흔들림이 심한 영상</li>
+                <li class="bad">너무 어둡거나 흐릿한 영상</li>
+                <li class="bad">말하는 모습이 없는 영상</li>
+                <li class="bad">1분 미만의 너무 짧은 영상</li>
+              </ul>
+            </div>
+
+            <div class="warning">
+              <h6>⚠️ 중요한 안내</h6>
+              <p>업로드된 모든 자료들은 AI 학습에 사용되며, 정확한 AI 기능을 위한 목적으로만 여러분이 인허되며 자료의 일자 보안지해 자유로운 디습니다.</p>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" data-bs-dismiss="modal">
+            파일 선택하기
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </section>
 
 <!-- Custom JavaScript -->
 <customJS>
-  <!-- 서버 사이드 데이터 전달 -->
-  <script th:inline="javascript">
-    window.memorialCreateData = {
-      currentStep: 1,
-      maxStep: 4,
-      formData: {
-        name: '',
-        nickname: '',
-        gender: '',
-        birthDate: '',
-        deathDate: '',
-        relationship: ''
-      },
-      validation: {
-        name: { required: true, maxLength: 50 },
-        nickname: { required: true, maxLength: 30 },
-        gender: { required: true },
-        relationship: { required: true }
-      },
-      urls: {
-        saveStep1: '/api/memorial/create/step1',
-        nextStep: '/mobile/memorial/create/step2'
-      }
-    };
-
-    // 개발 모드 활성화
-    if (window.location.search.includes('debug=true')) {
-      window.debugMode = true;
-      console.log('🔧 메모리얼 등록 디버그 모드 활성화');
-      console.log('📊 메모리얼 생성 데이터:', window.memorialCreateData);
-    }
-  </script>
-
-  <!-- 메모리얼 등록 JavaScript 로드 -->
-  <script th:src="@{/assets/mobile/js/memorial-create.js}" type="module"></script>
+  <script th:src="@{/assets/mobile/js/memorial-create.js}"></script>
 </customJS>
 </body>
 </html>

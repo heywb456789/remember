@@ -37,7 +37,7 @@ let memorialStep2State = {
  * 메모리얼 등록 2단계 초기화
  */
 function initializeMemorialStep2() {
-  console.log('🚀 메모리얼 등록 2단계 초기화 시작');
+  console.log('🚀 메모리얼 등록 2단계 초기화 시작 (수정된 버전)');
 
   if (memorialStep2State.isInitialized) {
     console.warn('⚠️ 메모리얼 등록 2단계가 이미 초기화되었습니다.');
@@ -57,18 +57,23 @@ function initializeMemorialStep2() {
     // 3. 폼 초기화
     initializeForm();
 
-    // 4. 이벤트 바인딩
+    // 4. 이벤트 바인딩 (수정된 버전)
     bindAllEvents();
 
-    // 5. 글자 수 카운터 초기화
+    // 5. 추가 보안 처리
+    addGlobalKeyboardHandlers();
+    preventBrowserDefaults();
+    addEventLogging();
+
+    // 6. 글자 수 카운터 초기화
     initializeCharacterCounters();
 
-    // 6. 관심사 이벤트 초기화
+    // 7. 관심사 이벤트 초기화
     initializeInterestEvents();
 
-    // 7. 초기화 완료
+    // 8. 초기화 완료
     memorialStep2State.isInitialized = true;
-    console.log('✅ 메모리얼 등록 2단계 초기화 완료');
+    console.log('✅ 메모리얼 등록 2단계 초기화 완료 (키보드 이벤트 수정 적용)');
 
   } catch (error) {
     console.error('❌ 메모리얼 등록 2단계 초기화 실패:', error);
@@ -147,24 +152,129 @@ function bindFormSubmit() {
   const form = document.getElementById('memorialStep2Form');
   if (!form) return;
 
-  form.addEventListener('submit', handleFormSubmit);
-  console.log('📝 폼 제출 이벤트 바인딩 완료');
+  // 기존 이벤트 리스너 제거 (중복 방지)
+  form.removeEventListener('submit', handleFormSubmit);
+
+  // 새로운 이벤트 리스너 추가
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    handleFormSubmit(e);
+  });
+
+  // Enter 키로 인한 폼 제출 방지
+  form.addEventListener('keydown', function(e) {
+    if (e.keyCode === 13) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  });
+
+  console.log('📝 폼 제출 이벤트 바인딩 완료 (강화된 이벤트 처리)');
+}
+
+function addGlobalKeyboardHandlers() {
+  // 문서 전체에서 숫자 키 이벤트 모니터링
+  document.addEventListener('keydown', function(e) {
+    // 입력 필드에 포커스가 있을 때만 처리
+    const activeElement = document.activeElement;
+    if (activeElement &&
+        (activeElement.classList.contains('form-input') ||
+         activeElement.classList.contains('form-textarea'))) {
+
+      // 숫자 키 감지 시 이벤트 전파 중단
+      if ((e.keyCode >= 48 && e.keyCode <= 57) ||
+          (e.keyCode >= 96 && e.keyCode <= 105)) {
+        e.stopPropagation();
+      }
+    }
+  }, true); // 캡처 단계에서 처리
+
+  console.log('🌐 전역 키보드 이벤트 핸들러 추가');
+}
+
+function preventBrowserDefaults() {
+  // 브라우저의 기본 단축키 방지
+  document.addEventListener('keydown', function(e) {
+    // F5 새로고침 방지 (필요시)
+    if (e.keyCode === 116) {
+      if (confirm('페이지를 새로고침하시겠습니까? 입력하신 내용이 사라질 수 있습니다.')) {
+        return true;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  });
+
+  // 뒤로가기 버튼 처리
+  window.addEventListener('popstate', function(e) {
+    if (confirm('이전 페이지로 이동하시겠습니까? 입력하신 내용이 사라질 수 있습니다.')) {
+      return true;
+    }
+    e.preventDefault();
+    history.pushState(null, null, window.location.href);
+  });
+}
+
+function addEventLogging() {
+  if (window.debugMode) {
+    document.addEventListener('keydown', function(e) {
+      console.log('🔍 키다운 이벤트:', {
+        keyCode: e.keyCode,
+        key: e.key,
+        target: e.target.tagName,
+        className: e.target.className
+      });
+    });
+
+    // 페이지 이동 감지
+    let originalPushState = history.pushState;
+    history.pushState = function() {
+      console.log('📍 페이지 이동 감지:', arguments);
+      return originalPushState.apply(history, arguments);
+    };
+  }
 }
 
 /**
  * 입력 필드 이벤트 바인딩
  */
 function bindInputEvents() {
-  const inputs = document.querySelectorAll('.form-input');
+  const inputs = document.querySelectorAll('.form-input, .form-textarea');
 
   inputs.forEach(input => {
+    // 기존 이벤트 핸들러들
     input.addEventListener('input', handleInputChange);
     input.addEventListener('change', handleInputChange);
     input.addEventListener('focus', handleInputFocus);
     input.addEventListener('blur', handleInputBlur);
+
+    // 추가: 키다운 이벤트에서 숫자 키 이벤트 전파 방지
+    input.addEventListener('keydown', function(e) {
+      // 숫자 키 (0-9) 또는 넘패드 숫자 키 감지
+      if ((e.keyCode >= 48 && e.keyCode <= 57) ||
+          (e.keyCode >= 96 && e.keyCode <= 105)) {
+        // 이벤트 전파 중단 (페이지 이동 방지)
+        e.stopPropagation();
+      }
+
+      // Enter 키 처리 (폼 제출 방지)
+      if (e.keyCode === 13) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    });
+
+    // 추가: 키업 이벤트에서도 처리
+    input.addEventListener('keyup', function(e) {
+      if ((e.keyCode >= 48 && e.keyCode <= 57) ||
+          (e.keyCode >= 96 && e.keyCode <= 105)) {
+        e.stopPropagation();
+      }
+    });
   });
 
-  console.log('📝 입력 필드 이벤트 바인딩 완료');
+  console.log('✅ 입력 필드 이벤트 바인딩 완료 (키보드 이벤트 수정 적용)');
 }
 
 /**
@@ -271,6 +381,8 @@ async function handleFormSubmit(e) {
 
 // 입력 변경 핸들러
 function handleInputChange(e) {
+  e.stopPropagation(); // 이벤트 전파 중단 추가
+
   const { name, value } = e.target;
 
   // 상태 업데이트
@@ -282,8 +394,26 @@ function handleInputChange(e) {
   console.log(`📝 입력 변경: ${name} = ${value}`);
 }
 
+function addUnloadProtection() {
+  window.addEventListener('beforeunload', function(e) {
+    // 입력된 데이터가 있는 경우에만 경고
+    const hasData = Object.values(memorialStep2State.formData).some(value =>
+      value && value.toString().trim().length > 0
+    );
+
+    if (hasData) {
+      const message = '입력하신 내용이 저장되지 않을 수 있습니다. 정말 페이지를 떠나시겠습니까?';
+      e.returnValue = message;
+      return message;
+    }
+  });
+}
+
+
 // 텍스트 영역 변경 핸들러
 function handleTextareaChange(e) {
+  e.stopPropagation(); // 이벤트 전파 중단 추가
+
   const { name, value } = e.target;
   const limit = memorialStep2State.characterLimits[name];
 
@@ -660,9 +790,15 @@ console.log('🌟 memorial-create-step2.js 로드 완료');
 
 // DOM이 준비되면 초기화
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initializeMemorialStep2);
+  document.addEventListener('DOMContentLoaded', function() {
+    initializeMemorialStep2();
+    addUnloadProtection();
+  });
 } else {
-  setTimeout(initializeMemorialStep2, 100);
+  setTimeout(function() {
+    initializeMemorialStep2();
+    addUnloadProtection();
+  }, 100);
 }
 
 // 페이지 언로드 시 정리

@@ -1,4 +1,29 @@
 // common.js - 토마토리멤버 모바일 공통 유틸리티
+let currentLoading = null;
+
+// export function showLoading(message = '로딩 중...') {
+//   // 기존 코드...
+//   currentLoading = loading; // 현재 로딩 인스턴스 저장
+//   return {
+//     hide: () => {
+//       if (loading.parentElement) {
+//         loading.classList.remove('show');
+//         setTimeout(() => {
+//           loading.remove();
+//           currentLoading = null;
+//         }, 300);
+//       }
+//     }
+//   };
+// }
+
+// 새로 추가할 함수
+export function hideLoading() {
+  if (currentLoading) {
+    currentLoading.hide();
+    currentLoading = null;
+  }
+}
 
 /**
  * 토스트 메시지 표시

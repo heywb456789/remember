@@ -10,7 +10,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
-    @Value("${spring.app.upload.root}")
+    @Value("${app.upload.path:/uploads}")
     private String uploadRoot;
 
 

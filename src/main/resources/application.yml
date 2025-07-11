@@ -254,3 +254,8 @@ one-id:
     register: /v1/api/external/{apptype}/join
     coin-info: /v1/api/external/{apptype}/coin-info
     profile-img: /v1/api/external/{apptype}/profile/img/upload/{userkey}
+
+app:
+  upload:
+    path: /var/uploads/memorial  # 실제 파일 저장 경로
+    url: /uploads               # 웹 접근 URL 경로

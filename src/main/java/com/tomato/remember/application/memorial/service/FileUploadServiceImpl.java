@@ -1,8 +1,6 @@
 package com.tomato.remember.application.memorial.service;
 
 import com.tomato.remember.application.memorial.dto.FileUploadResponseDTO;
-import com.tomato.remember.application.memorial.entity.FileUploadRecord;
-import com.tomato.remember.application.memorial.repository.FileUploadRecordRepository;
 import com.tomato.remember.application.member.entity.Member;
 import com.tomato.remember.common.exception.APIException;
 import com.tomato.remember.common.code.ResponseStatus;
@@ -103,7 +101,7 @@ public class FileUploadServiceImpl implements FileUploadService {
 
         } catch (Exception e) {
             log.error("File upload failed: {}", file.getOriginalFilename(), e);
-            throw new APIException(ResponseStatus.FILE_UPLOAD_FAILED, e.getMessage());
+            throw new APIException(ResponseStatus.FILE_UPLOAD_FAILED);
         }
     }
 
@@ -115,8 +113,8 @@ public class FileUploadServiceImpl implements FileUploadService {
         // 파일 개수 제한 확인
         FileTypeConfig config = FILE_TYPE_CONFIGS.get(fileType);
         if (config != null && files.size() > config.maxCount) {
-            throw new APIException(ResponseStatus.FILE_COUNT_EXCEEDED, 
-                    String.format("최대 %d개 파일까지 업로드할 수 있습니다.", config.maxCount));
+            throw new APIException(ResponseStatus.FILE_COUNT_EXCEEDED);
+//                    String.format("최대 %d개 파일까지 업로드할 수 있습니다.", config.maxCount));
         }
 
         List<FileUploadResponseDTO> results = new ArrayList<>();
@@ -176,7 +174,7 @@ public class FileUploadServiceImpl implements FileUploadService {
             throw e;
         } catch (Exception e) {
             log.error("File deletion failed: {}", fileUrl, e);
-            throw new APIException(ResponseStatus.FILE_DELETE_FAILED, e.getMessage());
+            throw new APIException(ResponseStatus.FILE_DELETE_FAILED);
         }
     }
 
@@ -208,21 +206,19 @@ public class FileUploadServiceImpl implements FileUploadService {
         // 파일 크기 확인
         if (file.getSize() > config.maxSize) {
             double maxSizeMB = config.maxSize / (1024.0 * 1024.0);
-            throw new APIException(ResponseStatus.FILE_SIZE_EXCEEDED, 
-                    String.format("파일 크기가 %.1fMB를 초과합니다.", maxSizeMB));
+            throw new APIException(ResponseStatus.FILE_SIZE_EXCEEDED);
         }
 
         // 파일 타입 확인
         String contentType = file.getContentType();
         if (contentType == null || !config.allowedTypes.contains(contentType.toLowerCase())) {
-            throw new APIException(ResponseStatus.FILE_TYPE_NOT_ALLOWED, 
-                    String.format("지원하지 않는 파일 형식입니다. 허용된 형식: %s", config.allowedTypes));
+            throw new APIException(ResponseStatus.FILE_TYPE_NOT_SUPPORTED);
         }
 
         // 파일 확장자 확인
         String originalFilename = file.getOriginalFilename();
         if (originalFilename == null || !hasValidExtension(originalFilename, fileType)) {
-            throw new APIException(ResponseStatus.FILE_EXTENSION_NOT_ALLOWED);
+            throw new APIException(ResponseStatus.FILE_TYPE_NOT_SUPPORTED);
         }
     }
 
