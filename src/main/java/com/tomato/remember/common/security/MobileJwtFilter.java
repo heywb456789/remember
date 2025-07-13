@@ -3,6 +3,9 @@ package com.tomato.remember.common.security;
 import com.tomato.remember.application.member.entity.Member;
 import com.tomato.remember.application.security.MemberUserDetails;
 import com.tomato.remember.application.security.MemberUserDetailsService;
+import com.tomato.remember.common.dto.TokenRefreshResult;
+import com.tomato.remember.common.dto.TokenStateInfo;
+import com.tomato.remember.common.dto.TokenUpdateResult;
 import com.tomato.remember.common.util.CookieUtil;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
@@ -37,7 +40,8 @@ public class MobileJwtFilter extends OncePerRequestFilter {
             "/mobile/memorial/create",
             "/mobile/memorial/*/edit",
             "/mobile/video-call",
-            "/mobile/mypage"
+            "/mobile/mypage",
+            "/mobile/family"
     };
 
     @Override
@@ -151,50 +155,119 @@ public class MobileJwtFilter extends OncePerRequestFilter {
     /**
      * 토큰 만료 처리 - 리프레시 토큰으로 갱신 시도
      */
-    private void handleExpiredToken(HttpServletRequest request, HttpServletResponse response,
-                                    FilterChain filterChain, boolean isAuthRequired) throws IOException, ServletException {
-        log.debug("Handling expired token");
+    private void handleExpiredToken(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain,
+                                    boolean isAuthRequired) throws IOException, ServletException {
+
+        log.debug("🔄 Handling expired access token");
+
+        // 1. 토큰 상태 진단
+        TokenStateInfo tokenState = cookieUtil.diagnoseTokenState(request);
+        log.debug("🔍 Token state: {}", tokenState);
+
+        // 2. 부분 손상 감지
+        if (tokenState.isPartiallyBroken()) {
+            log.warn(" Partial token corruption detected - cleaning all tokens");
+            cookieUtil.clearAllMemberTokens(response);
+            handlePostClearAction(request, response, filterChain, isAuthRequired);
+            return;
+        }
 
         String refreshToken = cookieUtil.getMemberRefreshToken(request);
-        log.debug("Refresh token: {}", refreshToken != null ? "PRESENT" : "NULL");
-
         if (refreshToken == null) {
-            log.debug("No refresh token found - clearing cookies");
-            cookieUtil.clearMemberTokenCookies(response);
+            log.debug("No refresh token found");
+            cookieUtil.clearAllMemberTokens(response);
             handlePostClearAction(request, response, filterChain, isAuthRequired);
             return;
         }
 
         try {
+            // RefreshToken 검증
             if (!tokenProvider.validateMemberToken(refreshToken)) {
-                log.debug("Invalid refresh token - clearing cookies");
-                cookieUtil.clearMemberTokenCookies(response);
+                log.debug("Refresh token invalid");
+                cookieUtil.clearAllMemberTokens(response);
                 handlePostClearAction(request, response, filterChain, isAuthRequired);
                 return;
             }
 
-            log.debug("Attempting to refresh tokens");
-            String newAccessToken = refreshTokens(request, response, refreshToken);
-            authenticateMember(request, newAccessToken);
+            // 🎯 원자적 토큰 갱신
+            log.debug("🔄 Attempting atomic token refresh");
+            TokenRefreshResult refreshResult = performAtomicTokenRefresh(request, response, refreshToken);
 
-            log.debug("Token refresh successful");
-            filterChain.doFilter(request, response);
+            if (refreshResult.isSuccess()) {
+                log.info("Token refresh successful");
+                authenticateMember(request, refreshResult.getNewAccessToken());
+                filterChain.doFilter(request, response);
+            } else {
+                log.error("Token refresh failed: {}", refreshResult.getErrorMessage());
+                handlePostClearAction(request, response, filterChain, isAuthRequired);
+            }
 
-        } catch (Exception refreshEx) {
-            log.error("Token refresh failed - clearing cookies", refreshEx);
-            cookieUtil.clearMemberTokenCookies(response);
+        } catch (ExpiredJwtException ex) {
+            log.debug("Refresh token also expired");
+            cookieUtil.clearAllMemberTokens(response);
             handlePostClearAction(request, response, filterChain, isAuthRequired);
+
+        } catch (Exception ex) {
+            log.error("Error during token refresh", ex);
+            cookieUtil.clearAllMemberTokens(response);
+            handlePostClearAction(request, response, filterChain, isAuthRequired);
+        }
+    }
+
+    /**
+     * 원자적 토큰 갱신 - 새로 추가
+     */
+    private TokenRefreshResult performAtomicTokenRefresh(HttpServletRequest request,
+                                                         HttpServletResponse response,
+                                                         String refreshToken) {
+        try {
+            // 1. 회원 정보 조회
+            String memberIdStr = tokenProvider.getSubject(refreshToken);
+            Long memberId = Long.parseLong(memberIdStr);
+
+            UserDetails userDetails = memberUserDetailsService.loadUserById(memberId);
+            Member member = ((MemberUserDetails) userDetails).getMember();
+
+            // 2. 새 토큰 쌍 생성
+            String newAccessToken = tokenProvider.createMemberAccessToken(member);
+            String newRefreshToken = tokenProvider.createMemberRefreshToken(member, false);
+
+            // 3. 원자적 쿠키 설정
+            TokenUpdateResult updateResult = cookieUtil.setMemberTokensAtomic(
+                    response, newAccessToken, newRefreshToken
+            );
+
+            if (!updateResult.isSuccess()) {
+                return TokenRefreshResult.failure("Cookie update failed: " + updateResult.getErrorMessage());
+            }
+
+            // 4. Request 속성 설정
+            cookieUtil.setTokenRefreshAttributes(request, newAccessToken, newRefreshToken);
+
+            return TokenRefreshResult.success(newAccessToken, newRefreshToken, memberId);
+
+        } catch (Exception e) {
+            log.error("Token refresh failed", e);
+            return TokenRefreshResult.failure(e.getMessage());
         }
     }
 
     /**
      * 쿠키 클리어 후 후속 처리
      */
-    private void handlePostClearAction(HttpServletRequest request, HttpServletResponse response,
-                                       FilterChain filterChain, boolean isAuthRequired) throws IOException, ServletException {
+    private void handlePostClearAction(HttpServletRequest request,
+                                       HttpServletResponse response,
+                                       FilterChain filterChain,
+                                       boolean isAuthRequired) throws IOException, ServletException {
+        SecurityContextHolder.clearContext();
+
         if (isAuthRequired) {
-            redirectToLogin(response);
+            log.debug("Auth required - redirecting to login");
+            response.sendRedirect("/mobile/login?reason=token_expired");
         } else {
+            log.debug("Guest access allowed - continuing");
             filterChain.doFilter(request, response);
         }
     }

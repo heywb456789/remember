@@ -139,37 +139,62 @@ export async function handleTokenRefresh() {
   const refreshToken = localStorage.getItem('refreshToken');
 
   if (!refreshToken) {
+    //완전 정리
+    await performCompleteTokenCleanup();
     throw new FetchError(401, null, '리프레시 토큰이 없습니다.', null);
   }
 
-  const res = await fetch('/api/auth/refresh', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refreshToken }),
-    credentials: 'include'
-  });
+  try {
+    const res = await fetch('/api/auth/refresh', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken }),
+      credentials: 'include'
+    });
 
-  if (!res.ok) {
-    localStorage.clear();
-    window.location.href = '/mobile/login';
-    throw new FetchError(
-        res.status,
-        null,
-        '세션이 만료되었습니다. 다시 로그인 해주세요.',
-        null
-    );
+    if (!res.ok) {
+
+      await performCompleteTokenCleanup();
+
+      if (res.status === 401 || res.status === 403) {
+        window.location.href = '/mobile/login?reason=session_expired';
+      }
+
+      throw new FetchError(res.status, null, '토큰 갱신 실패', null);
+    }
+
+    const data = await res.json();
+
+    if (data.status?.code === 'OK_0000' && data.response) {
+      localStorage.setItem('accessToken', data.response.accessToken);
+      localStorage.setItem('refreshToken', data.response.refreshToken);
+
+      console.log('토큰 갱신 성공');
+      return data.response;
+
+    } else {
+      throw new FetchError(res.status, data.status?.code, data.status?.message, data);
+    }
+
+  } catch (error) {
+    console.error('토큰 갱신 중 오류:', error);
+    // 🎯 개선: 오류 시 완전 정리
+    await performCompleteTokenCleanup();
+    throw error;
   }
+}
 
-  const data = await res.json();
+async function performCompleteTokenCleanup() {
+  console.log('🗑️ 모든 토큰 정리 시작');
 
-  if (data.status?.code === 'OK_0000' && data.response) {
-    localStorage.setItem('accessToken', data.response.accessToken);
-    localStorage.setItem('refreshToken', data.response.refreshToken);
-    console.log('회원 토큰 갱신 완료');
-    return data.response;
-  } else {
-    throw new FetchError(res.status, data.status?.code, data.status?.message, data);
-  }
+  localStorage.removeItem('accessToken');
+  localStorage.removeItem('refreshToken');
+
+  window.dispatchEvent(new CustomEvent('tokenCleared', {
+    detail: { reason: 'cleanup', timestamp: new Date().toISOString() }
+  }));
+
+  console.log('✅ 모든 토큰 정리 완료');
 }
 
 /**

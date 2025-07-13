@@ -1,5 +1,7 @@
 package com.tomato.remember.common.util;
 
+import com.tomato.remember.common.dto.TokenStateInfo;
+import com.tomato.remember.common.dto.TokenUpdateResult;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -292,5 +294,107 @@ public class CookieUtil {
 
     public String getNewRefreshToken(HttpServletRequest request) {
         return (String) request.getAttribute("NEW_REFRESH_TOKEN");
+    }
+
+    /**
+     * 원자적 토큰 설정 - All or Nothing 방식
+     */
+    public TokenUpdateResult setMemberTokensAtomic(HttpServletResponse response,
+                                                   String accessToken,
+                                                   String refreshToken) {
+        log.info("🔧 Starting atomic token update...");
+
+        try {
+            // 1단계: 검증
+            if (!isValidTokenPair(accessToken, refreshToken)) {
+                log.error("❌ Invalid token pair provided");
+                return TokenUpdateResult.failure("Invalid tokens");
+            }
+
+            // 2단계: 원자적 설정
+            setMemberTokensWithSync(response, accessToken, refreshToken);
+
+            // 3단계: 성공 로그
+            log.info("✅ Atomic token update completed successfully");
+            return TokenUpdateResult.success();
+
+        } catch (Exception e) {
+            log.error("❌ Atomic token update failed - performing cleanup", e);
+
+            // 실패 시 모든 토큰 정리
+            clearAllMemberTokens(response);
+
+            return TokenUpdateResult.failure(e.getMessage());
+        }
+    }
+
+    /**
+     * 완전한 토큰 정리 - 모든 관련 토큰/헤더 삭제
+     */
+    public void clearAllMemberTokens(HttpServletResponse response) {
+        log.info("🗑️ Starting complete token cleanup...");
+
+        // 1. 기존 쿠키 정리 메서드 호출
+        clearMemberTokenCookies(response);
+
+        // 2. 동기화 헤더 정리 신호
+        response.setHeader("X-Token-Cleared", "true");
+        response.setHeader("X-Clear-LocalStorage", "member_tokens");
+
+        // 3. 기존 동기화 헤더 제거
+        response.setHeader(HEADER_NEW_ACCESS_TOKEN, "");
+        response.setHeader(HEADER_NEW_REFRESH_TOKEN, "");
+
+        log.info("✅ Complete token cleanup finished");
+    }
+
+    /**
+     * 토큰 쌍 유효성 검증
+     */
+    private boolean isValidTokenPair(String accessToken, String refreshToken) {
+        if (accessToken == null || refreshToken == null) {
+            return false;
+        }
+
+        // JWT 형식 검증
+        return isValidJwtFormat(accessToken) && isValidJwtFormat(refreshToken);
+    }
+
+    /**
+     * JWT 형식 검증
+     */
+    private boolean isValidJwtFormat(String token) {
+        if (token == null || token.trim().isEmpty()) {
+            return false;
+        }
+
+        String[] parts = token.split("\\.");
+        if (parts.length != 3) {
+            return false;
+        }
+
+        for (String part : parts) {
+            if (part.isEmpty()) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * 토큰 상태 진단
+     */
+    public TokenStateInfo diagnoseTokenState(HttpServletRequest request) {
+        String accessToken = getMemberAccessToken(request);
+        String refreshToken = getMemberRefreshToken(request);
+
+        return TokenStateInfo.builder()
+                .hasAccessToken(accessToken != null)
+                .hasRefreshToken(refreshToken != null)
+                .accessTokenValid(isValidJwtFormat(accessToken))
+                .refreshTokenValid(isValidJwtFormat(refreshToken))
+                .isComplete(accessToken != null && refreshToken != null)
+                .build();
     }
 }
