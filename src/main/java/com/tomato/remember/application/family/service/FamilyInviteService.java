@@ -52,27 +52,28 @@ public class FamilyInviteService {
             inviteToken.substring(0, 8) + "...", inviteInfo.getExpiresAt());
     }
 
+
     /**
      * 초대 정보 조회
      */
     public InviteInfo getInviteInfo(String inviteToken) {
         log.debug("초대 정보 조회 - 토큰: {}", inviteToken.substring(0, 8) + "...");
-        
+
         InviteInfo inviteInfo = inviteStorage.get(inviteToken);
-        
+
         if (inviteInfo == null) {
             log.warn("초대 정보 없음 - 토큰: {}", inviteToken.substring(0, 8) + "...");
             return null;
         }
-        
+
         // 만료 확인
         if (inviteInfo.isExpired()) {
-            log.warn("초대 정보 만료 - 토큰: {}, 만료시간: {}", 
+            log.warn("초대 정보 만료 - 토큰: {}, 만료시간: {}",
                 inviteToken.substring(0, 8) + "...", inviteInfo.getExpiresAt());
             inviteStorage.remove(inviteToken);
             return null;
         }
-        
+
         return inviteInfo;
     }
 

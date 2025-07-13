@@ -1,11 +1,13 @@
 package com.tomato.remember.application.family.service;
 
+import com.tomato.remember.application.family.code.InviteStatus;
 import com.tomato.remember.application.family.dto.FamilyAllDataResponse;
 import com.tomato.remember.application.family.dto.FamilyInviteRequest;
 import com.tomato.remember.application.family.dto.FamilyMemberResponse;
 import com.tomato.remember.application.family.dto.PermissionUpdateRequest;
 import com.tomato.remember.application.family.entity.FamilyMember;
 import com.tomato.remember.application.family.repository.FamilyMemberRepository;
+import com.tomato.remember.application.member.code.Relationship;
 import com.tomato.remember.application.member.entity.Member;
 import com.tomato.remember.application.memorial.entity.Memorial;
 import com.tomato.remember.application.memorial.repository.MemorialRepository;
@@ -50,16 +52,124 @@ public class FamilyService {
     public List<FamilyMemberResponse> getAllFamilyMembersForSSR(Member member) {
         log.debug("SSR용 전체 가족 구성원 조회 - 사용자: {}", member.getId());
 
-        List<FamilyMember> familyMembers = familyMemberRepository.findAllAccessibleFamilyMembers(member);
+        List<FamilyMemberResponse> result = new ArrayList<>();
 
-        List<FamilyMemberResponse> responses = familyMembers.stream()
-                .map(FamilyMemberResponse::from)
-                .collect(Collectors.toList());
+        try {
+            // 🔥 1. 내가 소유한 메모리얼들 조회 (디버깅 강화)
+            List<Memorial> myMemorials = memorialService.findByOwner(member);
+            log.info("🔍 디버깅: 소유한 메모리얼 수: {} (사용자: {})", myMemorials.size(), member.getId());
 
-        log.debug("SSR용 전체 가족 구성원 조회 완료 - 사용자: {}, 구성원 수: {}",
-                member.getId(), responses.size());
+            for (Memorial memorial : myMemorials) {
+                log.info("🔍 디버깅: 메모리얼 처리 중 - ID: {}, 이름: {}, 소유자: {}",
+                        memorial.getId(), memorial.getName(), memorial.getOwner().getId());
 
-        return responses;
+                try {
+                    FamilyMemberResponse myInfo = createOwnerAsFamilyMember(memorial, member);
+                    result.add(myInfo);
+                    log.info("✅ 소유자 정보 추가 완료: 메모리얼={}, 소유자={}",
+                            memorial.getId(), myInfo.getMember().getName());
+                } catch (Exception e) {
+                    log.error("❌ 소유자 정보 생성 실패: 메모리얼={}", memorial.getId(), e);
+                }
+            }
+
+            // 🔥 2. 초대된 가족 구성원들 추가 (디버깅 강화)
+            List<FamilyMember> familyMembers = familyMemberRepository.findAllAccessibleFamilyMembers(member);
+            log.info("🔍 디버깅: 초대된 가족 구성원 수: {} (사용자: {})", familyMembers.size(), member.getId());
+
+            List<FamilyMemberResponse> invitedMembers = familyMembers.stream()
+                    .map(fm -> {
+                        log.debug("🔍 디버깅: 초대받은 구성원 - ID: {}, 이름: {}, 메모리얼: {}",
+                                fm.getId(), fm.getMember().getName(), fm.getMemorial().getId());
+                        return FamilyMemberResponse.from(fm);
+                    })
+                    .collect(Collectors.toList());
+
+            result.addAll(invitedMembers);
+
+            log.info("🎯 SSR용 전체 가족 구성원 조회 완료 - 사용자: {}, 총 구성원 수: {} (소유자: {}, 초대된 구성원: {})",
+                    member.getId(), result.size(), myMemorials.size(), invitedMembers.size());
+
+            // 🔥 3. 결과 상세 로깅
+            for (FamilyMemberResponse familyMemberResponse : result) {
+                log.debug("📋 결과 구성원: ID={}, 이름={}, 관계={}, 메모리얼={}",
+                        familyMemberResponse.getId(), familyMemberResponse.getMember().getName(),
+                        familyMemberResponse.getRelationship(), familyMemberResponse.getMemorial().getId());
+            }
+
+        } catch (Exception e) {
+            log.error("❌ 가족 구성원 조회 중 오류 발생 - 사용자: {}", member.getId(), e);
+            // 오류가 발생해도 빈 리스트라도 반환
+        }
+
+        return result;
+    }
+
+    /**
+     * 소유자 정보를 FamilyMemberResponse로 변환
+     */
+    // 🔥 public으로 변경해서 테스트
+    public FamilyMemberResponse createOwnerAsFamilyMember(Memorial memorial, Member owner) {
+        log.debug("🏠 소유자 정보 생성 중 - 메모리얼: {}, 소유자: {}", memorial.getId(), owner.getId());
+
+        // 🔥 널 체크 추가
+        if (memorial == null) {
+            log.error("❌ Memorial이 null입니다!");
+            throw new IllegalArgumentException("Memorial cannot be null");
+        }
+
+        if (owner == null) {
+            log.error("❌ Owner가 null입니다!");
+            throw new IllegalArgumentException("Owner cannot be null");
+        }
+
+        // 🔥 소유권 확인
+        if (!memorial.getOwner().equals(owner)) {
+            log.warn("⚠️ 소유권 불일치: 메모리얼 소유자={}, 요청자={}",
+                    memorial.getOwner().getId(), owner.getId());
+        }
+
+        FamilyMemberResponse ownerResponse = FamilyMemberResponse.builder()
+                .id(-memorial.getId()) // 음수 ID로 구분 (메모리얼별 고유)
+                .memorial(FamilyMemberResponse.MemorialInfo.builder()
+                        .id(memorial.getId())
+                        .name(memorial.getName())
+                        .nickname(memorial.getNickname())
+                        .mainProfileImageUrl(memorial.getMainProfileImageUrl())
+                        .isActive(memorial.isActive())
+                        .build())
+                .member(FamilyMemberResponse.MemberInfo.builder()
+                        .id(owner.getId())
+                        .name(owner.getName())
+                        .email(owner.getEmail()) // 소유자는 이메일 표시
+                        .phoneNumber(owner.getPhoneNumber()) // 소유자는 전화번호 표시
+                        .profileImageUrl(owner.getProfileImageUrl())
+                        .isActive(owner.isActive())
+                        .build())
+                .invitedBy(FamilyMemberResponse.MemberInfo.builder()
+                        .id(owner.getId())
+                        .name(owner.getName())
+                        .build())
+                .relationship(Relationship.SELF) // 🔥 핵심: SELF 관계
+                .relationshipDisplayName("메모리얼 소유자") // 🔥 표시명 명확화
+                .inviteStatus(InviteStatus.ACCEPTED)
+                .inviteStatusDisplayName("메모리얼 소유자")
+                .permissions(FamilyMemberResponse.PermissionInfo.builder()
+                        .memorialAccess(true)
+                        .videoCallAccess(true)
+                        .canModify(false) // 소유자는 권한 수정 불가
+                        .build())
+                .dateTime(FamilyMemberResponse.DateTimeInfo.builder()
+                        .createdAt(memorial.getCreatedAt())
+                        .lastAccessAt(LocalDateTime.now())
+                        .formattedLastAccess("방금 전")
+                        .build())
+                .build();
+
+        log.info("✅ 소유자 정보 생성 완료: ID={}, 이름={}, 관계={}",
+                ownerResponse.getId(), ownerResponse.getMember().getName(), ownerResponse.getRelationship());
+
+        return ownerResponse;
     }
 
     /**
@@ -122,32 +232,48 @@ public class FamilyService {
     public FamilyAllDataResponse getAllFamilyDataForApp(Member member) {
         log.debug("앱용 전체 가족 데이터 조회 - 사용자: {}", member.getId());
 
-        // 1. 접근 가능한 모든 메모리얼 조회
-        List<Memorial> accessibleMemorials = getAccessibleMemorials(member);
-
-        // 2. 전체 가족 구성원 조회
+        // 🔥 1. SSR과 동일한 로직으로 데이터 조회 (소유자 포함)
         List<FamilyMemberResponse> allFamilyMembers = getAllFamilyMembersForSSR(member);
 
-        // 3. 통계 정보 계산
+        // 🔥 2. 접근 가능한 모든 메모리얼 조회
+        List<Memorial> accessibleMemorials = getAccessibleMemorials(member);
+
+        // 🔥 3. 통계 정보 계산
         FamilyAllDataResponse.StatisticsInfo statistics = buildStatisticsInfo(
                 accessibleMemorials, allFamilyMembers);
 
-        // 4. 메모리얼 정보 변환
+        // 🔥 4. 메모리얼 정보 변환
         List<FamilyAllDataResponse.MemorialInfo> memorialInfos = accessibleMemorials.stream()
                 .map(this::buildMemorialInfo)
                 .collect(Collectors.toList());
 
         FamilyAllDataResponse response = FamilyAllDataResponse.builder()
                 .memorials(memorialInfos)
-                .familyMembers(allFamilyMembers)
+                .familyMembers(allFamilyMembers) // 🔥 소유자 포함된 전체 목록
                 .statistics(statistics)
                 .build();
 
-        log.debug("앱용 전체 가족 데이터 조회 완료 - 사용자: {}, 메모리얼: {}, 가족 구성원: {}",
+        log.debug("앱용 전체 가족 데이터 조회 완료 - 사용자: {}, 메모리얼: {}, 가족 구성원: {} (소유자 포함)",
                 member.getId(), memorialInfos.size(), allFamilyMembers.size());
 
         return response;
     }
+    /**
+     * 특정 메모리얼의 가족 구성원 조회 (SSR용)
+     */
+    public List<FamilyMemberResponse> getFamilyMembersByMemorial(Long memorialId) {
+        log.info("메모리얼 가족 구성원 조회 - 메모리얼: {}", memorialId);
+
+        Memorial memorial = memorialRepository.findById(memorialId)
+                .orElseThrow(() -> new IllegalArgumentException("메모리얼을 찾을 수 없습니다."));
+
+        List<FamilyMember> familyMembers = familyMemberRepository.findByMemorialOrderByCreatedAtDesc(memorial);
+
+        return familyMembers.stream()
+                .map(FamilyMemberResponse::from)
+                .collect(Collectors.toList());
+    }
+
 
     /**
      * 앱용: 특정 메모리얼의 가족 구성원 조회 (페이징)

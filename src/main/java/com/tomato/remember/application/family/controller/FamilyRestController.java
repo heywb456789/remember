@@ -4,8 +4,14 @@ import com.tomato.remember.application.family.dto.FamilyAllDataResponse;
 import com.tomato.remember.application.family.dto.FamilyInviteRequest;
 import com.tomato.remember.application.family.dto.FamilyMemberResponse;
 import com.tomato.remember.application.family.dto.PermissionUpdateRequest;
+import com.tomato.remember.application.family.entity.FamilyMember;
+import com.tomato.remember.application.family.repository.FamilyMemberRepository;
 import com.tomato.remember.application.family.service.FamilyService;
+import com.tomato.remember.application.member.code.Relationship;
 import com.tomato.remember.application.member.entity.Member;
+import com.tomato.remember.application.member.service.MemberService;
+import com.tomato.remember.application.memorial.entity.Memorial;
+import com.tomato.remember.application.memorial.repository.MemorialRepository;
 import com.tomato.remember.application.security.MemberUserDetails;
 import com.tomato.remember.common.code.ResponseStatus;
 import com.tomato.remember.common.dto.ListDTO;
@@ -13,6 +19,8 @@ import com.tomato.remember.common.dto.ResponseDTO;
 import com.tomato.remember.common.exception.APIException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -21,6 +29,7 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 가족 관리 REST API 컨트롤러
@@ -34,6 +43,8 @@ import java.util.List;
 public class FamilyRestController {
 
     private final FamilyService familyService;
+    private final FamilyMemberRepository familyMemberRepository;
+    private final MemorialRepository memorialRepository;
 
     // ===== 앱 전용 데이터 API =====
 
@@ -55,16 +66,28 @@ public class FamilyRestController {
         try {
             Member member = currentUser.getMember();
 
-            // SSR과 동일한 로직으로 전체 데이터 조회
+            // 🔥 SSR과 동일한 로직으로 전체 데이터 조회 (소유자 포함)
             FamilyAllDataResponse allData = familyService.getAllFamilyDataForApp(member);
 
-            log.info("앱 전용 전체 가족 데이터 조회 완료 - 사용자: {}, 메모리얼: {}, 가족 구성원: {}",
-                    member.getId(), allData.getMemorials().size(), allData.getFamilyMembers().size());
+            // 🔥 소유자 정보 존재 여부 검증
+            long ownerCount = allData.getFamilyMembers().stream()
+                    .filter(fm -> fm.getRelationship() == Relationship.SELF)
+                    .count();
+
+            log.info("📊 앱 API 응답 데이터: 메모리얼={}, 전체구성원={}, 소유자정보={}, 활성구성원={}",
+                    allData.getMemorialCount(),
+                    allData.getFamilyMemberCount(),
+                    ownerCount,
+                    allData.getStatistics().getActiveMembers());
+
+            if (ownerCount == 0) {
+                log.warn("⚠️ 앱 API: 소유자 정보가 없습니다! 사용자: {}", member.getId());
+            }
 
             return ResponseDTO.ok(allData);
 
         } catch (Exception e) {
-            log.error("앱 전용 전체 가족 데이터 조회 실패 - 사용자: {}", currentUser.getMember().getId(), e);
+            log.error("❌ 앱 전용 전체 가족 데이터 조회 실패 - 사용자: {}", currentUser.getMember().getId(), e);
             throw new APIException(ResponseStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -85,10 +108,42 @@ public class FamilyRestController {
                 memorialId, currentUser.getMember().getId());
 
         try {
-            ListDTO<FamilyMemberResponse> result = familyService.getFamilyMembersForApp(
-                    memorialId, currentUser.getMember(), pageable);
+            Member member = currentUser.getMember();
 
-            log.info("특정 메모리얼 가족 구성원 목록 조회 완료 - 메모리얼: {}, 구성원 수: {}",
+            // 🔥 메모리얼 접근 권한 확인
+            Memorial memorial = memorialRepository.findById(memorialId)
+                    .orElseThrow(() -> new IllegalArgumentException("메모리얼을 찾을 수 없습니다."));
+
+            if (!memorial.canBeViewedBy(member)) {
+                throw new IllegalArgumentException("메모리얼에 접근할 권한이 없습니다.");
+            }
+
+            // 🔥 해당 메모리얼의 가족 구성원 조회 (페이징)
+            Page<FamilyMember> familyMembersPage = familyMemberRepository
+                    .findByMemorialOrderByCreatedAtDesc(memorial, pageable);
+
+            // 🔥 DTO 변환
+            List<FamilyMemberResponse> familyMemberResponses = familyMembersPage.getContent().stream()
+                    .map(FamilyMemberResponse::from)
+                    .collect(Collectors.toList());
+
+            // 🔥 소유자 정보 추가 (해당 메모리얼의 소유자인 경우에만)
+            if (memorial.getOwner().equals(member)) {
+                FamilyMemberResponse ownerInfo = familyService.createOwnerAsFamilyMember(memorial, member);
+                familyMemberResponses.add(0, ownerInfo); // 맨 앞에 추가
+                log.info("✅ 소유자 정보 추가: 메모리얼={}, 소유자={}", memorialId, member.getId());
+            }
+
+            // 🔥 새로운 Page 객체 생성 (소유자 포함)
+            PageImpl<FamilyMemberResponse> resultPage = new PageImpl<>(
+                    familyMemberResponses,
+                    pageable,
+                    familyMembersPage.getTotalElements() + (memorial.getOwner().equals(member) ? 1 : 0)
+            );
+
+            ListDTO<FamilyMemberResponse> result = ListDTO.of(resultPage);
+
+            log.info("특정 메모리얼 가족 구성원 조회 완료 - 메모리얼: {}, 총구성원: {} (소유자포함)",
                     memorialId, result.getPagination().getTotalElements());
 
             return ResponseDTO.ok(result);
