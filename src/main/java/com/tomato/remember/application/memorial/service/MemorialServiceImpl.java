@@ -31,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 메모리얼 서비스 구현체
@@ -156,6 +157,49 @@ public class MemorialServiceImpl implements MemorialService {
 
         log.info("메모리얼 방문 기록 완료 - ID: {}, 총 방문 횟수: {}", memorialId, memorial.getTotalVisits());
     }
+
+    /**
+     * 사용자가 소유한 메모리얼 목록 조회 (비페이징)
+     * FamilyController에서 사용
+     */
+    @Override
+    public List<Memorial> findByOwner(Member owner) {
+        log.info("사용자 소유 메모리얼 목록 조회 - 사용자: {}", owner.getId());
+
+        return memorialRepository.findByOwnerOrderByCreatedAtDesc(owner);
+    }
+
+    /**
+     * 메모리얼 ID로 조회
+     * FamilyController에서 사용
+     */
+    @Override
+    public Memorial findById(Long memorialId) {
+        log.info("메모리얼 ID로 조회 - ID: {}", memorialId);
+
+        return memorialRepository.findById(memorialId)
+                .orElseThrow(() -> {
+                    log.warn("메모리얼을 찾을 수 없음 - ID: {}", memorialId);
+                    return new IllegalArgumentException("메모리얼을 찾을 수 없습니다.");
+                });
+    }
+
+    /**
+     * 사용자의 메모리얼 목록 조회 (API용, 비페이징)
+     * API 컨트롤러에서 사용
+     */
+    @Override
+    public List<MemorialListResponseDTO> getMyMemorialsForApi(Member member) {
+        log.info("사용자 메모리얼 목록 조회 (API용) - 사용자: {}", member.getId());
+
+        List<Memorial> memorials = memorialRepository.findByOwnerOrderByCreatedAtDesc(member);
+
+        return memorials.stream()
+                .map(this::convertToListResponseDTO)
+                .collect(Collectors.toList());
+    }
+
+
 
     /**
      * 메모리얼 엔티티 생성

@@ -156,6 +156,44 @@ public class MemorialRestController {
     }
 
     /**
+     * 내 메모리얼 목록 조회 (비페이징) - 가족 관리용
+     * GET /api/memorial/my-memorials
+     * JavaScript family-list.js에서 호출하는 경로
+     */
+    @Operation(summary = "내 메모리얼 목록 조회 (비페이징)", description = "가족 관리에서 사용하는 메모리얼 목록을 조회합니다.")
+    @GetMapping("/memorial/my-memorials")
+    public ResponseDTO<List<MemorialListResponseDTO>> getMyMemorialsForFamily(
+            @Parameter(hidden = true) @AuthenticationPrincipal MemberUserDetails userDetails) {
+
+        // 인증된 사용자 확인
+        if (userDetails == null) {
+            throw new APIException(ResponseStatus.UNAUTHORIZED);
+        }
+
+        Member member = userDetails.getMember();
+        if (member == null) {
+            throw new APIException(ResponseStatus.USER_NOT_EXIST);
+        }
+
+        log.info("내 메모리얼 목록 조회 (가족 관리용) - 사용자: {}", member.getId());
+
+        try {
+            // 비페이징으로 모든 메모리얼 조회
+            List<MemorialListResponseDTO> result = memorialService.getMyMemorialsForApi(member);
+
+            log.info("내 메모리얼 목록 조회 완료 - 사용자: {}, 메모리얼 수: {}",
+                    member.getId(), result.size());
+
+            return ResponseDTO.ok(result);
+
+        } catch (Exception e) {
+            log.error("내 메모리얼 목록 조회 실패 - 사용자: {}", member.getId(), e);
+            throw new APIException(ResponseStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+
+    /**
      * 메모리얼 방문 기록 (통화 후 호출)
      *
      * @param memorialId 메모리얼 ID

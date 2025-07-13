@@ -76,7 +76,7 @@ public class Memorial extends Audit {
     @Column(nullable = false, length = 10)
     private Gender gender;
 
-    @Comment("등록자와의 관계")
+    @Comment("등록자(생성자)와 고인의 관계")
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private Relationship relationship;
@@ -222,6 +222,75 @@ public class Memorial extends Audit {
             .filter(file -> file.getFileType() == fileType)
             .count();
     }
+    // ===== 헬퍼 메서드 - 가족 구성원 관련 =====
+
+    /**
+     * 활성 가족 구성원 목록 조회
+     */
+    public List<FamilyMember> getActiveFamilyMembers() {
+        return familyMembers.stream()
+                .filter(fm -> fm.getInviteStatus() == InviteStatus.ACCEPTED)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 대기 중인 초대 목록 조회
+     */
+    public List<FamilyMember> getPendingInvitations() {
+        return familyMembers.stream()
+                .filter(fm -> fm.getInviteStatus() == InviteStatus.PENDING)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 가족 구성원 추가
+     */
+    public void addFamilyMember(FamilyMember familyMember) {
+        familyMember.setMemorial(this);
+        this.familyMembers.add(familyMember);
+    }
+
+    /**
+     * 가족 구성원 제거
+     */
+    public void removeFamilyMember(FamilyMember familyMember) {
+        this.familyMembers.remove(familyMember);
+        familyMember.setMemorial(null);
+    }
+
+    /**
+     * 특정 회원이 가족 구성원인지 확인
+     */
+    public boolean isFamilyMember(Member member) {
+        return familyMembers.stream()
+                .anyMatch(fm -> fm.getMember().equals(member) &&
+                        fm.getInviteStatus() == InviteStatus.ACCEPTED);
+    }
+
+    /**
+     * 특정 회원의 가족 관계 조회
+     */
+    public FamilyMember getFamilyMember(Member member) {
+        return familyMembers.stream()
+                .filter(fm -> fm.getMember().equals(member))
+                .findFirst()
+                .orElse(null);
+    }
+
+    /**
+     * 활성 가족 구성원 수 조회
+     */
+    public int getActiveFamilyMemberCount() {
+        return getActiveFamilyMembers().size();
+    }
+
+    /**
+     * 대기 중인 초대 수 조회
+     */
+    public int getPendingInvitationCount() {
+        return getPendingInvitations().size();
+    }
+
 
     // ===== 헬퍼 메서드 - 비즈니스 로직 =====
 
@@ -364,17 +433,6 @@ public class Memorial extends Audit {
         return aiTrainingStatus == AiTrainingStatus.FAILED;
     }
 
-    // ===== 가족 구성원 관련 메서드 =====
-
-    public int getFamilyMemberCount() {
-        return familyMembers.size();
-    }
-
-    public List<FamilyMember> getActiveFamilyMembers() {
-        return familyMembers.stream()
-            .filter(fm -> fm.getInviteStatus() == InviteStatus.ACCEPTED)
-            .collect(Collectors.toList());
-    }
 
     // ===== 영상통화 관련 메서드 =====
 

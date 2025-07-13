@@ -4,6 +4,7 @@ import com.tomato.remember.application.memorial.dto.MemorialCreateRequestDTO;
 import com.tomato.remember.application.memorial.dto.MemorialCreateResponseDTO;
 import com.tomato.remember.application.memorial.dto.MemorialListResponseDTO;
 import com.tomato.remember.application.member.entity.Member;
+import com.tomato.remember.application.memorial.entity.Memorial;
 import com.tomato.remember.common.dto.ListDTO;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.multipart.MultipartFile;
@@ -58,4 +59,10 @@ public interface MemorialService {
     * @param member 현재 로그인된 사용자
     */
    void recordVisit(Long memorialId, Member member);
+
+   List<MemorialListResponseDTO> getMyMemorialsForApi(Member member);
+
+   Memorial findById(Long memorialId);
+
+   List<Memorial> findByOwner(Member currentUser);
 }

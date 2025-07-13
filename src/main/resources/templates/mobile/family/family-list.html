@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>가족관리 - 토마토리멤버</title>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Bootstrap CSS -->
+    <link th:href="@{/bootstrap/css/bootstrap.css}" rel="stylesheet"/>
+    <!-- Common CSS -->
+    <link th:href="@{/assets/mobile/css/common.css}" rel="stylesheet"/>
+    <!-- Family List CSS -->
+    <link th:href="@{/assets/mobile/css/family-list.css}" rel="stylesheet"/>
+</head>
+
+<body>
+<div class="container">
+    <!-- 페이지 헤더 -->
+    <div class="page-header">
+        <button class="back-btn" onclick="history.back()" aria-label="뒤로가기">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+        <h1 class="page-title">가족관리</h1>
+    </div>
+
+    <!-- 서브타이틀 -->
+    <p class="page-subtitle">가족 구성원을 초대하고 관리하세요</p>
+
+    <!-- 메모리얼 선택 섹션 -->
+    <div class="memorial-selector-section" id="memorialSelectorSection">
+        <div class="memorial-selector-header">
+            <h3 class="selector-title">
+                <i class="fas fa-heart"></i>
+                메모리얼 선택
+            </h3>
+            <p class="selector-description">관리할 메모리얼을 선택하세요</p>
+        </div>
+
+        <!-- 메모리얼 선택 드롭다운 -->
+        <div class="memorial-dropdown">
+            <button class="memorial-select-btn" id="memorialSelectBtn" onclick="toggleMemorialDropdown()">
+                <div class="selected-memorial">
+                    <div class="memorial-avatar" id="selectedMemorialAvatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="memorial-info">
+                        <div class="memorial-name" id="selectedMemorialName">메모리얼을 선택하세요</div>
+                        <div class="memorial-relation" id="selectedMemorialRelation">-</div>
+                    </div>
+                </div>
+                <div class="dropdown-arrow">
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+            </button>
+
+            <!-- 드롭다운 메뉴 -->
+            <div class="memorial-dropdown-menu" id="memorialDropdownMenu">
+                <!-- 로딩 상태 -->
+                <div class="dropdown-loading" id="memorialLoading">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <span>메모리얼 목록을 불러오는 중...</span>
+                </div>
+
+                <!-- 메모리얼 목록 -->
+                <div class="memorial-list" id="memorialList">
+                    <!-- JavaScript로 동적 생성 -->
+                </div>
+
+                <!-- 빈 상태 -->
+                <div class="empty-memorials" id="emptyMemorials" style="display: none;">
+                    <i class="fas fa-plus-circle"></i>
+                    <p>등록된 메모리얼이 없습니다</p>
+                    <a href="/mobile/memorial/create" class="btn btn-primary btn-sm">새 메모리얼 등록</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 새 가족 구성원 초대 카드 -->
+    <div class="invite-card">
+        <div class="invite-content">
+            <div class="invite-icon">
+                <i class="fas fa-user-plus"></i>
+            </div>
+            <h2 class="invite-title">새 가족 구성원 초대</h2>
+            <p class="invite-description">이메일 또는 전화번호로 가족을 초대하세요</p>
+            <button class="invite-btn" onclick="openInviteModal()">
+                초대 링크 보내기
+            </button>
+        </div>
+    </div>
+
+    <!-- 등록된 가족 구성원 섹션 -->
+    <div class="family-section">
+        <div class="family-section-header">
+            <h3 class="family-section-title">등록된 가족 구성원</h3>
+            <div class="family-section-actions">
+                <button class="refresh-btn" onclick="refreshFamilyMembersList()" title="새로고침">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+                <div class="family-stats" id="familyStats">
+            <span class="stat-item">
+              <i class="fas fa-users"></i>
+              <span id="totalMembersCount">0</span>명
+            </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 로딩 상태 -->
+        <div class="family-loading" id="familyLoading" style="display: none;">
+            <div class="loading-content">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>가족 구성원 목록을 불러오는 중...</p>
+            </div>
+        </div>
+
+        <!-- 가족 구성원 목록 -->
+        <div id="familyMembersList" class="family-members-container">
+            <!-- 초기 서버 렌더링 데이터 -->
+            <div class="family-member-card" th:each="member : ${familyMembers}" th:if="${familyMembers != null and !familyMembers.empty}">
+                <div class="member-content">
+                    <div class="member-info">
+                        <div class="member-avatar" th:text="${#strings.substring(member.member.name, 0, 1)}">김</div>
+                        <div class="member-details">
+                            <div class="member-name" th:text="${member.member.name}">김민수</div>
+                            <div class="member-relation" th:text="${'고인과의 관계: ' + member.relationshipDisplayName}">고인과의 관계: 손자</div>
+                            <div class="member-status" th:classappend="'status-' + ${#strings.toLowerCase(member.inviteStatus.name())}">
+                                <span th:text="${'상태: ' + member.inviteStatusDisplayName}">상태: 수락됨</span>
+                                <span th:if="${member.dateTime.lastAccessAt != null}" th:text="${' • 마지막 활동: ' + #temporals.format(member.dateTime.lastAccessAt, 'MM월 dd일')}"> • 마지막 활동: 방금 전</span>
+                                <span th:unless="${member.dateTime.lastAccessAt != null}"> • 활동 없음</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="member-actions">
+                        <button class="permission-btn"
+                                th:classappend="${member.permissions.memorialAccess ? 'granted' : 'denied'}"
+                                th:onclick="'openPermissionModal(' + ${member.id} + ')'"
+                                th:text="${member.permissions.memorialAccess ? '권한 설정' : '권한 없음'}">권한 설정</button>
+                        <button class="menu-btn" th:onclick="'showMemberMenu(' + ${member.id} + ', \'' + ${member.member.name} + '\')'" aria-label="더보기">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 빈 상태 (가족 구성원이 없을 때) -->
+            <div class="empty-state" id="emptyFamilyState" th:if="${familyMembers == null or familyMembers.empty}">
+                <i class="fas fa-users"></i>
+                <h4>등록된 가족 구성원이 없습니다</h4>
+                <p>새 가족 구성원을 초대하여<br>함께 소중한 추억을 나누세요</p>
+            </div>
+        </div>
+
+        <!-- 에러 상태 -->
+        <div class="error-state" id="familyErrorState" style="display: none;">
+            <i class="fas fa-exclamation-triangle"></i>
+            <h4>가족 구성원 목록을 불러올 수 없습니다</h4>
+            <p>네트워크 연결을 확인하고 다시 시도해주세요</p>
+            <button class="btn btn-primary btn-sm" onclick="refreshFamilyMembersList()">다시 시도</button>
+        </div>
+    </div>
+
+    <!-- 권한 안내 -->
+    <div class="permission-info">
+        <h6>권한 안내</h6>
+        <ul>
+            <li>주 계정: 메모리얼 등록/수정 기능, 가족 구성원 관리</li>
+            <li>일반 계정: 영상통화, 서비스 이용 (토큰 차감)</li>
+            <li>각자의 관계에 따라 적절한 호칭으로 영상통화가 진행됩니다</li>
+        </ul>
+    </div>
+</div>
+
+<!-- 초대 모달 -->
+<div class="modal fade" id="inviteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-plus" style="color: #28a745; margin-right: 8px;"></i>
+                    가족 구성원 초대
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기">×</button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-3">새로운 가족 구성원을 초대하세요</p>
+
+                <!-- 초대 방법 선택 -->
+                <div class="invite-method mb-3">
+                    <label class="form-label fw-semibold">초대 방법</label>
+                    <div class="d-flex gap-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="inviteMethod" id="emailMethod" value="email" checked>
+                            <label class="form-check-label" for="emailMethod">이메일</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="inviteMethod" id="smsMethod" value="sms">
+                            <label class="form-check-label" for="smsMethod">문자메시지</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 이메일 주소 입력 -->
+                <div class="form-group mb-3" id="emailGroup">
+                    <label for="inviteEmail" class="form-label">이메일 주소 *</label>
+                    <input type="email" class="form-control" id="inviteEmail" placeholder="example@email.com" required>
+                </div>
+
+                <!-- 전화번호 입력 (숨김 상태) -->
+                <div class="form-group mb-3" id="phoneGroup" style="display: none;">
+                    <label for="invitePhone" class="form-label">전화번호 *</label>
+                    <input type="tel" class="form-control" id="invitePhone" placeholder="010-1234-5678" maxlength="13">
+                </div>
+
+                <!-- 관계 선택 -->
+                <div class="form-group mb-4">
+                    <label for="inviteRelationship" class="form-label">고인과의 관계 *</label>
+                    <select class="form-control" id="inviteRelationship" required>
+                        <option value="">관계를 선택해주세요</option>
+                        <option value="SPOUSE">배우자</option>
+                        <option value="FATHER">부</option>
+                        <option value="MOTHER">모</option>
+                        <option value="CHILD">자</option>
+                        <option value="DAUGHTER_IN_LAW">자부</option>
+                        <option value="SON_IN_LAW">사위</option>
+                        <option value="SPOUSE_FATHER">배우자부</option>
+                        <option value="SPOUSE_MOTHER">배우자모</option>
+                        <option value="SIBLING">형제/자매</option>
+                        <option value="GRANDCHILD">손</option>
+                        <option value="GREAT_GRANDCHILD">증손</option>
+                        <option value="GRANDFATHER">조부</option>
+                        <option value="GRANDMOTHER">조모</option>
+                        <option value="GREAT_GRANDFATHER">증조부</option>
+                        <option value="GREAT_GRANDMOTHER">증조모</option>
+                        <option value="OTHER">기타</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                <button type="button" class="btn btn-primary" onclick="sendInvite()">초대 보내기</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 권한 설정 모달 -->
+<div class="modal fade" id="permissionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-cog" style="color: #6c5ce7; margin-right: 8px;"></i>
+                    권한 설정
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="member-info-header mb-4">
+                    <div class="d-flex align-items-center">
+                        <div class="member-avatar-small" id="permissionMemberAvatar">김</div>
+                        <div class="ms-3">
+                            <h6 class="mb-1" id="permissionMemberName">김민수</h6>
+                            <small class="text-muted" id="permissionMemberRelation">고인과의 관계: 손자</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 메모리얼 접근 권한 -->
+                <div class="permission-setting mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <h6 class="mb-1">메모리얼 접근 권한</h6>
+                            <small class="text-muted">메모리얼 정보 조회 및 기본 기능 사용</small>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="memorialAccessSwitch">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 영상통화 접근 권한 -->
+                <div class="permission-setting mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <h6 class="mb-1">영상통화 접근 권한</h6>
+                            <small class="text-muted">AI와의 영상통화 기능 사용 (메모리얼 접근 권한 필요)</small>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="videoCallAccessSwitch">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <small>영상통화 권한은 메모리얼 접근 권한이 있어야 사용할 수 있습니다.</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                <button type="button" class="btn btn-primary" onclick="updatePermissions()">변경사항 저장</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 제거 확인 모달 -->
+<div class="modal fade" id="removeConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-minus" style="color: #dc3545; margin-right: 8px;"></i>
+                    가족 구성원 제거
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-4">
+                    <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #ffc107;"></i>
+                </div>
+                <h6 class="text-center mb-3">정말로 제거하시겠습니까?</h6>
+                <p class="text-center text-muted mb-4">
+                    <strong id="removeMemberName">김민수</strong>님을 가족 구성원에서 제거합니다.<br>
+                    제거된 구성원은 더 이상 메모리얼에 접근할 수 없습니다.
+                </p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-warning me-2"></i>
+                    <small>이 작업은 되돌릴 수 없습니다. 다시 추가하려면 새로 초대해야 합니다.</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                <button type="button" class="btn btn-danger" onclick="confirmRemoveMember()">제거하기</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 성공 모달 -->
+<div class="modal fade" id="successModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center p-4">
+                <div class="mb-3">
+                    <i class="fas fa-check-circle" style="font-size: 48px; color: #28a745;"></i>
+                </div>
+                <h5 class="mb-2" id="successTitle">초대 링크가 전송되었습니다</h5>
+                <p class="text-muted mb-3" id="successMessage">새로운 가족 구성원 초대가 전송되었습니다.</p>
+                <p class="small text-muted" id="successDescription">상대방이 링크를 클릭하여 가입하면 자동으로 가족 구성원이 등록됩니다.</p>
+                <button type="button" class="btn btn-success btn-block mt-3" onclick="closeSuccessModal()">확인</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script th:src="@{/bootstrap/js/bootstrap.bundle.js}"></script>
+
+<!-- 토큰 동기화 스크립트 -->
+<div th:replace="~{fragments/token-sync :: tokenSync}"></div>
+
+<!-- Common JS -->
+<script th:src="@{/assets/mobile/js/common.js}" type="module"></script>
+<script th:src="@{/assets/mobile/js/commonFetch.js}" type="module"></script>
+
+<!-- Family List JS -->
+<script th:src="@{/assets/mobile/js/family-list.js}" type="module"></script>
+
+<script>
+    // 현재 메모리얼 ID 설정 (서버에서 주입)
+    window.currentMemorialId = /*[[ ${memorial?.id} ]]*/ 1;
+
+    // 현재 편집 중인 구성원 ID
+    window.currentEditingMemberId = null;
+</script>
+</body>
+</html>

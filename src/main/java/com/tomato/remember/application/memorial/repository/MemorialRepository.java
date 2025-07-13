@@ -23,6 +23,8 @@ public interface MemorialRepository extends JpaRepository<Memorial, Long> {
      */
     Page<Memorial> findByOwnerOrderByCreatedAtDesc(Member owner, Pageable pageable);
 
+    List<Memorial> findByOwnerOrderByCreatedAtDesc(Member owner);
+
     /**
      * 소유자별 메모리얼 목록 조회 (활성 상태만)
      */
