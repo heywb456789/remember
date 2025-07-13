@@ -1,4 +1,4 @@
-// commonFetch.js - 토마토리멤버 확장 버전
+// commonFetch.js - 토마토리멤버 확장 버전 (개선됨)
 
 export class FetchError extends Error {
   constructor(status, statusCode, statusMessage, responseBody) {
@@ -23,13 +23,18 @@ async function processResponse(res) {
 
   let body = null;
   try {
-    body = await res.json();
+    const contentType = res.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      body = await res.json();
+    } else {
+      body = { message: await res.text() };
+    }
   } catch {
-    // JSON 파싱 실패해도 그냥 넘어감
+    body = { message: '서버 응답을 처리할 수 없습니다.' };
   }
 
   const code = body?.status?.code;
-  const msg = body?.status?.message || res.statusText;
+  const msg = body?.status?.message || body?.message || res.statusText;
   throw new FetchError(res.status, code, msg, body);
 }
 
@@ -39,10 +44,28 @@ async function processResponse(res) {
 export function handleFetchError(error) {
   if (error instanceof FetchError) {
     console.error('[API Error]', error);
-    alert(error.statusMessage);
+
+    // 특정 에러 코드별 처리
+    switch (error.httpStatus) {
+      case 401:
+        alert('로그인이 필요합니다.');
+        window.location.href = '/mobile/login';
+        break;
+      case 403:
+        alert('접근 권한이 없습니다.');
+        break;
+      case 404:
+        alert('요청한 페이지를 찾을 수 없습니다.');
+        break;
+      case 500:
+        alert('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+        break;
+      default:
+        alert(error.statusMessage || '오류가 발생했습니다.');
+    }
   } else {
     console.error('[Network/Error]', error);
-    alert('네트워크 오류가 발생했습니다.');
+    alert('네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.');
   }
 }
 
@@ -52,6 +75,11 @@ export function handleFetchError(error) {
 export async function checkAuthAndRedirect(redirectUrl, validatePath = '/api/auth/validate') {
   try {
     const token = localStorage.getItem('accessToken');
+    if (!token) {
+      console.warn('토큰이 없어 인증 확인을 건너뜁니다.');
+      return;
+    }
+
     const res = await fetch(validatePath, {
       method: 'GET',
       headers: { 'Authorization': `Bearer ${token}` }
@@ -64,6 +92,7 @@ export async function checkAuthAndRedirect(redirectUrl, validatePath = '/api/aut
     console.error('Auth check failed:', err);
   }
 }
+
 // =========================== 로그인 상태 확인 유틸리티 ===========================
 
 /**
@@ -108,28 +137,39 @@ export function checkLoginStatus() {
  */
 export async function handleTokenRefresh() {
   const refreshToken = localStorage.getItem('refreshToken');
+
+  if (!refreshToken) {
+    throw new FetchError(401, null, '리프레시 토큰이 없습니다.', null);
+  }
+
   const res = await fetch('/api/auth/refresh', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refreshToken })
+    body: JSON.stringify({ refreshToken }),
+    credentials: 'include'
   });
 
   if (!res.ok) {
     localStorage.clear();
     window.location.href = '/mobile/login';
     throw new FetchError(
-      res.status,
-      null,
-      '세션이 만료되었습니다. 다시 로그인 해주세요.',
-      null
+        res.status,
+        null,
+        '세션이 만료되었습니다. 다시 로그인 해주세요.',
+        null
     );
   }
 
   const data = await res.json();
-  localStorage.setItem('accessToken', data.response.accessToken);
-  localStorage.setItem('refreshToken', data.response.refreshToken);
 
-  console.log('회원 토큰 갱신 완료');
+  if (data.status?.code === 'OK_0000' && data.response) {
+    localStorage.setItem('accessToken', data.response.accessToken);
+    localStorage.setItem('refreshToken', data.response.refreshToken);
+    console.log('회원 토큰 갱신 완료');
+    return data.response;
+  } else {
+    throw new FetchError(res.status, data.status?.code, data.status?.message, data);
+  }
 }
 
 /**
@@ -137,7 +177,9 @@ export async function handleTokenRefresh() {
  */
 export async function authFetch(url, options = {}) {
   const token = localStorage.getItem('accessToken');
-  if (!token) throw new FetchError(401, null, 'Unauthorized', null);
+  if (!token) {
+    throw new FetchError(401, null, '로그인이 필요합니다.', null);
+  }
 
   let headers = {
     ...(options.body instanceof FormData ? {} : { 'Content-Type': options.contentType || 'application/json' }),
@@ -155,15 +197,22 @@ export async function authFetch(url, options = {}) {
 
   // 토큰 만료 시 갱신 후 재시도
   if (res.status === 401) {
-    await handleTokenRefresh();
-    const newToken = localStorage.getItem('accessToken');
-    headers.Authorization = `Bearer ${newToken}`;
-    res = await fetch(url, {
-      method: options.method || 'GET',
-      headers,
-      credentials: 'include',
-      body: options.body
-    });
+    try {
+      await handleTokenRefresh();
+      const newToken = localStorage.getItem('accessToken');
+      headers.Authorization = `Bearer ${newToken}`;
+
+      res = await fetch(url, {
+        method: options.method || 'GET',
+        headers,
+        credentials: 'include',
+        body: options.body
+      });
+    } catch (refreshError) {
+      // 토큰 갱신 실패 시 로그인 페이지로 리다이렉트
+      console.error('토큰 갱신 실패:', refreshError);
+      throw refreshError;
+    }
   }
 
   return processResponse(res);
@@ -174,6 +223,7 @@ export async function authFetch(url, options = {}) {
  */
 export async function optionalAuthFetch(url, options = {}) {
   const token = localStorage.getItem('accessToken');
+
   if (token) {
     try {
       return await authFetch(url, options);
@@ -187,12 +237,18 @@ export async function optionalAuthFetch(url, options = {}) {
   }
 
   // 토큰 없이 호출
+  const headers = {
+    ...(options.body instanceof FormData ? {} : { 'Content-Type': options.contentType || 'application/json' }),
+    ...(options.headers || {})
+  };
+
   const res = await fetch(url, {
     method: options.method || 'GET',
-    headers: options.headers || {},
+    headers,
     credentials: 'include',
     body: options.body
   });
+
   return processResponse(res);
 }
 
@@ -223,6 +279,33 @@ export async function getUserId() {
   }
 }
 
+/**
+ * 현재 로그인된 회원 정보 조회
+ */
+export async function getUserInfo() {
+  const accessToken = localStorage.getItem('accessToken');
+  const refreshToken = localStorage.getItem('refreshToken');
+
+  if (!accessToken || !refreshToken) {
+    return null;
+  }
+
+  try {
+    const response = await authFetch('/api/auth/me');
+    const data = await response.json();
+
+    if (data.status?.code === 'OK_0000' && data.response) {
+      return data.response;
+    } else {
+      console.error('getUserInfo: 잘못된 응답 포맷', data);
+      return null;
+    }
+  } catch (err) {
+    console.error('getUserInfo 오류:', err);
+    return null;
+  }
+}
+
 // =========================== 관리자용 API 함수 ===========================
 
 /**
@@ -230,28 +313,39 @@ export async function getUserId() {
  */
 export async function adminHandleTokenRefresh() {
   const refreshToken = localStorage.getItem('adminRefreshToken');
+
+  if (!refreshToken) {
+    throw new FetchError(401, null, '관리자 리프레시 토큰이 없습니다.', null);
+  }
+
   const res = await fetch('/admin/api/auth/refresh', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refreshToken })
+    body: JSON.stringify({ refreshToken }),
+    credentials: 'include'
   });
 
   if (!res.ok) {
     localStorage.clear();
     window.location.href = '/admin/view/login';
     throw new FetchError(
-      res.status,
-      null,
-      '관리자 세션이 만료되었습니다. 다시 로그인 해주세요.',
-      null
+        res.status,
+        null,
+        '관리자 세션이 만료되었습니다. 다시 로그인 해주세요.',
+        null
     );
   }
 
   const data = await res.json();
-  localStorage.setItem('adminAccessToken', data.response.accessToken);
-  localStorage.setItem('adminRefreshToken', data.response.refreshToken);
 
-  console.log('관리자 토큰 갱신 완료');
+  if (data.status?.code === 'OK_0000' && data.response) {
+    localStorage.setItem('adminAccessToken', data.response.accessToken);
+    localStorage.setItem('adminRefreshToken', data.response.refreshToken);
+    console.log('관리자 토큰 갱신 완료');
+    return data.response;
+  } else {
+    throw new FetchError(res.status, data.status?.code, data.status?.message, data);
+  }
 }
 
 /**
@@ -265,8 +359,8 @@ export async function adminAuthFetch(url, options = {}) {
 
   let headers = {
     ...(options.body instanceof FormData
-      ? {}
-      : { 'Content-Type': options.contentType || 'application/json' }
+            ? {}
+            : { 'Content-Type': options.contentType || 'application/json' }
     ),
     'Authorization': `Bearer ${token}`,
     ...(options.headers || {})
@@ -282,16 +376,21 @@ export async function adminAuthFetch(url, options = {}) {
 
   // 토큰 만료 시 갱신 후 재시도
   if (res.status === 401 || res.status === 403) {
-    await adminHandleTokenRefresh();
-    const newToken = localStorage.getItem('adminAccessToken');
-    headers.Authorization = `Bearer ${newToken}`;
+    try {
+      await adminHandleTokenRefresh();
+      const newToken = localStorage.getItem('adminAccessToken');
+      headers.Authorization = `Bearer ${newToken}`;
 
-    res = await fetch(url, {
-      method: options.method || 'GET',
-      headers,
-      credentials: 'include',
-      body: options.body
-    });
+      res = await fetch(url, {
+        method: options.method || 'GET',
+        headers,
+        credentials: 'include',
+        body: options.body
+      });
+    } catch (refreshError) {
+      console.error('관리자 토큰 갱신 실패:', refreshError);
+      throw refreshError;
+    }
   }
 
   return processResponse(res);
@@ -353,20 +452,31 @@ export async function memberLogin(phoneNumber, password, autoLogin = false) {
     const response = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ phoneNumber, password, autoLogin })
     });
 
     const data = await response.json();
 
-    if (data.status?.code === 'OK_0000') {
+    if (data.status?.code === 'OK_0000' && data.response) {
       localStorage.setItem('accessToken', data.response.accessToken);
       localStorage.setItem('refreshToken', data.response.refreshToken);
+
+      console.log('회원 로그인 성공:', data.response);
       return { success: true, data: data.response };
     } else {
-      return { success: false, error: data.status?.message || '로그인 실패' };
+      return {
+        success: false,
+        error: data.status?.message || '로그인에 실패했습니다.',
+        errorCode: data.status?.code
+      };
     }
   } catch (error) {
-    return { success: false, error: '네트워크 오류가 발생했습니다.' };
+    console.error('회원 로그인 오류:', error);
+    return {
+      success: false,
+      error: '네트워크 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
+    };
   }
 }
 
@@ -378,20 +488,31 @@ export async function adminLogin(username, password, autoLogin = false) {
     const response = await fetch('/admin/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ username, password, autoLogin })
     });
 
     const data = await response.json();
 
-    if (data.status?.code === 'OK_0000') {
+    if (data.status?.code === 'OK_0000' && data.response) {
       localStorage.setItem('adminAccessToken', data.response.accessToken);
       localStorage.setItem('adminRefreshToken', data.response.refreshToken);
+
+      console.log('관리자 로그인 성공:', data.response);
       return { success: true, data: data.response };
     } else {
-      return { success: false, error: data.status?.message || '로그인 실패' };
+      return {
+        success: false,
+        error: data.status?.message || '로그인에 실패했습니다.',
+        errorCode: data.status?.code
+      };
     }
   } catch (error) {
-    return { success: false, error: '네트워크 오류가 발생했습니다.' };
+    console.error('관리자 로그인 오류:', error);
+    return {
+      success: false,
+      error: '네트워크 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
+    };
   }
 }
 
@@ -401,13 +522,24 @@ export async function adminLogin(username, password, autoLogin = false) {
 export async function memberLogout() {
   try {
     // 서버에 로그아웃 요청 (토큰 무효화)
-    await authFetch('/api/auth/logout', { method: 'POST' });
-  } catch (error) {
-    console.error('회원 로그아웃 API 오류:', error);
+    try {
+      await authFetch('/api/auth/logout', { method: 'POST' });
+    } catch (error) {
+      console.error('회원 로그아웃 API 오류:', error);
+      // API 오류가 있어도 로컬 정리는 진행
+    }
   } finally {
     // 로컬 저장소 정리
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
+
+    // 쿠키 정리 시도 (클라이언트에서 가능한 범위)
+    document.cookie = 'MEMBER_ACCESS_TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    document.cookie = 'MEMBER_REFRESH_TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+
+    console.log('회원 로그아웃 완료');
+
+    // 로그인 페이지로 리다이렉트
     window.location.href = '/mobile/login';
   }
 }
@@ -418,13 +550,24 @@ export async function memberLogout() {
 export async function adminLogout() {
   try {
     // 서버에 로그아웃 요청 (토큰 무효화)
-    await adminAuthFetch('/admin/api/auth/logout', { method: 'POST' });
-  } catch (error) {
-    console.error('관리자 로그아웃 API 오류:', error);
+    try {
+      await adminAuthFetch('/admin/api/auth/logout', { method: 'POST' });
+    } catch (error) {
+      console.error('관리자 로그아웃 API 오류:', error);
+      // API 오류가 있어도 로컬 정리는 진행
+    }
   } finally {
     // 로컬 저장소 정리
     localStorage.removeItem('adminAccessToken');
     localStorage.removeItem('adminRefreshToken');
+
+    // 쿠키 정리 시도
+    document.cookie = 'ADMIN_ACCESS_TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    document.cookie = 'ADMIN_REFRESH_TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+
+    console.log('관리자 로그아웃 완료');
+
+    // 관리자 로그인 페이지로 리다이렉트
     window.location.href = '/admin/view/login';
   }
 }
@@ -448,7 +591,46 @@ export function syncTokensFromPage() {
     // 메타 태그 제거 (보안)
     document.querySelector('meta[name="new-access-token"]')?.remove();
     document.querySelector('meta[name="new-refresh-token"]')?.remove();
+
+    // 토큰 동기화 이벤트 발생
+    window.dispatchEvent(new CustomEvent('tokenSynced', {
+      detail: {
+        accessToken: newAccessToken,
+        refreshToken: newRefreshToken,
+        syncedAt: new Date().toISOString()
+      }
+    }));
   }
+}
+
+/**
+ * 네트워크 상태 확인
+ */
+export function isNetworkAvailable() {
+  return navigator.onLine;
+}
+
+/**
+ * API 요청 재시도 로직
+ */
+export async function retryFetch(fetchFunction, maxRetries = 3, delay = 1000) {
+  let lastError;
+
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fetchFunction();
+    } catch (error) {
+      lastError = error;
+
+      if (i < maxRetries - 1) {
+        console.warn(`API 요청 실패, ${delay}ms 후 재시도 (${i + 1}/${maxRetries}):`, error);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        delay *= 2; // 지수 백오프
+      }
+    }
+  }
+
+  throw lastError;
 }
 
 /**

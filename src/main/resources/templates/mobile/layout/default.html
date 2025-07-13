@@ -8,7 +8,7 @@
   <meta name="mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-  <meta name="theme-color" content="#6c5ce7"/>
+  <meta name="theme-color" content="#ff6b35"/>
 
   <title th:replace="${title}">토마토리멤버</title>
 
@@ -16,7 +16,7 @@
   <link rel="icon" type="image/png" href="/favicon.ico"/>
   <link rel="apple-touch-icon" href="/apple-touch-icon.png"/>
 
-  <!-- Font Awesome -->
+  <!-- Font Awesome (폴백용으로 유지) -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"/>
 
   <!-- Google Fonts -->
@@ -36,368 +36,380 @@
 </head>
 <body class="mobile-layout" th:classappend="|page-${activeMenu ?: 'main'}|">
 
-  <!-- 헤더 -->
-  <header class="mobile-header fixed-top" id="mobileHeader">
-    <div class="container-fluid">
-      <div class="header-content">
-        <!-- 로고 -->
-        <div class="header-logo">
-          <a href="/mobile/home" class="logo-link">
-            <span class="logo-text">TOMATOREMEMBER</span>
-          </a>
-        </div>
+<!-- 헤더 -->
+<header class="mobile-header fixed-top" id="mobileHeader">
+  <div class="container-fluid">
+    <div class="header-content">
+      <!-- 로고 -->
+      <div class="header-logo">
+        <a href="/mobile/home" class="logo-link" aria-label="토마토리멤버 홈으로 이동">
+          <span class="logo-text">TOMATOREMEMBER</span>
+        </a>
+      </div>
 
-        <!-- 햄버거 메뉴 버튼 -->
-        <button class="header-menu-btn" type="button" id="menuToggleBtn" aria-label="메뉴 열기">
+      <!-- 햄버거 메뉴 버튼 -->
+      <button class="header-menu-btn" type="button" id="menuToggleBtn" aria-label="메뉴 열기">
           <span class="menu-icon">
             <span></span>
             <span></span>
             <span></span>
           </span>
-        </button>
-      </div>
-    </div>
-  </header>
-
-  <!-- 메인 컨텐츠 -->
-  <main class="mobile-main" id="mobileMain">
-    <div th:replace="${content}"></div>
-  </main>
-
-  <!-- 하단 네비게이션 -->
-  <nav class="mobile-nav fixed-bottom" id="mobileNav">
-    <div class="nav-container">
-      <a href="/mobile/home" class="nav-item" th:classappend="${(activeMenu ?: 'main') == 'main' ? 'active' : ''}"
-         aria-label="홈 페이지로 이동">
-        <i class="fas fa-home"></i>
-        <span>홈</span>
-      </a>
-      <a href="/mobile/search" class="nav-item" th:classappend="${(activeMenu ?: 'main') == 'search' ? 'active' : ''}"
-         aria-label="검색 페이지로 이동">
-        <i class="fas fa-search"></i>
-        <span>검색</span>
-      </a>
-      <a href="/mobile/support" class="nav-item" th:classappend="${(activeMenu ?: 'main') == 'support' ? 'active' : ''}"
-         aria-label="도움말 페이지로 이동">
-        <i class="fas fa-clock"></i>
-        <span>도움말</span>
-      </a>
-      <a href="/mobile/mypage" class="nav-item" th:classappend="${(activeMenu ?: 'main') == 'mypage' ? 'active' : ''}"
-         aria-label="마이페이지로 이동">
-        <i class="fas fa-user"></i>
-        <span>마이페이지</span>
-      </a>
-    </div>
-  </nav>
-
-  <!-- 채팅 FAB 버튼 (로그인 후에만 표시) -->
-  <button class="chat-fab" id="chatFab" onclick="openChat()"
-          th:if="${currentUser != null}"
-          aria-label="채팅 열기">
-    <i class="fas fa-comments"></i>
-  </button>
-
-  <!-- 햄버거 메뉴 오버레이 -->
-  <div class="menu-overlay" id="menuOverlay"></div>
-
-  <!-- 사이드 메뉴 (Offcanvas) -->
-  <div class="mobile-offcanvas" tabindex="-1" id="mobileMenu" aria-labelledby="mobileMenuLabel">
-    <div class="offcanvas-header">
-      <div class="offcanvas-title" id="mobileMenuLabel">
-        <!-- 로그인 후 사용자 정보 -->
-        <div class="user-info" th:if="${currentUser != null}">
-          <div class="user-avatar">
-            <img th:src="${currentUser.profileImageUrl ?: '/assets/mobile/images/default-avatar.png'}"
-                 th:alt="${currentUser.name}" class="avatar-img">
-          </div>
-          <div class="user-details">
-            <h6 class="user-name" th:text="${currentUser.name ?: '사용자'}">김토마토</h6>
-            <p class="user-email" th:text="${currentUser.email ?: ''}">tomato@example.com</p>
-          </div>
-        </div>
-
-        <!-- 로그인 전 게스트 정보 -->
-        <div class="guest-info" th:unless="${currentUser != null}">
-          <div class="guest-avatar">
-            <i class="fas fa-user"></i>
-          </div>
-          <div class="guest-details">
-            <h6>로그인이 필요합니다</h6>
-            <a href="/mobile/login" class="btn btn-sm btn-primary">로그인</a>
-          </div>
-        </div>
-      </div>
-
-      <button type="button" class="btn-close" id="menuCloseBtn" aria-label="메뉴 닫기"></button>
-    </div>
-
-    <div class="offcanvas-body">
-      <!-- 로그인 후 메뉴 -->
-      <div class="menu-section" th:if="${currentUser != null}">
-        <h6 class="menu-title">서비스</h6>
-        <ul class="menu-list">
-          <li>
-            <a href="/mobile/memorial/management" class="menu-link">
-              <i class="fas fa-heart text-danger"></i>
-              <span>메모리얼 관리</span>
-            </a>
-          </li>
-          <li>
-            <a href="/mobile/memorial/history" class="menu-link">
-              <i class="fas fa-chart-line text-primary"></i>
-              <span>활동 내역</span>
-            </a>
-          </li>
-        </ul>
-
-        <h6 class="menu-title">도움 & 설정</h6>
-        <ul class="menu-list">
-          <li>
-            <a href="/mobile/payment" class="menu-link">
-              <i class="fas fa-credit-card text-warning"></i>
-              <span>토큰 관리</span>
-            </a>
-          </li>
-          <li>
-            <a href="/mobile/profile" class="menu-link">
-              <i class="fas fa-user-edit text-info"></i>
-              <span>프로필 설정</span>
-            </a>
-          </li>
-          <li>
-            <a href="/mobile/family/manage" class="menu-link">
-              <i class="fas fa-users-cog text-success"></i>
-              <span>가족 관리</span>
-            </a>
-          </li>
-        </ul>
-
-        <h6 class="menu-title">정보 & 설정</h6>
-        <ul class="menu-list">
-          <li>
-            <a href="/mobile/support/help" class="menu-link">
-              <i class="fas fa-question-circle text-muted"></i>
-              <span>도움말</span>
-            </a>
-          </li>
-          <li>
-            <a href="/mobile/support/contact" class="menu-link">
-              <i class="fas fa-phone text-muted"></i>
-              <span>고객지원</span>
-            </a>
-          </li>
-          <li>
-            <button class="menu-link logout-btn" onclick="logout()">
-              <i class="fas fa-sign-out-alt text-danger"></i>
-              <span>로그아웃</span>
-            </button>
-          </li>
-        </ul>
-      </div>
-
-      <!-- 로그인 전 메뉴 -->
-      <div class="menu-section" th:unless="${currentUser != null}">
-        <h6 class="menu-title">계정</h6>
-        <ul class="menu-list">
-          <li>
-            <a href="/mobile/login" class="menu-link">
-              <i class="fas fa-sign-in-alt text-primary"></i>
-              <span>로그인</span>
-            </a>
-          </li>
-          <li>
-            <a href="/mobile/register" class="menu-link">
-              <i class="fas fa-user-plus text-success"></i>
-              <span>회원가입</span>
-            </a>
-          </li>
-        </ul>
-
-        <h6 class="menu-title">서비스</h6>
-        <ul class="menu-list">
-          <li>
-            <a href="/mobile/experience" class="menu-link">
-              <i class="fas fa-gift text-warning"></i>
-              <span>3개월 무료체험</span>
-            </a>
-          </li>
-          <li>
-            <a href="/mobile/about" class="menu-link">
-              <i class="fas fa-info-circle text-info"></i>
-              <span>서비스 소개</span>
-            </a>
-          </li>
-        </ul>
-
-        <h6 class="menu-title">정보</h6>
-        <ul class="menu-list">
-          <li>
-            <a href="/mobile/support/faq" class="menu-link">
-              <i class="fas fa-question-circle text-muted"></i>
-              <span>도움말</span>
-            </a>
-          </li>
-          <li>
-            <a href="/mobile/support/contact" class="menu-link">
-              <i class="fas fa-phone text-muted"></i>
-              <span>고객지원</span>
-            </a>
-          </li>
-          <li>
-            <a href="/mobile/terms" class="menu-link">
-              <i class="fas fa-shield-alt text-muted"></i>
-              <span>개인정보처리방침</span>
-            </a>
-          </li>
-        </ul>
-      </div>
-
-      <!-- 푸터 정보 -->
-      <div class="menu-footer">
-        <p class="company-info">
-          서울특별시 마포구 양화진 4길 32 이토마토빌딩 2층<br>
-          전화번호: 02-2128-3838<br>
-          이메일: tomatoai@etomato.com
-        </p>
-        <p class="copyright">
-          COPYRIGHT © 2025 TOMATOREMEMBER.<br>
-          ALL RIGHTS RESERVED.
-        </p>
-      </div>
+      </button>
     </div>
   </div>
+</header>
 
-  <!-- Bootstrap JS -->
-  <script th:src="@{/bootstrap/js/bootstrap.bundle.js}"></script>
+<!-- 메인 컨텐츠 -->
+<main class="mobile-main" id="mobileMain">
+  <div th:replace="${content}"></div>
+</main>
 
-  <!-- 토큰 동기화 스크립트 -->
-  <div th:replace="~{fragments/token-sync :: tokenSync}"></div>
+<!-- 하단 네비게이션 -->
+<nav class="mobile-nav fixed-bottom" id="mobileNav">
+  <div class="nav-container">
+    <a href="/mobile/home" class="nav-item" th:classappend="${(activeMenu ?: 'main') == 'main' ? 'active' : ''}"
+       aria-label="홈 페이지로 이동">
+      <i class="fas fa-home"></i>
+      <span>홈</span>
+    </a>
+    <a href="/mobile/search" class="nav-item" th:classappend="${(activeMenu ?: 'main') == 'search' ? 'active' : ''}"
+       aria-label="검색 페이지로 이동">
+      <i class="fas fa-search"></i>
+      <span>검색</span>
+    </a>
+    <a href="/mobile/support/faq" class="nav-item" th:classappend="${(activeMenu ?: 'main') == 'support' ? 'active' : ''}"
+       aria-label="도움말 페이지로 이동">
+      <i class="fas fa-question-circle"></i>
+      <span>도움말</span>
+    </a>
+    <a href="/mobile/mypage" class="nav-item" th:classappend="${(activeMenu ?: 'main') == 'mypage' ? 'active' : ''}"
+       aria-label="마이페이지로 이동">
+      <i class="fas fa-user"></i>
+      <span>마이페이지</span>
+    </a>
+  </div>
+</nav>
 
-  <!-- Common JS -->
-  <script th:src="@{/assets/mobile/js/common.js}" type="module"></script>
-  <script th:src="@{/assets/mobile/js/layout.js}" type="module"></script>
+<!-- 채팅 FAB 버튼 (로그인 후에만 표시) -->
+<button class="chat-fab" id="chatFab" onclick="openChat()"
+        th:if="${currentUser != null}"
+        aria-label="채팅 열기">
+  <i class="fas fa-comments"></i>
+</button>
 
-  <!-- Custom JS -->
-  <th:block th:replace="${customJS}"></th:block>
+<!-- 햄버거 메뉴 오버레이 -->
+<div class="menu-overlay" id="menuOverlay"></div>
 
-  <!-- 전역 설정 스크립트 -->
-  <script>
-    // 기본 전역 설정
-    window.APP_CONFIG = {
-      baseUrl: '',
-      activeMenu: /*[[ ${activeMenu} ?: 'main' ]]*/ 'main',
-      activeSubMenu: /*[[ ${activeSubMenu} ?: null ]]*/ null,
-      currentUser: /*[[ ${currentUser} ?: null ]]*/ null,
-      isLoggedIn: /*[[ ${currentUser != null} ]]*/ false
-    };
+<!-- 사이드 메뉴 (Offcanvas) -->
+<div class="mobile-offcanvas" tabindex="-1" id="mobileMenu" aria-labelledby="mobileMenuLabel">
+  <div class="offcanvas-header">
+    <div class="offcanvas-title" id="mobileMenuLabel">
+      <!-- 로그인 후 사용자 정보 -->
+      <div class="user-info" th:if="${currentUser != null}">
+        <div class="user-avatar">
+          <img th:src="${currentUser.profileImageUrl ?: '/assets/mobile/images/default-avatar.png'}"
+               th:alt="${currentUser.name}" class="avatar-img">
+        </div>
+        <div class="user-details">
+          <h6 class="user-name" th:text="${currentUser.name ?: '사용자'}">김토마토</h6>
+          <p class="user-email" th:text="${currentUser.email ?: currentUser.phoneNumber ?: ''}">tomato@example.com</p>
+        </div>
+      </div>
 
-    // API 엔드포인트 설정
-    window.API_ENDPOINTS = {
-      LOGIN: '/api/auth/login',
-      LOGOUT: '/api/auth/logout',
-      REFRESH: '/api/auth/refresh',
-      MEMORIAL: '/api/memorial',
-      VIDEO_CALL: '/api/video-call',
-      TRIBUTE: '/api/tribute',
-      USER_PROFILE: '/api/user/profile',
-      TRIAL_STATUS: '/api/user/trial-status'
-    };
+      <!-- 로그인 전 게스트 정보 -->
+      <div class="guest-info" th:unless="${currentUser != null}">
+        <div class="guest-avatar">
+          <span class="emoji-icon">👤</span>
+        </div>
+        <div class="guest-details">
+          <h6>로그인이 필요합니다</h6>
+          <a href="/mobile/login" class="btn btn-sm btn-primary">로그인</a>
+        </div>
+      </div>
+    </div>
 
-    // 전역 유틸리티 함수들
-    window.globalUtils = {
-      // 로그아웃 함수
-      logout: function() {
-        if (confirm('로그아웃 하시겠습니까?')) {
-          // 토큰 정리
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
+    <button type="button" class="btn-close" id="menuCloseBtn" aria-label="메뉴 닫기"></button>
+  </div>
 
-          // 로그아웃 페이지로 이동 (서버에서 쿠키 정리)
-          window.location.href = '/mobile/logout';
-        }
-      },
+  <div class="offcanvas-body">
+    <!-- 로그인 후 메뉴 -->
+    <div class="menu-section" th:if="${currentUser != null}">
+      <h6 class="menu-title">계정</h6>
+      <ul class="menu-list">
+        <li>
+          <a href="/mobile/account/profile" class="menu-link">
+            <span class="emoji-icon">👤</span>
+            <div class="menu-content">
+              <span class="menu-text">프로필 설정</span>
+              <small class="menu-desc">개인정보 및 계정 관리</small>
+            </div>
+          </a>
+        </li>
+        <li>
+          <a href="/mobile/account/family" class="menu-link">
+            <span class="emoji-icon">👨‍👩‍👧‍👦</span>
+            <div class="menu-content">
+              <span class="menu-text">가족 관리</span>
+              <small class="menu-desc">가족 초대 및 권한 관리</small>
+            </div>
+          </a>
+        </li>
+        <li>
+          <a href="/mobile/account/settings" class="menu-link">
+            <span class="emoji-icon">⚙️</span>
+            <div class="menu-content">
+              <span class="menu-text">설정</span>
+              <small class="menu-desc">알림, 보안 및 앱 설정</small>
+            </div>
+          </a>
+        </li>
+      </ul>
 
-      // 채팅 열기 함수
-      openChat: function() {
-        console.log('💬 채팅 열기');
-        // TODO: 채팅 기능 구현 후 주석 해제
-        alert('채팅 기능 준비 중입니다.');
-      },
+      <h6 class="menu-title">지원</h6>
+      <ul class="menu-list">
+        <li>
+          <a href="/mobile/support/faq" class="menu-link">
+            <span class="emoji-icon">❓</span>
+            <div class="menu-content">
+              <span class="menu-text">도움말</span>
+              <small class="menu-desc">사용법 및 자주 묻는 질문</small>
+            </div>
+          </a>
+        </li>
+        <li>
+          <a href="/mobile/support/contact" class="menu-link">
+            <span class="emoji-icon">📞</span>
+            <div class="menu-content">
+              <span class="menu-text">고객지원</span>
+              <small class="menu-desc">문의사항 및 기술지원</small>
+            </div>
+          </a>
+        </li>
+        <li>
+          <button class="menu-link logout-btn" onclick="logout()">
+            <span class="emoji-icon">🚪</span>
+            <div class="menu-content">
+              <span class="menu-text">로그아웃</span>
+              <small class="menu-desc">안전하게 로그아웃하기</small>
+            </div>
+          </button>
+        </li>
+      </ul>
+    </div>
 
-      // 로그인 모달 표시
-      showLoginModal: function() {
-        alert('이 기능을 사용하려면\\n먼저 로그인해 주세요.');
-        setTimeout(() => {
-          window.location.href = '/mobile/login';
-        }, 1000);
-      },
+    <!-- 로그인 전 메뉴 -->
+    <div class="menu-section" th:unless="${currentUser != null}">
+      <h6 class="menu-title">계정</h6>
+      <ul class="menu-list">
+        <li>
+          <a href="/mobile/login" class="menu-link">
+            <span class="emoji-icon">🔐</span>
+            <div class="menu-content">
+              <span class="menu-text">로그인</span>
+              <small class="menu-desc">기존 계정으로 로그인하기</small>
+            </div>
+          </a>
+        </li>
+        <li>
+          <a href="/mobile/register" class="menu-link">
+            <span class="emoji-icon">🌸</span>
+            <div class="menu-content">
+              <span class="menu-text">회원가입</span>
+              <small class="menu-desc">새 계정 만들고 시작하기</small>
+            </div>
+          </a>
+        </li>
+      </ul>
 
-      // 페이지 로딩 상태 표시
-      showPageLoading: function() {
-        document.body.classList.add('loading');
-      },
+      <h6 class="menu-title">정보</h6>
+      <ul class="menu-list">
+        <li>
+          <a href="/mobile/support/faq" class="menu-link">
+            <span class="emoji-icon">❓</span>
+            <div class="menu-content">
+              <span class="menu-text">도움말</span>
+              <small class="menu-desc">사용법 및 자주 묻는 질문</small>
+            </div>
+          </a>
+        </li>
+        <li>
+          <a href="/mobile/support/contact" class="menu-link">
+            <span class="emoji-icon">📞</span>
+            <div class="menu-content">
+              <span class="menu-text">고객지원</span>
+              <small class="menu-desc">문의사항 및 기술지원</small>
+            </div>
+          </a>
+        </li>
+        <li>
+          <a href="/mobile/legal/privacy" class="menu-link">
+            <span class="emoji-icon">🔒</span>
+            <div class="menu-content">
+              <span class="menu-text">개인정보처리방침</span>
+              <small class="menu-desc">정인정보 보호 정책 확인</small>
+            </div>
+          </a>
+        </li>
+      </ul>
+    </div>
 
-      // 페이지 로딩 상태 숨김
-      hidePageLoading: function() {
-        document.body.classList.remove('loading');
+    <!-- 푸터 정보 -->
+    <div class="menu-footer">
+      <p class="company-info">
+        서울특별시 마포구 양화진 4길 32 이토마토빌딩 2층<br>
+        전화번호: 02-2128-3838<br>
+        이메일: tomatoai@etomato.com
+      </p>
+      <p class="copyright">
+        COPYRIGHT © 2025 TOMATOREMEMBER.<br>
+        ALL RIGHTS RESERVED.
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script th:src="@{/bootstrap/js/bootstrap.bundle.js}"></script>
+
+<!-- 토큰 동기화 스크립트 -->
+<div th:replace="~{fragments/token-sync :: tokenSync}"></div>
+
+<!-- Common JS -->
+<script th:src="@{/assets/mobile/js/common.js}" type="module"></script>
+<script th:src="@{/assets/mobile/js/layout.js}" type="module"></script>
+
+<!-- Custom JS -->
+<th:block th:replace="${customJS}"></th:block>
+
+<!-- 전역 설정 스크립트 -->
+<script>
+  // 기본 전역 설정
+  window.APP_CONFIG = {
+    baseUrl: '',
+    activeMenu: /*[[ ${activeMenu} ?: 'main' ]]*/ 'main',
+    activeSubMenu: /*[[ ${activeSubMenu} ?: null ]]*/ null,
+    currentUser: /*[[ ${currentUser} ?: null ]]*/ null,
+    isLoggedIn: /*[[ ${currentUser != null} ]]*/ false
+  };
+
+  // API 엔드포인트 설정 (새로운 URL 구조 반영)
+  window.API_ENDPOINTS = {
+    // 인증 관련
+    LOGIN: '/api/auth/login',
+    LOGOUT: '/api/auth/logout',
+    REFRESH: '/api/auth/refresh',
+    REGISTER: '/api/auth/register',
+
+    // 계정 관리
+    USER_PROFILE: '/api/account/profile',
+    FAMILY_MANAGEMENT: '/api/account/family',
+    USER_SETTINGS: '/api/account/settings',
+
+    // 지원 및 기타
+    FAQ: '/api/support/faq',
+    CONTACT: '/api/support/contact',
+
+    // 기존 유지
+    MEMORIAL: '/api/memorial',
+    VIDEO_CALL: '/api/video-call',
+    TRIBUTE: '/api/tribute'
+  };
+
+  // 전역 유틸리티 함수들
+  window.globalUtils = {
+    // 로그아웃 함수
+    logout: function() {
+      if (confirm('로그아웃 하시겠습니까?')) {
+        // 토큰 정리
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+
+        // 로그아웃 페이지로 이동 (서버에서 쿠키 정리)
+        window.location.href = '/mobile/auth/logout';
       }
-    };
+    },
 
-    // 전역 함수들 (하위 호환성을 위해 유지)
-    function logout() {
-      window.globalUtils.logout();
+    // 채팅 열기 함수
+    openChat: function() {
+      console.log('💬 채팅 열기');
+      // TODO: 채팅 기능 구현 후 주석 해제
+      alert('채팅 기능 준비 중입니다.');
+    },
+
+    // 로그인 모달 표시
+    showLoginModal: function() {
+      alert('이 기능을 사용하려면\\n먼저 로그인해 주세요.');
+      setTimeout(() => {
+        window.location.href = '/mobile/login';
+      }, 1000);
+    },
+
+    // 페이지 로딩 상태 표시
+    showPageLoading: function() {
+      document.body.classList.add('loading');
+    },
+
+    // 페이지 로딩 상태 숨김
+    hidePageLoading: function() {
+      document.body.classList.remove('loading');
     }
+  };
 
-    function openChat() {
-      window.globalUtils.openChat();
+  // 전역 함수들 (하위 호환성을 위해 유지)
+  function logout() {
+    window.globalUtils.logout();
+  }
+
+  function openChat() {
+    window.globalUtils.openChat();
+  }
+
+  function showLoginModal() {
+    window.globalUtils.showLoginModal();
+  }
+
+  // 페이지 로드 완료 이벤트
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('📱 토마토리멤버 페이지 로드 완료');
+    console.log('👤 로그인 상태:', window.APP_CONFIG.isLoggedIn);
+    console.log('📍 활성 메뉴:', window.APP_CONFIG.activeMenu);
+
+    // 페이지별 초기화 로직
+    if (window.pageInitializer) {
+      window.pageInitializer();
     }
+  });
 
-    function showLoginModal() {
-      window.globalUtils.showLoginModal();
+  // 페이지 가시성 변경 감지
+  document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) {
+      console.log('👁️ 페이지 가시성 복원');
+
+      // 페이지별 새로고침 로직
+      if (window.pageRefresher) {
+        window.pageRefresher();
+      }
     }
+  });
 
-    // 페이지 로드 완료 이벤트
-    document.addEventListener('DOMContentLoaded', function() {
-      console.log('📱 토마토리멤버 페이지 로드 완료');
-      console.log('👤 로그인 상태:', window.APP_CONFIG.isLoggedIn);
-      console.log('📍 활성 메뉴:', window.APP_CONFIG.activeMenu);
+  // 온라인/오프라인 상태 감지
+  window.addEventListener('online', function() {
+    console.log('🌐 온라인 상태 복원');
+    // 오프라인 상태 알림 제거
+    const offlineAlert = document.querySelector('.offline-alert');
+    if (offlineAlert) {
+      offlineAlert.remove();
+    }
+  });
 
-      // 페이지별 초기화 로직
-      if (window.pageInitializer) {
-        window.pageInitializer();
-      }
-    });
-
-    // 페이지 가시성 변경 감지
-    document.addEventListener('visibilitychange', function() {
-      if (!document.hidden) {
-        console.log('👁️ 페이지 가시성 복원');
-
-        // 페이지별 새로고침 로직
-        if (window.pageRefresher) {
-          window.pageRefresher();
-        }
-      }
-    });
-
-    // 온라인/오프라인 상태 감지
-    window.addEventListener('online', function() {
-      console.log('🌐 온라인 상태 복원');
-      // 오프라인 상태 알림 제거
-      const offlineAlert = document.querySelector('.offline-alert');
-      if (offlineAlert) {
-        offlineAlert.remove();
-      }
-    });
-
-    window.addEventListener('offline', function() {
-      console.log('📴 오프라인 상태');
-      // 오프라인 상태 알림 표시
-      if (!document.querySelector('.offline-alert')) {
-        const alert = document.createElement('div');
-        alert.className = 'offline-alert';
-        alert.innerHTML = '인터넷 연결이 끊어졌습니다.';
-        alert.style.cssText = `
+  window.addEventListener('offline', function() {
+    console.log('📴 오프라인 상태');
+    // 오프라인 상태 알림 표시
+    if (!document.querySelector('.offline-alert')) {
+      const alert = document.createElement('div');
+      alert.className = 'offline-alert';
+      alert.innerHTML = '인터넷 연결이 끊어졌습니다.';
+      alert.style.cssText = `
           position: fixed;
           top: 70px;
           left: 50%;
@@ -410,67 +422,127 @@
           z-index: 2000;
           animation: slideDown 0.3s ease;
         `;
-        document.body.appendChild(alert);
-      }
-    });
+      document.body.appendChild(alert);
+    }
+  });
 
-    // 키보드 단축키 지원
-    document.addEventListener('keydown', function(e) {
-      // ESC 키로 메뉴 닫기
-      if (e.key === 'Escape') {
-        if (window.layoutManager && window.layoutManager.isMenuOpen) {
-          window.layoutManager.closeMenu();
+  // 키보드 단축키 지원
+  document.addEventListener('keydown', function(e) {
+    // ESC 키로 메뉴 닫기
+    if (e.key === 'Escape') {
+      if (window.layoutManager && window.layoutManager.isMenuOpen) {
+        window.layoutManager.closeMenu();
+      }
+
+      // 모달이 열려있으면 모달 닫기
+      const openModal = document.querySelector('.modal.show');
+      if (openModal) {
+        const closeBtn = openModal.querySelector('.btn-close');
+        if (closeBtn) {
+          closeBtn.click();
         }
-
-        // 모달이 열려있으면 모달 닫기
-        const openModal = document.querySelector('.modal.show');
-        if (openModal) {
-          const closeBtn = openModal.querySelector('.btn-close');
-          if (closeBtn) {
-            closeBtn.click();
-          }
-        }
-      }
-    });
-
-    // 디버그 모드 활성화
-    if (window.location.search.includes('debug=true')) {
-      console.log('🔧 디버그 모드 활성화');
-      window.debugMode = true;
-
-      // 디버그 정보 표시
-      window.showDebugInfo = function() {
-        console.group('🔍 디버그 정보');
-        console.log('APP_CONFIG:', window.APP_CONFIG);
-        console.log('API_ENDPOINTS:', window.API_ENDPOINTS);
-        console.log('Layout Manager:', window.layoutManager);
-        console.log('Current User:', window.APP_CONFIG.currentUser);
-        console.log('Token Info:', {
-          accessToken: localStorage.getItem('accessToken')?.substring(0, 20) + '...',
-          refreshToken: localStorage.getItem('refreshToken')?.substring(0, 20) + '...'
-        });
-        console.groupEnd();
-      };
-    }
-  </script>
-
-  <!-- 애니메이션 스타일 추가 -->
-  <style>
-    @keyframes slideDown {
-      from {
-        opacity: 0;
-        transform: translateX(-50%) translateY(-100%);
-      }
-      to {
-        opacity: 1;
-        transform: translateX(-50%) translateY(0);
       }
     }
+  });
 
-    .offline-alert {
-      animation: slideDown 0.3s ease;
+  // 디버그 모드 활성화
+  if (window.location.search.includes('debug=true')) {
+    console.log('🔧 디버그 모드 활성화');
+    window.debugMode = true;
+
+    // 디버그 정보 표시
+    window.showDebugInfo = function() {
+      console.group('🔍 디버그 정보');
+      console.log('APP_CONFIG:', window.APP_CONFIG);
+      console.log('API_ENDPOINTS:', window.API_ENDPOINTS);
+      console.log('Layout Manager:', window.layoutManager);
+      console.log('Current User:', window.APP_CONFIG.currentUser);
+      console.log('Token Info:', {
+        accessToken: localStorage.getItem('accessToken')?.substring(0, 20) + '...',
+        refreshToken: localStorage.getItem('refreshToken')?.substring(0, 20) + '...'
+      });
+      console.groupEnd();
+    };
+  }
+</script>
+
+<!-- 애니메이션 스타일 추가 -->
+<style>
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateX(-50%) translateY(-100%);
     }
-  </style>
+    to {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  }
+
+  .offline-alert {
+    animation: slideDown 0.3s ease;
+  }
+
+  /* 이모지 아이콘 스타일 */
+  .emoji-icon {
+    font-size: 18px;
+    width: 24px;
+    text-align: center;
+    display: inline-block;
+    line-height: 1;
+  }
+
+  /* 메뉴 콘텐츠 스타일 개선 */
+  .menu-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .menu-text {
+    font-weight: 500;
+    font-size: 14px;
+    color: #333;
+  }
+
+  .menu-desc {
+    font-size: 12px;
+    color: #666;
+    line-height: 1.3;
+  }
+
+  .menu-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 8px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: inherit;
+    transition: all var(--transition-normal);
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .menu-link:hover {
+    background: #f8f9fa;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .menu-link:hover .menu-text {
+    color: #6c5ce7;
+  }
+
+  /* 게스트 아바타 스타일 */
+  .guest-avatar .emoji-icon {
+    font-size: 20px;
+    color: rgba(255, 255, 255, 0.8);
+  }
+</style>
 
 </body>
 </html>

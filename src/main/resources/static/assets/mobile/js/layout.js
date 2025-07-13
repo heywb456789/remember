@@ -1,4 +1,4 @@
-// layout.js - 토마토리멤버 모바일 레이아웃 관리 (Function 기반)
+// layout.js - 토마토리멤버 모바일 레이아웃 관리 (개선된 버전)
 
 import { showToast, showConfirm } from './common.js';
 import { memberLogout } from './commonFetch.js';
@@ -11,7 +11,9 @@ let layoutState = {
   menuElement: null,
   menuButton: null,
   overlay: null,
-  isInitialized: false
+  isInitialized: false,
+  navigationBadges: {},
+  scrollTimeout: null
 };
 
 /**
@@ -59,6 +61,9 @@ function initializeLayoutComponents() {
 
     // 뷰포트 높이 설정
     updateViewportHeight();
+
+    // 네비게이션 배지 업데이트
+    updateNavigationBadges();
 
     layoutState.isInitialized = true;
     console.log('✅ 레이아웃 컴포넌트 초기화 완료');
@@ -112,7 +117,55 @@ function bindLayoutEvents() {
     });
   });
 
+  // 메뉴 링크 클릭 이벤트 (개선됨)
+  bindMenuLinkEvents();
+
   console.log('✅ 레이아웃 이벤트 바인딩 완료');
+}
+
+/**
+ * 메뉴 링크 이벤트 바인딩 (개선된 버전)
+ */
+function bindMenuLinkEvents() {
+  const menuLinks = document.querySelectorAll('.menu-link');
+
+  menuLinks.forEach(link => {
+    link.addEventListener('click', (e) => {
+      const href = link.getAttribute('href');
+      const menuText = link.querySelector('.menu-text')?.textContent?.trim() || '알 수 없는 메뉴';
+
+      console.log('🔗 메뉴 링크 클릭:', menuText, href);
+
+      // 로그아웃 버튼 특별 처리
+      if (link.classList.contains('logout-btn')) {
+        e.preventDefault();
+        handleLogout();
+        return;
+      }
+
+      // 외부 링크 처리
+      if (href && (href.startsWith('http') || href.startsWith('tel:') || href.startsWith('mailto:'))) {
+        // 외부 링크는 메뉴를 닫지 않고 새 창에서 열기
+        e.preventDefault();
+        window.open(href, '_blank', 'noopener,noreferrer');
+        return;
+      }
+
+      // 같은 페이지 링크 확인
+      if (href === window.location.pathname) {
+        e.preventDefault();
+        closeMenu();
+        showToast('현재 페이지입니다.', 'info', 2000);
+        return;
+      }
+
+      // 일반 링크는 메뉴 닫기 후 이동
+      setTimeout(() => closeMenu(), 150);
+
+      // 페이지 로딩 표시
+      showNavigationLoading(link);
+    });
+  });
 }
 
 /**
@@ -123,9 +176,6 @@ function initializeNavigation() {
 
   // 활성 네비게이션 업데이트
   updateActiveNavigation();
-
-  // 네비게이션 배지 업데이트
-  updateNavigationBadges();
 
   // 접근성 향상
   enhanceNavigationAccessibility();
@@ -218,7 +268,7 @@ function bindMenuButtonEvents() {
     e.stopPropagation();
 
     console.log('🔘 메뉴 버튼 클릭');
-    console.log('  현재 상태:', layoutState.isMenuOpen ? '열림' : '닫힘');
+    console.log('  현재 상태:', layoutState.isMenuOpen ? '열림' : '닫힌');
 
     toggleMenu();
   });
@@ -251,24 +301,6 @@ function bindMenuInternalEvents() {
       closeMenu();
     });
   }
-
-  // 메뉴 링크 클릭 시 메뉴 닫기
-  const menuLinks = layoutState.menuElement.querySelectorAll('.menu-link');
-  menuLinks.forEach(link => {
-    link.addEventListener('click', (e) => {
-      console.log('🔗 메뉴 링크 클릭:', link.textContent?.trim());
-
-      // 로그아웃 버튼이면 특별 처리
-      if (link.classList.contains('logout-btn')) {
-        e.preventDefault();
-        handleLogout();
-        return;
-      }
-
-      // 일반 링크는 메뉴 닫기
-      setTimeout(() => closeMenu(), 150);
-    });
-  });
 
   console.log('✅ 메뉴 내부 이벤트 바인딩 완료');
 }
@@ -370,7 +402,7 @@ function closeMenu() {
 }
 
 /**
- * 스크롤 처리
+ * 스크롤 처리 (개선된 버전)
  */
 function handleScroll() {
   const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
@@ -386,17 +418,26 @@ function handleScroll() {
     }
   }
 
-  // 네비게이션 자동 숨김/표시
+  // 네비게이션 자동 숨김/표시 (개선된 로직)
   if (Math.abs(scrollTop - layoutState.lastScrollTop) > 5) {
-    if (scrollTop > layoutState.lastScrollTop && scrollTop > 100) {
-      // 아래로 스크롤 시 네비게이션 숨김
-      if (nav) nav.classList.add('hidden');
-    } else {
-      // 위로 스크롤 시 네비게이션 표시
-      if (nav) nav.classList.remove('hidden');
+    // 메뉴가 열려있을 때는 네비게이션 숨김/표시 안함
+    if (!layoutState.isMenuOpen) {
+      if (scrollTop > layoutState.lastScrollTop && scrollTop > 100) {
+        // 아래로 스크롤 시 네비게이션 숨김
+        if (nav) nav.classList.add('hidden');
+      } else {
+        // 위로 스크롤 시 네비게이션 표시
+        if (nav) nav.classList.remove('hidden');
+      }
     }
     layoutState.lastScrollTop = scrollTop;
   }
+
+  // 스크롤 종료 감지
+  clearTimeout(layoutState.scrollTimeout);
+  layoutState.scrollTimeout = setTimeout(() => {
+    layoutState.isScrolling = false;
+  }, 150);
 }
 
 /**
@@ -424,7 +465,20 @@ function handleKeyboardEvents(e) {
   // ESC 키로 메뉴 닫기
   if (e.key === 'Escape' && layoutState.isMenuOpen) {
     console.log('⌨️ ESC 키로 메뉴 닫기');
+    e.preventDefault();
     closeMenu();
+  }
+
+  // 단축키 지원 (1-4번으로 네비게이션 이동)
+  if (e.altKey && !layoutState.isMenuOpen) {
+    const key = parseInt(e.key);
+    if (key >= 1 && key <= 4) {
+      e.preventDefault();
+      const navItems = document.querySelectorAll('.nav-item');
+      if (navItems[key - 1]) {
+        navItems[key - 1].click();
+      }
+    }
   }
 }
 
@@ -433,11 +487,17 @@ function handleKeyboardEvents(e) {
  */
 function handleNavItemClick(e, item) {
   const href = item.getAttribute('href');
+  const itemText = item.querySelector('span')?.textContent?.trim() || '알 수 없는 메뉴';
+
+  console.log('🧭 네비게이션 클릭:', itemText, href);
 
   // 같은 페이지 클릭 시 새로고침
   if (href === window.location.pathname) {
     e.preventDefault();
-    window.location.reload();
+    showToast(`${itemText} 페이지를 새로고침합니다.`, 'info', 2000);
+    setTimeout(() => {
+      window.location.reload();
+    }, 500);
     return;
   }
 
@@ -457,11 +517,19 @@ function updateActiveNavigation() {
 
   navItems.forEach(item => {
     const href = item.getAttribute('href');
+    item.classList.remove('active');
 
-    if (href === currentPath || (href !== '/' && currentPath.startsWith(href))) {
+    // 정확한 경로 매칭
+    if (href === currentPath) {
       item.classList.add('active');
-    } else {
-      item.classList.remove('active');
+    }
+    // 하위 경로 매칭 (예: /mobile/support 하위 페이지들)
+    else if (href !== '/mobile/home' && currentPath.startsWith(href)) {
+      item.classList.add('active');
+    }
+    // 홈 페이지 특별 처리
+    else if (href === '/mobile/home' && (currentPath === '/mobile' || currentPath === '/mobile/')) {
+      item.classList.add('active');
     }
   });
 }
@@ -485,7 +553,10 @@ async function updateNavigationBadges() {
 
     if (response.ok) {
       const data = await response.json();
-      renderNavigationBadges(data.response);
+      if (data.status?.code === 'OK_0000') {
+        layoutState.navigationBadges = data.response || {};
+        renderNavigationBadges(layoutState.navigationBadges);
+      }
     }
   } catch (error) {
     console.error('네비게이션 배지 업데이트 실패:', error);
@@ -496,33 +567,19 @@ async function updateNavigationBadges() {
  * 네비게이션 배지 렌더링
  */
 function renderNavigationBadges(badges) {
+  // 기존 배지 제거
+  document.querySelectorAll('.nav-badge').forEach(badge => badge.remove());
+
   Object.entries(badges).forEach(([menu, count]) => {
+    if (count <= 0) return;
+
     const navItem = document.querySelector(`[href*="${menu}"]`);
-    if (navItem && count > 0) {
-      let badge = navItem.querySelector('.nav-badge');
-
-      if (!badge) {
-        badge = document.createElement('span');
-        badge.className = 'nav-badge';
-        navItem.appendChild(badge);
-      }
-
+    if (navItem) {
+      const badge = document.createElement('span');
+      badge.className = 'nav-badge';
       badge.textContent = count > 99 ? '99+' : count;
-      badge.style.cssText = `
-        position: absolute;
-        top: -2px;
-        right: -2px;
-        background: #e53e3e;
-        color: white;
-        border-radius: 50%;
-        width: 18px;
-        height: 18px;
-        font-size: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 600;
-      `;
+      badge.setAttribute('aria-label', `${count}개의 알림`);
+      navItem.appendChild(badge);
     }
   });
 }
@@ -536,7 +593,8 @@ function enhanceNavigationAccessibility() {
   navItems.forEach((item, index) => {
     const text = item.querySelector('span')?.textContent;
     if (text) {
-      item.setAttribute('title', `${text} (단축키: ${index + 1})`);
+      item.setAttribute('title', `${text} (Alt+${index + 1})`);
+      item.setAttribute('aria-label', `${text} 페이지로 이동`);
     }
   });
 }
@@ -549,10 +607,10 @@ async function handleLogout() {
 
   try {
     const confirmed = await showConfirm(
-      '로그아웃',
-      '로그아웃 하시겠습니까?',
-      '로그아웃',
-      '취소'
+        '로그아웃',
+        '정말 로그아웃 하시겠습니까?',
+        '로그아웃',
+        '취소'
     );
 
     if (!confirmed) {
@@ -564,6 +622,9 @@ async function handleLogout() {
 
     // 메뉴 닫기
     closeMenu();
+
+    // 토스트 메시지 표시
+    showToast('로그아웃 중입니다...', 'info');
 
     // 로그아웃 처리
     await memberLogout();
@@ -589,6 +650,7 @@ function showNavigationLoading(item) {
   setTimeout(() => {
     if (icon && icon.dataset.originalClass) {
       icon.className = icon.dataset.originalClass;
+      delete icon.dataset.originalClass;
     }
   }, 2000);
 }
@@ -601,10 +663,12 @@ function animatePageTransition(direction = 'forward') {
   if (main) {
     main.style.opacity = '0.7';
     main.style.transform = direction === 'back' ? 'translateX(-10px)' : 'translateX(10px)';
+    main.style.transition = 'all 0.3s ease';
 
     setTimeout(() => {
       main.style.opacity = '';
       main.style.transform = '';
+      main.style.transition = '';
     }, 300);
   }
 }
@@ -647,6 +711,33 @@ function debounce(func, wait) {
 }
 
 /**
+ * 스로틀 유틸리티
+ */
+function throttle(func, limit) {
+  let inThrottle;
+  return function(...args) {
+    if (!inThrottle) {
+      func.apply(this, args);
+      inThrottle = true;
+      setTimeout(() => inThrottle = false, limit);
+    }
+  };
+}
+
+/**
+ * 메뉴 상태 체크 (디버그용)
+ */
+function checkMenuState() {
+  console.log('🔍 메뉴 상태 체크:', {
+    isMenuOpen: layoutState.isMenuOpen,
+    menuElement: !!layoutState.menuElement,
+    menuButton: !!layoutState.menuButton,
+    overlay: !!layoutState.overlay,
+    bodyClasses: document.body.className
+  });
+}
+
+/**
  * 레이아웃 정리
  */
 function destroyLayout() {
@@ -657,6 +748,11 @@ function destroyLayout() {
     layoutState.overlay.parentNode.removeChild(layoutState.overlay);
   }
 
+  // 타이머 정리
+  if (layoutState.scrollTimeout) {
+    clearTimeout(layoutState.scrollTimeout);
+  }
+
   // 상태 초기화
   layoutState = {
     isMenuOpen: false,
@@ -665,20 +761,66 @@ function destroyLayout() {
     menuElement: null,
     menuButton: null,
     overlay: null,
-    isInitialized: false
+    isInitialized: false,
+    navigationBadges: {},
+    scrollTimeout: null
   };
+}
+
+/**
+ * 온라인/오프라인 상태 처리
+ */
+function handleConnectionChange() {
+  window.addEventListener('online', () => {
+    console.log('🌐 온라인 상태 복원');
+    showToast('인터넷 연결이 복원되었습니다.', 'success', 3000);
+
+    // 네비게이션 배지 업데이트
+    updateNavigationBadges();
+  });
+
+  window.addEventListener('offline', () => {
+    console.log('📴 오프라인 상태');
+    showToast('인터넷 연결이 끊어졌습니다.', 'warning', 5000);
+  });
+}
+
+/**
+ * 페이지 가시성 변경 처리
+ */
+function handleVisibilityChange() {
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && layoutState.isInitialized) {
+      console.log('👁️ 페이지 가시성 복원');
+
+      // 네비게이션 상태 업데이트
+      updateActiveNavigation();
+
+      // 배지 업데이트
+      if (window.APP_CONFIG?.isLoggedIn) {
+        updateNavigationBadges();
+      }
+    }
+  });
 }
 
 // 전역 함수들 (하위 호환성)
 window.openMenu = openMenu;
 window.closeMenu = closeMenu;
 window.toggleMenu = toggleMenu;
+window.checkMenuState = checkMenuState;
+
+// 레이아웃 매니저 객체
 window.layoutManager = {
   openMenu,
   closeMenu,
   toggleMenu,
   isMenuOpen: () => layoutState.isMenuOpen,
-  destroy: destroyLayout
+  updateNavigationBadges,
+  showPageLoading,
+  hidePageLoading,
+  destroy: destroyLayout,
+  checkState: checkMenuState
 };
 
 // 전역 디버깅 함수
@@ -690,12 +832,17 @@ window.debugLayout = function() {
   console.log('오버레이:', layoutState.overlay);
   console.log('메뉴 열림 상태:', layoutState.isMenuOpen);
   console.log('초기화 상태:', layoutState.isInitialized);
+  console.log('네비게이션 배지:', layoutState.navigationBadges);
   console.groupEnd();
 };
 
 // 자동 초기화
 console.log('🌟 layout.js 스크립트 로드 완료');
 initializeLayout();
+
+// 추가 이벤트 핸들러 초기화
+handleConnectionChange();
+handleVisibilityChange();
 
 // 페이지 언로드 시 정리
 window.addEventListener('beforeunload', () => {
@@ -710,5 +857,6 @@ export {
   toggleMenu,
   updateNavigationBadges,
   showPageLoading,
-  hidePageLoading
+  hidePageLoading,
+  checkMenuState
 };
