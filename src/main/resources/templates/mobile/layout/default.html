@@ -421,15 +421,14 @@
         if (window.layoutManager && window.layoutManager.isMenuOpen) {
           window.layoutManager.closeMenu();
         }
-      }
 
-      // 숫자 키로 네비게이션 이동 (1-4)
-      if (e.key >= '1' && e.key <= '4' && !e.ctrlKey && !e.altKey && !e.shiftKey) {
-        const navItems = document.querySelectorAll('.nav-item');
-        const index = parseInt(e.key) - 1;
-        if (navItems[index]) {
-          e.preventDefault();
-          navItems[index].click();
+        // 모달이 열려있으면 모달 닫기
+        const openModal = document.querySelector('.modal.show');
+        if (openModal) {
+          const closeBtn = openModal.querySelector('.btn-close');
+          if (closeBtn) {
+            closeBtn.click();
+          }
         }
       }
     });

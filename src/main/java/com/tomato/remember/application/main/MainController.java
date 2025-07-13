@@ -1,12 +1,17 @@
 package com.tomato.remember.application.main;
 
 import com.tomato.remember.application.member.entity.Member;
+import com.tomato.remember.application.memorial.dto.MemorialListResponseDTO;
 import com.tomato.remember.application.memorial.dto.MemorialResponseDTO;
 import com.tomato.remember.application.memorial.service.MemorialService;
 import com.tomato.remember.application.security.MemberUserDetails;
+import com.tomato.remember.common.dto.ListDTO;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -84,25 +89,29 @@ public class MainController {
      */
     private void setupLoggedInUserData(Model model, Member currentUser) {
         log.info("Setting up logged in user data: {} (ID: {})",
-            currentUser.getName(), currentUser.getId());
+                currentUser.getName(), currentUser.getId());
 
         // 사용자 기본 정보
         model.addAttribute("currentUser", currentUser.convertDTO());
         model.addAttribute("isLoggedIn", true);
 
-        // 메모리얼 목록 조회
+        // 메모리얼 목록 조회 - 5개로 제한
         try {
-            List<MemorialResponseDTO> memorialList = memorialService.getActiveMemorialListByMember(currentUser);
-            model.addAttribute("memorialList", memorialList);
-            model.addAttribute("memorialCount", memorialList.size());
+            Pageable pageable = PageRequest.of(0, 5, Sort.by(Sort.Direction.DESC, "createdAt"));
+            ListDTO<MemorialListResponseDTO> memorialList = memorialService.getMyMemorials(currentUser, pageable);
 
-            log.info("User {} has {} memorials", currentUser.getName(), memorialList.size());
+            model.addAttribute("memorialList", memorialList.getData());
+            model.addAttribute("memorialCount", memorialList.getPagination().getTotalElements());
+            model.addAttribute("hasMoreMemorials", memorialList.getPagination().getTotalElements() > 5);
+
+            log.info("User {} has {} memorials (showing 5)", currentUser.getName(), memorialList.getPagination().getTotalElements());
 
         } catch (Exception e) {
             log.error("Error loading memorials for user: {}", currentUser.getId(), e);
             // 에러 발생 시 빈 목록으로 설정
             model.addAttribute("memorialList", new ArrayList<MemorialResponseDTO>());
             model.addAttribute("memorialCount", 0);
+            model.addAttribute("hasMoreMemorials", false);
         }
 
         // 체험 관련 정보 (임시)

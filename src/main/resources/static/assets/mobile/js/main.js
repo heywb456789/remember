@@ -1,4 +1,4 @@
-// main.js - 토마토리멤버 메인 페이지 (개선된 버전)
+// main.js - 토마토리멤버 메인 페이지 (수정된 버전)
 
 import { authFetch, checkLoginStatus, handleFetchError } from './commonFetch.js';
 import { showToast, showConfirm, showLoading } from './common.js';
@@ -7,7 +7,7 @@ import { showToast, showConfirm, showLoading } from './common.js';
 let mainPageState = {
   isLoading: false,
   isInitialized: false,
-  memorialCards: [],
+  memorialItems: [],
   isLoggedIn: false,
   currentUser: null,
   retryCount: 0,
@@ -15,14 +15,36 @@ let mainPageState = {
   refreshInterval: null
 };
 
+// 관계별 이모지 매핑
+const RELATIONSHIP_EMOJIS = {
+  '부': '👨',
+  '모': '👩',
+  '배우자부': '👨',
+  '배우자모': '👩',
+  '조부': '👴',
+  '조모': '👵',
+  '증조부': '👴',
+  '증조모': '👵',
+  '배우자': '💑',
+  '자': '👶',
+  '자부': '👰',
+  '사위': '🤵',
+  '형제/자매': '👫',
+  '손': '👶',
+  '증손': '👶',
+  '본인': '😊',
+  '동거인': '🏠',
+  '기타': '👤'
+};
+
 /**
- * 메인 페이지 초기화 - 단순화된 버전
+ * 메인 페이지 초기화
  */
 function initializeMainPage() {
-  console.log('🚀 메인 페이지 초기화 시작');
+  console.log('메인 페이지 초기화 시작');
 
   if (mainPageState.isInitialized) {
-    console.warn('⚠️ 메인 페이지가 이미 초기화되었습니다.');
+    console.warn('메인 페이지가 이미 초기화되었습니다.');
     return;
   }
 
@@ -30,7 +52,7 @@ function initializeMainPage() {
     // 1. 서버 데이터 로드
     loadServerData();
 
-    // 2. 이벤트 바인딩 (가장 중요!)
+    // 2. 이벤트 바인딩
     bindAllEvents();
 
     // 3. 로그인 상태 UI 업데이트
@@ -43,10 +65,10 @@ function initializeMainPage() {
 
     // 5. 초기화 완료 플래그 설정
     mainPageState.isInitialized = true;
-    console.log('✅ 메인 페이지 초기화 완료');
+    console.log('메인 페이지 초기화 완료');
 
   } catch (error) {
-    console.error('❌ 메인 페이지 초기화 실패:', error);
+    console.error('메인 페이지 초기화 실패:', error);
     showToast('페이지 초기화 중 오류가 발생했습니다.', 'error');
   }
 }
@@ -55,54 +77,53 @@ function initializeMainPage() {
  * 서버 데이터 로드
  */
 function loadServerData() {
-  console.log('📊 서버 데이터 로드');
+  console.log('서버 데이터 로드');
 
   if (window.serverData) {
     mainPageState.isLoggedIn = window.serverData.isLoggedIn || false;
-    mainPageState.memorialCards = window.serverData.memorialList || [];
+    mainPageState.memorialItems = window.serverData.memorialList || [];
     mainPageState.currentUser = window.serverData.currentUser || null;
 
-    console.log('📊 서버 데이터 로드 완료:', {
+    console.log('서버 데이터 로드 완료:', {
       isLoggedIn: mainPageState.isLoggedIn,
-      memorialCount: mainPageState.memorialCards.length,
+      memorialCount: mainPageState.memorialItems.length,
       currentUser: mainPageState.currentUser?.name || 'None'
     });
   } else {
-    console.warn('⚠️ 서버 데이터가 없습니다.');
+    console.warn('서버 데이터가 없습니다.');
   }
 }
 
 /**
- * 모든 이벤트 바인딩 - 핵심 함수
+ * 모든 이벤트 바인딩
  */
 function bindAllEvents() {
-  console.log('🔗 모든 이벤트 바인딩 시작');
+  console.log('모든 이벤트 바인딩 시작');
 
   // 1. 새 메모리얼 등록 버튼들
   bindCreateMemorialButtons();
 
-  // 2. 액션 버튼들
-  bindActionButtons();
+  // 2. 영상통화 버튼
+  bindVideoCallButton();
 
   // 3. 무료체험 버튼
   bindFreeTrialButton();
 
-  // 4. 메모리얼 카드들
-  bindMemorialCards();
+  // 4. 메모리얼 아이템들
+  bindMemorialItems();
 
   // 5. 기타 버튼들
   bindOtherButtons();
 
-  console.log('✅ 모든 이벤트 바인딩 완료');
+  console.log('모든 이벤트 바인딩 완료');
 }
 
 /**
  * 메모리얼 생성 버튼 바인딩
  */
 function bindCreateMemorialButtons() {
-  console.log('📝 메모리얼 생성 버튼 바인딩');
+  console.log('메모리얼 생성 버튼 바인딩');
 
-  // 선택자로 모든 생성 버튼 찾기
   const createButtons = document.querySelectorAll(`
     .new-memorial-btn,
     .add-memorial-btn,
@@ -110,38 +131,25 @@ function bindCreateMemorialButtons() {
   `);
 
   createButtons.forEach(btn => {
-    // 기존 이벤트 제거 (중복 방지)
     btn.removeEventListener('click', handleCreateMemorialClick);
-
-    // 새 이벤트 바인딩
     btn.addEventListener('click', handleCreateMemorialClick);
-
-    console.log('📝 생성 버튼 바인딩:', btn.className);
+    console.log('생성 버튼 바인딩:', btn.className);
   });
 
-  console.log('✅ 메모리얼 생성 버튼 바인딩 완료:', createButtons.length);
+  console.log('메모리얼 생성 버튼 바인딩 완료:', createButtons.length);
 }
 
 /**
- * 액션 버튼들 바인딩
+ * 영상통화 버튼 바인딩
  */
-function bindActionButtons() {
-  console.log('🎬 액션 버튼 바인딩');
+function bindVideoCallButton() {
+  console.log('영상통화 버튼 바인딩');
 
-  // 영상통화 버튼
-  const videoCallBtn = document.querySelector('.btn-video');
+  const videoCallBtn = document.querySelector('.video-call-btn');
   if (videoCallBtn) {
     videoCallBtn.removeEventListener('click', handleVideoCallClick);
     videoCallBtn.addEventListener('click', handleVideoCallClick);
-    console.log('📹 영상통화 버튼 바인딩 완료');
-  }
-
-  // 선물하기 버튼
-  const giftBtn = document.querySelector('.btn-gift');
-  if (giftBtn) {
-    giftBtn.removeEventListener('click', handleGiftClick);
-    giftBtn.addEventListener('click', handleGiftClick);
-    console.log('🎁 선물하기 버튼 바인딩 완료');
+    console.log('영상통화 버튼 바인딩 완료');
   }
 }
 
@@ -149,36 +157,36 @@ function bindActionButtons() {
  * 무료체험 버튼 바인딩
  */
 function bindFreeTrialButton() {
-  console.log('🎯 무료체험 버튼 바인딩');
+  console.log('무료체험 버튼 바인딩');
 
   const freeTrialBtn = document.querySelector('.free-trial-btn');
   if (freeTrialBtn) {
     freeTrialBtn.removeEventListener('click', handleFreeTrialClick);
     freeTrialBtn.addEventListener('click', handleFreeTrialClick);
-    console.log('🎁 무료체험 버튼 바인딩 완료');
+    console.log('무료체험 버튼 바인딩 완료');
   }
 }
 
 /**
- * 메모리얼 카드 바인딩
+ * 메모리얼 아이템 바인딩
  */
-function bindMemorialCards() {
-  console.log('🎴 메모리얼 카드 바인딩');
+function bindMemorialItems() {
+  console.log('메모리얼 아이템 바인딩');
 
-  const memorialCards = document.querySelectorAll('.memorial-card');
-  memorialCards.forEach(card => {
-    card.removeEventListener('click', handleMemorialCardClick);
-    card.addEventListener('click', handleMemorialCardClick);
+  const memorialItems = document.querySelectorAll('.memorial-item');
+  memorialItems.forEach(item => {
+    item.removeEventListener('click', handleMemorialItemClick);
+    item.addEventListener('click', handleMemorialItemClick);
   });
 
-  console.log('✅ 메모리얼 카드 바인딩 완료:', memorialCards.length);
+  console.log('메모리얼 아이템 바인딩 완료:', memorialItems.length);
 }
 
 /**
  * 기타 버튼들 바인딩
  */
 function bindOtherButtons() {
-  console.log('🔘 기타 버튼 바인딩');
+  console.log('기타 버튼 바인딩');
 
   // 새로고침 버튼
   const refreshBtn = document.querySelector('.refresh-btn');
@@ -199,7 +207,7 @@ function bindOtherButtons() {
  * 로그인 UI 업데이트
  */
 function updateLoginUI() {
-  console.log('🎨 로그인 UI 업데이트');
+  console.log('로그인 UI 업데이트');
 
   const loggedInElements = document.querySelectorAll('.logged-in-only');
   const loggedOutElements = document.querySelectorAll('.logged-out-only');
@@ -224,26 +232,26 @@ function updateLoginUI() {
     });
   }
 
-  console.log('✅ 로그인 UI 업데이트 완료');
+  console.log('로그인 UI 업데이트 완료');
 }
 
 /**
  * 로그인한 사용자 기능 초기화
  */
 async function initializeLoggedInFeatures() {
-  console.log('👤 로그인한 사용자 기능 초기화');
+  console.log('로그인한 사용자 기능 초기화');
 
   try {
-    // 메모리얼 목록이 비어있으면 서버에서 로드
-    if (mainPageState.memorialCards.length === 0) {
-      await loadMemorialList();
+    // 서버에서 이미 데이터를 받았으므로 바로 렌더링
+    if (mainPageState.memorialItems.length > 0) {
+      renderMemorialList(mainPageState.memorialItems);
     }
 
-    // 주기적 새로고침 설정
-    setupPeriodicRefresh();
+    // 주기적 새로고침은 비활성화 (서버사이드 렌더링 사용)
+    // setupPeriodicRefresh();
 
   } catch (error) {
-    console.error('❌ 로그인한 사용자 기능 초기화 실패:', error);
+    console.error('로그인한 사용자 기능 초기화 실패:', error);
   }
 }
 
@@ -256,7 +264,7 @@ async function handleCreateMemorialClick(e) {
   e.preventDefault();
   e.stopPropagation();
 
-  console.log('📝 메모리얼 생성 클릭');
+  console.log('메모리얼 생성 클릭');
 
   if (!mainPageState.isLoggedIn) {
     showLoginModal();
@@ -270,28 +278,28 @@ async function handleCreateMemorialClick(e) {
 // 영상통화 클릭 핸들러
 async function handleVideoCallClick(e) {
   e.preventDefault();
-  console.log('📹 영상통화 클릭');
+  console.log('영상통화 클릭');
 
-  if (mainPageState.memorialCards.length === 0) {
+  if (mainPageState.memorialItems.length === 0) {
     showToast('먼저 메모리얼을 등록해주세요.', 'warning');
     return;
   }
 
-  showToast('영상통화 기능 준비 중입니다.', 'info');
-}
+  // 메모리얼이 1개인 경우 바로 영상통화 시작
+  if (mainPageState.memorialItems.length === 1) {
+    const memorial = mainPageState.memorialItems[0];
+    startVideoCall(memorial.memorialId);
+    return;
+  }
 
-// 선물하기 클릭 핸들러
-function handleGiftClick(e) {
-  e.preventDefault();
-  console.log('🎁 선물하기 클릭');
-
-  showToast('선물하기 기능 준비 중입니다.', 'info');
+  // 메모리얼이 여러개인 경우 선택 모달 표시
+  showMemorialSelectionModal();
 }
 
 // 무료체험 클릭 핸들러
 function handleFreeTrialClick(e) {
   e.preventDefault();
-  console.log('🎯 무료체험 클릭');
+  console.log('무료체험 클릭');
 
   if (mainPageState.isLoggedIn) {
     showToast('이미 로그인된 상태입니다.', 'info');
@@ -302,10 +310,10 @@ function handleFreeTrialClick(e) {
   window.location.href = '/mobile/register?trial=true';
 }
 
-// 메모리얼 카드 클릭 핸들러
-function handleMemorialCardClick(e) {
+// 메모리얼 아이템 클릭 핸들러
+function handleMemorialItemClick(e) {
   const memorialId = e.currentTarget.dataset.memorialId;
-  console.log('🎴 메모리얼 카드 클릭:', memorialId);
+  console.log('메모리얼 아이템 클릭:', memorialId);
 
   if (memorialId) {
     window.location.href = `/mobile/memorial/${memorialId}`;
@@ -315,30 +323,26 @@ function handleMemorialCardClick(e) {
 // 새로고침 클릭 핸들러
 async function handleRefreshClick(e) {
   e.preventDefault();
-  console.log('🔄 새로고침 클릭');
+  console.log('새로고침 클릭');
 
-  if (mainPageState.isLoggedIn) {
-    await loadMemorialList();
-    showToast('목록이 새로고침되었습니다.', 'success');
-  } else {
-    window.location.reload();
-  }
+  // 서버사이드 렌더링 사용하므로 페이지 새로고침
+  window.location.reload();
 }
 
 // 재시도 클릭 핸들러
 async function handleRetryClick(e) {
   e.preventDefault();
-  console.log('🔄 재시도 클릭');
+  console.log('재시도 클릭');
 
-  hideErrorState();
-  await loadMemorialList();
+  // 서버사이드 렌더링 사용하므로 페이지 새로고침
+  window.location.reload();
 }
 
 /**
  * 메모리얼 목록 로드
  */
 async function loadMemorialList() {
-  console.log('📋 메모리얼 목록 로드');
+  console.log('메모리얼 목록 로드');
 
   if (mainPageState.isLoading || !mainPageState.isLoggedIn) {
     return;
@@ -348,14 +352,14 @@ async function loadMemorialList() {
     mainPageState.isLoading = true;
     showLoadingState();
 
-    const response = await authFetch('/api/memorial/my');
+    const response = await authFetch('/api/memorial/my?size=5');
     const data = await response.json();
 
     if (data.status?.code === 'OK_0000') {
-      mainPageState.memorialCards = data.response || [];
+      mainPageState.memorialItems = data.response?.data || [];
 
-      if (mainPageState.memorialCards.length > 0) {
-        renderMemorialList(mainPageState.memorialCards);
+      if (mainPageState.memorialItems.length > 0) {
+        renderMemorialList(mainPageState.memorialItems);
       } else {
         showEmptyState();
       }
@@ -364,7 +368,7 @@ async function loadMemorialList() {
     }
 
   } catch (error) {
-    console.error('❌ 메모리얼 목록 로드 실패:', error);
+    console.error('메모리얼 목록 로드 실패:', error);
     showErrorState(error.message);
   } finally {
     mainPageState.isLoading = false;
@@ -373,61 +377,85 @@ async function loadMemorialList() {
 }
 
 /**
- * 메모리얼 목록 렌더링
+ * 메모리얼 목록 렌더링 (서버 데이터 기반)
  */
 function renderMemorialList(memorials) {
-  console.log('🎨 메모리얼 목록 렌더링:', memorials.length);
+  console.log('메모리얼 목록 렌더링:', memorials.length);
 
   const container = document.getElementById('memorialList');
-  if (!container) return;
+  if (!container) {
+    console.log('메모리얼 리스트 컨테이너를 찾을 수 없음 - 서버에서 이미 렌더링됨');
+    return;
+  }
 
-  hideEmptyState();
-  hideErrorState();
-
-  // 기존 내용 제거
-  container.innerHTML = '';
-
-  // 메모리얼 카드 생성
-  memorials.forEach(memorial => {
-    const card = createMemorialCard(memorial);
-    container.appendChild(card);
-  });
-
-  // 새로 생성된 카드들에 이벤트 바인딩
-  bindMemorialCards();
-
-  console.log('✅ 메모리얼 목록 렌더링 완료');
+  // 서버에서 이미 렌더링된 경우 추가 처리만 수행
+  bindMemorialItems();
+  console.log('메모리얼 목록 이벤트 바인딩 완료');
 }
 
 /**
- * 메모리얼 카드 생성
+ * 메모리얼 아이템 생성
  */
-function createMemorialCard(memorial) {
-  const card = document.createElement('div');
-  card.className = 'memorial-card';
-  card.dataset.memorialId = memorial.id;
+function createMemorialItem(memorial) {
+  const item = document.createElement('div');
+  item.className = 'memorial-item';
+  item.dataset.memorialId = memorial.memorialId;
 
-  const profileImage = memorial.profileImageUrl || '/assets/mobile/images/default-avatar.png';
-  const onlineStatus = memorial.isOnline ? 'online' : 'offline';
-  const lastVisit = memorial.lastVisitDate ?
-    new Date(memorial.lastVisitDate).toLocaleDateString() :
-    '방문 기록 없음';
+  // 아바타 HTML 생성
+  const avatarHtml = createAvatarHtml(memorial);
 
-  card.innerHTML = `
-    <div class="memorial-header">
-      <div class="memorial-avatar">
-        <img src="${profileImage}" alt="${memorial.name}" class="avatar-img">
-        <div class="memorial-status ${onlineStatus}"></div>
-      </div>
-      <div class="memorial-info">
-        <div class="memorial-name">${memorial.name}</div>
-        <div class="memorial-relationship">${memorial.relationship || '관계 없음'}</div>
-        <div class="memorial-last-visit">마지막 방문: ${lastVisit}</div>
-      </div>
+  item.innerHTML = `
+    ${avatarHtml}
+    <div class="memorial-info">
+      <div class="memorial-name">${memorial.name}</div>
+      <div class="memorial-relationship">${memorial.relationshipDescription || '관계 없음'}</div>
+    </div>
+    <div class="memorial-arrow">
+      <i class="fas fa-chevron-right"></i>
     </div>
   `;
 
-  return card;
+  return item;
+}
+
+/**
+ * 아바타 HTML 생성 (이미지 또는 이모지)
+ */
+function createAvatarHtml(memorial) {
+  if (memorial.mainProfileImageUrl) {
+    return `
+      <div class="memorial-avatar">
+        <img src="${memorial.mainProfileImageUrl}" alt="${memorial.name}" class="avatar-img">
+      </div>
+    `;
+  } else {
+    const emoji = RELATIONSHIP_EMOJIS[memorial.relationshipDescription] || '👤';
+    return `
+      <div class="memorial-avatar">
+        <span class="memorial-emoji">
+          <span class="emoji">${emoji}</span>
+        </span>
+      </div>
+    `;
+  }
+}
+
+/**
+ * 영상통화 시작
+ */
+function startVideoCall(memorialId) {
+  console.log('영상통화 시작:', memorialId);
+  showToast('영상통화 기능 준비 중입니다.', 'info');
+  // TODO: 영상통화 로직 구현
+}
+
+/**
+ * 메모리얼 선택 모달 표시
+ */
+function showMemorialSelectionModal() {
+  console.log('메모리얼 선택 모달 표시');
+  showToast('영상통화할 메모리얼을 선택해주세요.', 'info');
+  // TODO: 메모리얼 선택 모달 구현
 }
 
 /**
@@ -485,7 +513,7 @@ function setupPeriodicRefresh() {
   // 5분마다 새로고침
   mainPageState.refreshInterval = setInterval(() => {
     if (mainPageState.isLoggedIn && !document.hidden) {
-      console.log('🔄 주기적 새로고침');
+      console.log('주기적 새로고침');
       loadMemorialList();
     }
   }, 5 * 60 * 1000);
@@ -495,7 +523,7 @@ function setupPeriodicRefresh() {
  * 정리 함수
  */
 function destroyMainPage() {
-  console.log('🗑️ 메인 페이지 정리');
+  console.log('메인 페이지 정리');
 
   if (mainPageState.refreshInterval) {
     clearInterval(mainPageState.refreshInterval);
@@ -510,7 +538,6 @@ function destroyMainPage() {
  */
 window.mainPageManager = {
   initialize: initializeMainPage,
-  loadMemorialList,
   destroy: destroyMainPage,
   getState: () => mainPageState
 };
@@ -518,19 +545,17 @@ window.mainPageManager = {
 // 전역 함수들 (HTML에서 호출 가능)
 window.handleCreateMemorial = handleCreateMemorialClick;
 window.showVideoCall = handleVideoCallClick;
-window.showGiftInfo = handleGiftClick;
 window.showLoginModal = showLoginModal;
 
 /**
  * 자동 초기화
  */
-console.log('🌟 개선된 main.js 로드 완료');
+console.log('수정된 main.js 로드 완료');
 
 // DOM이 준비되면 즉시 초기화
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initializeMainPage);
 } else {
-  // DOM이 이미 로드된 경우 즉시 초기화
   setTimeout(initializeMainPage, 100);
 }
 
@@ -540,9 +565,7 @@ window.addEventListener('beforeunload', destroyMainPage);
 // 모듈 익스포트
 export {
   initializeMainPage,
-  loadMemorialList,
   destroyMainPage,
   handleCreateMemorialClick,
-  handleVideoCallClick,
-  handleGiftClick
+  handleVideoCallClick
 };

@@ -4,8 +4,10 @@ import com.tomato.remember.application.memorial.dto.*;
 import com.tomato.remember.application.memorial.service.MemorialService;
 import com.tomato.remember.application.member.entity.Member;
 import com.tomato.remember.application.security.MemberUserDetails;
+import com.tomato.remember.common.code.ResponseStatus;
 import com.tomato.remember.common.dto.ListDTO;
 import com.tomato.remember.common.dto.ResponseDTO;
+import com.tomato.remember.common.exception.APIException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -16,6 +18,8 @@ import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -90,6 +94,27 @@ public class MemorialRestController {
         @Parameter(hidden = true) @AuthenticationPrincipal MemberUserDetails userDetails,
         @RequestParam(name = "page", defaultValue = "0") int page,
         @RequestParam(name = "size", defaultValue = "10") int size) {
+
+        // 1. 인증된 사용자 확인
+        if (userDetails == null) {
+            throw new APIException(ResponseStatus.UNAUTHORIZED);
+        }
+
+        // 2. Member 객체 안전하게 추출
+        Member member = userDetails.getMember();
+        if (member == null) {
+            throw new APIException(ResponseStatus.USER_NOT_EXIST);
+        }
+
+        // 3. 페이징 파라미터 유효성 검사 및 안전한 Pageable 생성
+        if (page < 0) {
+            page = 0;
+        }
+        if (size <= 0 || size > 100) { // 최대 100개로 제한
+            size = 10;
+        }
+
+        Pageable pageable = PageRequest.of(page, size);
 
         // 서비스 호출
         ListDTO<MemorialListResponseDTO> response = memorialService.getMyMemorials(member, pageable);

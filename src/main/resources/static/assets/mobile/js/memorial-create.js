@@ -1,4 +1,5 @@
-// memorial-create.js - 메모리얼 등록 JavaScript
+// memorial-create.js - 메모리얼 등록 JavaScript (완전 수정본)
+import { authFetch } from './commonFetch.js';
 
 // 상태 관리
 let memorialData = {
@@ -30,13 +31,6 @@ const fileLimits = {
   videoFile: { maxCount: 1, maxSize: 100 * 1024 * 1024, types: ['video/mp4', 'video/mov', 'video/avi', 'video/quicktime'] }
 };
 
-// 녹음 관련
-let mediaRecorder = null;
-let recordingState = {
-  isRecording: false,
-  startTime: null
-};
-
 /**
  * 초기화
  */
@@ -49,8 +43,27 @@ document.addEventListener('DOMContentLoaded', function() {
   // 드래그 앤 드롭 초기화
   initializeDragAndDrop();
 
+  // 파일 목록 컨테이너 초기 상태 설정
+  initializeFileContainers();
+
+  // 제출 버튼 초기 상태 설정
+  updateSubmitButton();
+
   console.log('초기화 완료');
 });
+
+/**
+ * 파일 목록 컨테이너 초기화
+ */
+function initializeFileContainers() {
+  const containers = ['profileImagesList', 'voiceFilesList', 'videoFileList'];
+  containers.forEach(id => {
+    const container = document.getElementById(id);
+    if (container) {
+      container.style.display = 'none';
+    }
+  });
+}
 
 /**
  * 이벤트 바인딩
@@ -99,6 +112,89 @@ function bindEvents() {
     }
   });
 
+  // 통합된 클릭 이벤트 처리
+  document.addEventListener('click', function(e) {
+    const action = e.target.getAttribute('data-action') || e.target.closest('[data-action]')?.getAttribute('data-action');
+
+    if (!action) return;
+
+    switch(action) {
+      case 'show-profile-guide':
+        e.preventDefault();
+        showProfileImageGuide();
+        break;
+      case 'show-voice-guide':
+        e.preventDefault();
+        showVoiceFileGuide();
+        break;
+      case 'show-video-guide':
+        e.preventDefault();
+        showVideoFileGuide();
+        break;
+      case 'close-modal':
+        e.preventDefault();
+        closeModal(e.target);
+        break;
+      case 'select-profile-files':
+        e.preventDefault();
+        closeModalAndSelectFiles(e.target, 'profileImageInput');
+        break;
+      case 'select-voice-files':
+        e.preventDefault();
+        closeModalAndSelectFiles(e.target, 'voiceFileInput');
+        break;
+      case 'select-video-files':
+        e.preventDefault();
+        closeModalAndSelectFiles(e.target, 'videoFileInput');
+        break;
+      case 'remove-file':
+        e.preventDefault();
+        const type = e.target.getAttribute('data-type') || e.target.closest('[data-type]')?.getAttribute('data-type');
+        const index = parseInt(e.target.getAttribute('data-index') || e.target.closest('[data-index]')?.getAttribute('data-index'));
+        removeFile(type, index);
+        break;
+      case 'go-back':
+        e.preventDefault();
+        history.back();
+        break;
+    }
+
+    // 기존 모달 관련 처리 (data-bs-dismiss 등)
+    if (e.target.classList.contains('btn-close') || e.target.getAttribute('data-bs-dismiss') === 'modal') {
+      const modal = e.target.closest('.modal');
+      if (modal) {
+        modal.classList.remove('show');
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+      }
+    }
+
+    // 모달 배경 클릭시 닫기
+    if (e.target.classList.contains('modal')) {
+      e.target.classList.remove('show');
+      e.target.style.display = 'none';
+      document.body.style.overflow = '';
+    }
+
+    // 기존 모달 푸터 버튼 처리 (하위 호환성)
+    if (e.target.classList.contains('btn-primary') && e.target.getAttribute('data-bs-dismiss') === 'modal') {
+      const modal = e.target.closest('.modal');
+      if (modal) {
+        modal.classList.remove('show');
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+
+        if (modal.id === 'profileImageGuideModal') {
+          setTimeout(() => selectProfileImages(), 100);
+        } else if (modal.id === 'voiceFileGuideModal') {
+          setTimeout(() => selectVoiceFiles(), 100);
+        } else if (modal.id === 'videoFileGuideModal') {
+          setTimeout(() => selectVideoFile(), 100);
+        }
+      }
+    }
+  });
+
   // 파일 업로드
   const fileInputs = [
     { id: 'profileImageInput', type: 'profileImages', multiple: true },
@@ -112,6 +208,37 @@ function bindEvents() {
       input.addEventListener('change', (e) => handleFileSelect(e, type, multiple));
     }
   });
+}
+
+/**
+ * 모달 닫기 헬퍼 함수
+ */
+function closeModal(element) {
+  const modal = element.closest('.modal');
+  if (modal) {
+    modal.classList.remove('show');
+    modal.style.display = 'none';
+    document.body.style.overflow = '';
+  }
+}
+
+/**
+ * 모달 닫고 파일 선택 헬퍼 함수
+ */
+function closeModalAndSelectFiles(element, inputId) {
+  const modal = element.closest('.modal');
+  if (modal) {
+    modal.classList.remove('show');
+    modal.style.display = 'none';
+    document.body.style.overflow = '';
+
+    setTimeout(() => {
+      const input = document.getElementById(inputId);
+      if (input) {
+        input.click();
+      }
+    }, 100);
+  }
 }
 
 /**
@@ -212,7 +339,7 @@ function handleFileSelect(event, type, multiple) {
   event.target.value = '';
 
   // UI 업데이트
-  updateFilePreview(type);
+  updateFileList(type);
   updateSubmitButton();
 }
 
@@ -280,15 +407,11 @@ function validateFile(file, type) {
 function addFileToData(file, type) {
   const fileInfo = {
     file: file,
-    preview: null,
-    id: Date.now() + Math.random()
+    id: Date.now() + Math.random(),
+    name: file.name,
+    size: file.size,
+    type: file.type
   };
-
-  // 미리보기 생성
-  createFilePreview(file, type).then(preview => {
-    fileInfo.preview = preview;
-    updateFilePreview(type);
-  });
 
   if (Array.isArray(memorialData[type])) {
     memorialData[type].push(fileInfo);
@@ -298,110 +421,169 @@ function addFileToData(file, type) {
 }
 
 /**
- * 파일 미리보기 생성
+ * 파일 목록 업데이트
  */
-function createFilePreview(file, type) {
-  return new Promise((resolve) => {
-    if (type === 'profileImages') {
-      const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target.result);
-      reader.readAsDataURL(file);
-    } else if (type === 'voiceFiles') {
-      resolve(URL.createObjectURL(file));
-    } else if (type === 'videoFile') {
-      resolve(URL.createObjectURL(file));
-    } else {
-      resolve(null);
-    }
-  });
-}
+function updateFileList(type) {
+  // 파일 타입에 따른 올바른 컨테이너 ID 매핑
+  const containerIds = {
+    'profileImages': 'profileImagesList',
+    'voiceFiles': 'voiceFilesList',
+    'videoFile': 'videoFileList'
+  };
 
-/**
- * 파일 미리보기 업데이트
- */
-function updateFilePreview(type) {
-  const previewContainer = document.getElementById(`${type}Preview`);
-  if (!previewContainer) return;
+  const listContainer = document.getElementById(containerIds[type]);
+  if (!listContainer) {
+    console.warn(`파일 목록 컨테이너를 찾을 수 없습니다: ${containerIds[type]}`);
+    return;
+  }
 
   const files = memorialData[type];
 
   if (Array.isArray(files) && files.length > 0) {
-    if (type === 'profileImages') {
-      previewContainer.innerHTML = files.map((fileInfo, index) =>
-        createImagePreviewHtml(fileInfo, type, index)
-      ).join('');
-    } else if (type === 'voiceFiles') {
-      previewContainer.innerHTML = files.map((fileInfo, index) =>
-        createAudioPreviewHtml(fileInfo, type, index)
-      ).join('');
-    }
+    listContainer.innerHTML = files.map((fileInfo, index) =>
+        createFileListItemHtml(fileInfo, type, index)
+    ).join('');
+    listContainer.style.display = 'block';
   } else if (files && !Array.isArray(files)) {
-    if (type === 'videoFile') {
-      previewContainer.innerHTML = createVideoPreviewHtml(files, type, 0);
-    }
+    listContainer.innerHTML = createFileListItemHtml(files, type, 0);
+    listContainer.style.display = 'block';
   } else {
-    previewContainer.innerHTML = '';
+    listContainer.innerHTML = '';
+    listContainer.style.display = 'none';
+  }
+
+  // 업로드 영역 상태 업데이트
+  updateUploadAreaState(type);
+}
+
+/**
+ * 파일 목록 아이템 HTML 생성
+ */
+function createFileListItemHtml(fileInfo, type, index) {
+  const { file, name, size } = fileInfo;
+  const fileIcon = getFileIcon(type);
+
+  return `
+    <div class="file-item" data-type="${type}" data-index="${index}">
+      <div class="file-info">
+        <div class="file-icon">
+          <i class="${fileIcon}"></i>
+        </div>
+        <div class="file-details">
+          <div class="file-name">${name}</div>
+          <div class="file-size">${formatFileSize(size)}</div>
+        </div>
+      </div>
+      <button type="button" class="file-remove-btn" data-action="remove-file" data-type="${type}" data-index="${index}">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  `;
+}
+
+/**
+ * 파일 타입별 아이콘 반환
+ */
+function getFileIcon(type) {
+  switch(type) {
+    case 'profileImages': return 'fas fa-image text-primary';
+    case 'voiceFiles': return 'fas fa-volume-up text-success';
+    case 'videoFile': return 'fas fa-video text-warning';
+    default: return 'fas fa-file';
   }
 }
 
 /**
- * 이미지 미리보기 HTML 생성
+ * 업로드 영역 상태 업데이트
  */
-function createImagePreviewHtml(fileInfo, type, index) {
-  const { file, preview } = fileInfo;
+function updateUploadAreaState(type) {
+  const uploadArea = document.getElementById(`${type}Upload`);
+  const placeholder = uploadArea?.querySelector('.upload-placeholder');
 
-  return `
-    <div class="preview-item">
-      <img src="${preview || ''}" alt="${file.name}" loading="lazy">
-      <div class="preview-info">
-        <div class="file-name">${file.name}</div>
-        <div class="file-size">${formatFileSize(file.size)}</div>
-      </div>
-    </div>
-  `;
+  if (!uploadArea || !placeholder) return;
+
+  const files = memorialData[type];
+  const fileCount = Array.isArray(files) ? files.length : (files ? 1 : 0);
+  const limits = fileLimits[type];
+
+  if (fileCount > 0) {
+    uploadArea.classList.add('has-files');
+    updatePlaceholderText(placeholder, type, fileCount, limits.maxCount);
+  } else {
+    uploadArea.classList.remove('has-files');
+    resetPlaceholderText(placeholder, type);
+  }
 }
 
 /**
- * 오디오 미리보기 HTML 생성
+ * 플레이스홀더 텍스트 업데이트
  */
-function createAudioPreviewHtml(fileInfo, type, index) {
-  const { file, preview } = fileInfo;
+function updatePlaceholderText(placeholder, type, currentCount, maxCount) {
+  const titleElement = placeholder.querySelector('h4');
+  const descElement = placeholder.querySelector('p');
 
-  return `
-    <div class="audio-preview-item">
-      <div class="audio-info">
-        <i class="fas fa-volume-up"></i>
-        <div class="audio-details">
-          <div class="audio-name">${file.name}</div>
-          <div class="audio-size">${formatFileSize(file.size)}</div>
-        </div>
-      </div>
-      <div class="audio-controls">
-        <audio controls>
-          <source src="${preview}" type="${file.type}">
-        </audio>
-      </div>
-    </div>
-  `;
+  if (titleElement && descElement) {
+    switch(type) {
+      case 'profileImages':
+        titleElement.textContent = `사진 ${currentCount}/${maxCount}개 선택됨`;
+        descElement.innerHTML = currentCount < maxCount ?
+            '추가로 사진을 선택하거나<br>이곳에 드래그하세요' :
+            '최대 개수에 도달했습니다';
+        break;
+      case 'voiceFiles':
+        titleElement.textContent = `음성 ${currentCount}/${maxCount}개 선택됨`;
+        descElement.innerHTML = currentCount < maxCount ?
+            '추가로 음성 파일을 선택하거나<br>이곳에 드래그하세요' :
+            '최대 개수에 도달했습니다';
+        break;
+      case 'videoFile':
+        titleElement.textContent = `영상 파일 선택됨`;
+        descElement.innerHTML = '다른 영상으로 교체하려면<br>새 파일을 선택하세요';
+        break;
+    }
+  }
 }
 
 /**
- * 비디오 미리보기 HTML 생성
+ * 플레이스홀더 텍스트 리셋
  */
-function createVideoPreviewHtml(fileInfo, type, index) {
-  const { file, preview } = fileInfo;
+function resetPlaceholderText(placeholder, type) {
+  const titleElement = placeholder.querySelector('h4');
+  const descElement = placeholder.querySelector('p');
 
-  return `
-    <div class="preview-item video-preview">
-      <video controls>
-        <source src="${preview}" type="${file.type}">
-      </video>
-      <div class="preview-info">
-        <div class="file-name">${file.name}</div>
-        <div class="file-size">${formatFileSize(file.size)}</div>
-      </div>
-    </div>
-  `;
+  if (titleElement && descElement) {
+    switch(type) {
+      case 'profileImages':
+        titleElement.textContent = '사진 5장 선택';
+        descElement.innerHTML = 'JPG, PNG 파일을 선택하거나<br>이곳에 드래그하세요';
+        break;
+      case 'voiceFiles':
+        titleElement.textContent = '음성 파일 3개 선택';
+        descElement.innerHTML = 'MP3, WAV, M4A 파일을 선택하거나<br>이곳에 드래그하세요';
+        break;
+      case 'videoFile':
+        titleElement.textContent = '영상 파일 1개 선택';
+        descElement.innerHTML = 'MP4, MOV, AVI 파일을 선택하거나<br>이곳에 드래그하세요';
+        break;
+    }
+  }
+}
+
+/**
+ * 파일 제거
+ */
+function removeFile(type, index) {
+  console.log(`파일 제거: ${type}[${index}]`);
+
+  if (Array.isArray(memorialData[type])) {
+    memorialData[type].splice(index, 1);
+  } else {
+    memorialData[type] = null;
+  }
+
+  // UI 업데이트
+  updateFileList(type);
+  updateSubmitButton();
 }
 
 /**
@@ -556,7 +738,10 @@ async function handleFormSubmit(event) {
       habits: memorialData.habits || ''
     };
 
-    formData.append('memorialData', JSON.stringify(basicInfo));
+    const blob = new Blob([JSON.stringify(basicInfo)], {
+      type: 'application/json'
+    });
+    formData.append('memorialData', blob);
 
     // 파일들 추가
     memorialData.profileImages.forEach((fileInfo, index) => {
@@ -571,19 +756,26 @@ async function handleFormSubmit(event) {
       formData.append('videoFile', memorialData.videoFile.file);
     }
 
-    // API 호출 (실제 구현 시 수정 필요)
-    console.log('메모리얼 데이터:', basicInfo);
-    console.log('업로드 파일 개수:', {
-      profileImages: memorialData.profileImages.length,
-      voiceFiles: memorialData.voiceFiles.length,
-      videoFile: memorialData.videoFile ? 1 : 0
+    // API 호출
+    const response = await authFetch('/api/memorials', {
+      method: 'POST',
+      body: formData
     });
 
-    // 임시 성공 처리
-    setTimeout(() => {
+    if (response.ok) {
+      const result = await response.json();
+      console.log('메모리얼 등록 성공:', result);
+
+      // 성공 메시지 표시
       alert('메모리얼이 성공적으로 등록되었습니다!');
-      // window.location.href = '/mobile/memorial';
-    }, 2000);
+
+      // 메모리얼 목록 페이지로 이동
+      window.location.href = '/mobile/home';
+    } else {
+      const errorData = await response.json();
+      console.error('서버 응답 오류:', errorData);
+      throw new Error(errorData.message || '서버 응답 오류');
+    }
 
   } catch (error) {
     console.error('폼 제출 실패:', error);
@@ -602,7 +794,6 @@ async function handleFormSubmit(event) {
 function showProfileImageGuide() {
   const modal = document.getElementById('profileImageGuideModal');
   if (modal) {
-    // 뒤쪽 스크롤 방지
     document.body.style.overflow = 'hidden';
     modal.classList.add('show');
     modal.style.display = 'flex';
@@ -612,7 +803,6 @@ function showProfileImageGuide() {
 function showVoiceFileGuide() {
   const modal = document.getElementById('voiceFileGuideModal');
   if (modal) {
-    // 뒤쪽 스크롤 방지
     document.body.style.overflow = 'hidden';
     modal.classList.add('show');
     modal.style.display = 'flex';
@@ -622,14 +812,13 @@ function showVoiceFileGuide() {
 function showVideoFileGuide() {
   const modal = document.getElementById('videoFileGuideModal');
   if (modal) {
-    // 뒤쪽 스크롤 방지
     document.body.style.overflow = 'hidden';
     modal.classList.add('show');
     modal.style.display = 'flex';
   }
 }
 
-// 파일 선택 함수들
+// 파일 선택 함수들 (하위 호환성)
 function selectProfileImages() {
   const input = document.getElementById('profileImageInput');
   if (input) {
@@ -651,46 +840,6 @@ function selectVideoFile() {
   }
 }
 
-// 모달 닫기 이벤트
-document.addEventListener('click', function(e) {
-  if (e.target.classList.contains('btn-close') || e.target.getAttribute('data-bs-dismiss') === 'modal') {
-    const modal = e.target.closest('.modal');
-    if (modal) {
-      modal.classList.remove('show');
-      modal.style.display = 'none';
-      // 뒤쪽 스크롤 복원
-      document.body.style.overflow = '';
-    }
-  }
-
-  if (e.target.classList.contains('modal')) {
-    e.target.classList.remove('show');
-    e.target.style.display = 'none';
-    // 뒤쪽 스크롤 복원
-    document.body.style.overflow = '';
-  }
-
-  // 모달 푸터의 "파일 선택하기" 버튼 클릭 처리
-  if (e.target.classList.contains('btn-primary') && e.target.getAttribute('data-bs-dismiss') === 'modal') {
-    const modal = e.target.closest('.modal');
-    if (modal) {
-      // 모달 닫기
-      modal.classList.remove('show');
-      modal.style.display = 'none';
-      document.body.style.overflow = '';
-
-      // 해당 파일 입력 창 열기
-      if (modal.id === 'profileImageGuideModal') {
-        setTimeout(() => selectProfileImages(), 100);
-      } else if (modal.id === 'voiceFileGuideModal') {
-        setTimeout(() => selectVoiceFiles(), 100);
-      } else if (modal.id === 'videoFileGuideModal') {
-        setTimeout(() => selectVideoFile(), 100);
-      }
-    }
-  }
-});
-
 /**
  * 유틸리티 함수들
  */
@@ -701,83 +850,5 @@ function formatFileSize(bytes) {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
-
-/**
- * 정리 함수
- */
-window.addEventListener('beforeunload', function() {
-  // 파일 URL 정리
-  Object.values(memorialData).forEach(files => {
-    if (Array.isArray(files)) {
-      files.forEach(file => {
-        if (file.preview && file.preview.startsWith('blob:')) {
-          URL.revokeObjectURL(file.preview);
-        }
-      });
-    } else if (files && files.preview && files.preview.startsWith('blob:')) {
-      URL.revokeObjectURL(files.preview);
-    }
-  });
-});
-
-// CSS 애니메이션 추가
-const style = document.createElement('style');
-style.textContent = `
-  @keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
-  }
-  
-  .audio-preview-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px;
-    background: #f7fafc;
-    border-radius: 8px;
-    border: 1px solid #e2e8f0;
-    margin-bottom: 8px;
-  }
-  
-  .audio-info {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex: 1;
-  }
-  
-  .audio-details {
-    flex: 1;
-  }
-  
-  .audio-name {
-    font-size: 14px;
-    font-weight: 600;
-    color: #2d3748;
-    margin-bottom: 2px;
-  }
-  
-  .audio-size {
-    font-size: 12px;
-    color: #718096;
-  }
-  
-  .audio-controls audio {
-    width: 200px;
-    height: 32px;
-  }
-  
-  .recording-indicator {
-    text-align: center;
-    padding: 20px;
-  }
-  
-  .btn-disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-`;
-document.head.appendChild(style);
 
 console.log('memorial-create.js 로드 완료');

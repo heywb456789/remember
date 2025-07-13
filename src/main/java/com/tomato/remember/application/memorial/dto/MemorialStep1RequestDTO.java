@@ -30,6 +30,7 @@ public class MemorialStep1RequestDTO {
     @Size(max = 500, message = "설명은 500자 이하여야 합니다.")
     private String description;
 
+    @Builder.Default
     private Boolean isPublic = false;
 
     // 고인 기본 정보 (1단계에서 함께 받음)

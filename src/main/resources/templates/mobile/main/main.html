@@ -20,7 +20,7 @@
 <section>
   <div class="container">
     <!-- 환영 메시지 -->
-    <div class="welcome-message">
+    <div class="welcome-message" th:if="${!isLoggedIn or memorialCount == 0}">
       <div class="welcome-text">'토마토리멤버'에 오신 것을 환영합니다.</div>
       <div class="welcome-subtitle">소중한 분과의 영원한 추억을 만들어보세요.</div>
     </div>
@@ -36,7 +36,7 @@
           블록체인 기술로 안전하게 보관되는<br>
           영원한 추모 공간을 만들어보세요.
         </div>
-        <!-- onclick 제거, 클래스로 이벤트 바인딩 -->
+        <!-- 새 메모리얼 등록 버튼 -->
         <button class="new-memorial-btn" type="button">
           <i class="fas fa-plus"></i>
           새 메모리얼 등록하기
@@ -139,36 +139,91 @@
 
       <!-- 등록된 메모리얼이 있는 경우 -->
       <div class="memorial-list-section" th:if="${memorialCount > 0}">
-        <div class="memorial-list-title">등록된 메모리얼</div>
-        <div id="memorialList">
-          <!-- 메모리얼 카드 템플릿 -->
-          <div class="memorial-card" th:each="memorial, iterStat : ${memorialList}"
-               th:data-memorial-id="${memorial.id}"
-               data-memorial-name="${memorial.name}">
-            <div class="memorial-header">
+        <!-- 메모리얼 리스트 컨테이너 -->
+        <div class="memorial-list-container">
+          <div id="memorialList" class="memorial-list">
+            <!-- 메모리얼 아이템 템플릿 -->
+            <div class="memorial-item" th:each="memorial, iterStat : ${memorialList}"
+                 th:data-memorial-id="${memorial.memorialId}">
+
+              <!-- 메모리얼 아바타 이모지 -->
               <div class="memorial-avatar">
-                <img th:src="${memorial.profileImageUrl ?: '/assets/mobile/images/default-avatar.png'}"
-                     th:alt="${memorial.name}" class="avatar-img">
-                <div class="memorial-status"
-                     th:classappend="${memorial.isOnline ? 'online' : 'offline'}"></div>
+                <!-- 프로필 이미지가 있으면 이미지 우선 -->
+<!--                <img th:if="${memorial.mainProfileImageUrl != null and memorial.mainProfileImageUrl != ''}"-->
+<!--                     th:src="${memorial.mainProfileImageUrl}"-->
+<!--                     th:alt="${memorial.name}"-->
+<!--                     class="avatar-img">-->
+
+                <!-- 프로필 이미지가 없는 경우 관계별 이모지 -->
+<!--                <span th:unless="${memorial.mainProfileImageUrl != null and memorial.mainProfileImageUrl != ''}"-->
+                <span
+                      class="memorial-emoji"
+                      th:switch="${memorial.relationshipDescription}">
+
+                  <!-- 부모님 관계 -->
+                  <span th:case="'부'" class="emoji">👨</span>
+                  <span th:case="'모'" class="emoji">👩</span>
+                  <span th:case="'배우자부'" class="emoji">👨</span>
+                  <span th:case="'배우자모'" class="emoji">👩</span>
+
+                  <!-- 조부모님 관계 -->
+                  <span th:case="'조부'" class="emoji">👴</span>
+                  <span th:case="'조모'" class="emoji">👵</span>
+                  <span th:case="'증조부'" class="emoji">👴</span>
+                  <span th:case="'증조모'" class="emoji">👵</span>
+
+                  <!-- 배우자 관계 -->
+                  <span th:case="'배우자'" class="emoji">💑</span>
+
+                  <!-- 자녀 관계 -->
+                  <span th:case="'자'" class="emoji">👶</span>
+                  <span th:case="'자부'" class="emoji">👰</span>
+                  <span th:case="'사위'" class="emoji">🤵</span>
+
+                  <!-- 형제/자매 관계 -->
+                  <span th:case="'형제/자매'" class="emoji">👫</span>
+
+                  <!-- 손자/증손 관계 -->
+                  <span th:case="'손'" class="emoji">👶</span>
+                  <span th:case="'증손'" class="emoji">👶</span>
+
+                  <!-- 본인 -->
+                  <span th:case="'본인'" class="emoji">😊</span>
+
+                  <!-- 동거인 -->
+                  <span th:case="'동거인'" class="emoji">🏠</span>
+
+                  <!-- 기타 또는 기본값 -->
+                  <span th:case="*" class="emoji">👤</span>
+                </span>
               </div>
+
+              <!-- 메모리얼 정보 -->
               <div class="memorial-info">
                 <div class="memorial-name" th:text="${memorial.name}">김순자</div>
-                <div class="memorial-relationship" th:text="${memorial.relationship?.displayName ?: '관계 없음'}">할머니</div>
-                <div class="memorial-last-visit">
-                  마지막 방문:
-                  <span th:text="${memorial.lastVisitDate != null ? #temporals.format(memorial.lastVisitDate, 'yyyy-MM-dd') : '방문 기록 없음'}">
-                    2025-06-15
-                  </span>
-                </div>
+                <div class="memorial-relationship" th:text="${memorial.relationshipDescription ?: '관계 없음'}">할머니</div>
+              </div>
+
+              <!-- 화살표 아이콘 -->
+              <div class="memorial-arrow">
+                <i class="fas fa-chevron-right"></i>
               </div>
             </div>
+          </div>
+
+          <!-- 더보기 안내 텍스트 (5개 초과 시) -->
+          <div class="more-info" th:if="${hasMoreMemorials}">
+            <i class="fas fa-info-circle"></i>
+            메모리얼을 탭하시면 더 자세한 정보를 보실 수 있습니다.
           </div>
         </div>
       </div>
 
       <!-- 등록된 메모리얼이 없는 경우 -->
       <div class="empty-state" th:if="${memorialCount == 0}">
+        <div class="empty-icon">
+          <i class="fas fa-heart"></i>
+        </div>
         <h3>등록된 메모리얼이 없습니다.</h3>
         <p>소중한 분과의 영원한 추억을 만들어보세요.</p>
         <button class="btn empty-state-create-btn" type="button">
@@ -177,36 +232,32 @@
         </button>
       </div>
 
-      <!-- 하단 액션 버튼 -->
+      <!-- 하단 영상통화 버튼 (단일 버튼으로 변경) -->
       <div class="bottom-actions">
-        <button class="action-btn btn-video" type="button">
+        <button class="video-call-btn" type="button" th:disabled="${memorialCount == 0}">
           <i class="fas fa-video"></i>
           영상통화
-        </button>
-        <button class="action-btn btn-gift" type="button">
-          <i class="fas fa-gift"></i>
-          선물하기
         </button>
       </div>
     </div>
 
     <!-- 로딩 스켈레톤 -->
     <div class="loading-skeleton" id="loadingSkeleton" style="display: none;">
-      <div class="skeleton-card">
+      <div class="skeleton-item">
         <div class="skeleton-avatar"></div>
         <div class="skeleton-content">
           <div class="skeleton-line"></div>
           <div class="skeleton-line short"></div>
         </div>
       </div>
-      <div class="skeleton-card">
+      <div class="skeleton-item">
         <div class="skeleton-avatar"></div>
         <div class="skeleton-content">
           <div class="skeleton-line"></div>
           <div class="skeleton-line short"></div>
         </div>
       </div>
-      <div class="skeleton-card">
+      <div class="skeleton-item">
         <div class="skeleton-avatar"></div>
         <div class="skeleton-content">
           <div class="skeleton-line"></div>
@@ -228,96 +279,19 @@
       </button>
     </div>
   </div>
-
-  <!-- 잔액 부족 모달 -->
-  <div class="modal fade" id="insufficientBalanceModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">잔액이 부족합니다</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body text-center">
-          <div class="modal-icon mb-3">
-            <i class="fas fa-exclamation-triangle text-warning" style="font-size: 3rem;"></i>
-          </div>
-          <div class="balance-info">
-            <div class="balance-item mb-2">
-              <span>현재 잔액: </span>
-              <strong id="currentBalance">0원</strong>
-            </div>
-            <div class="balance-item">
-              <span>필요 금액: </span>
-              <strong id="requiredAmount">0원</strong>
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <a href="/mobile/payment/charge" class="btn btn-primary">
-            <i class="fas fa-credit-card"></i>
-            토큰 충전하기
-          </a>
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-            나중에 충전
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 체험 제한 모달 -->
-  <div class="modal fade" id="trialLimitModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">무료체험 제한</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body text-center">
-          <div class="modal-icon mb-3">
-            <i class="fas fa-info-circle text-primary" style="font-size: 3rem;"></i>
-          </div>
-          <h4>무료체험 제한</h4>
-          <p class="mb-4">무료체험에서는 최대 <span id="maxMemorials">3</span>개의 메모리얼만 등록할 수 있습니다.</p>
-          <div class="trial-upgrade-info mb-4">
-            <div class="upgrade-item mb-2">
-              <i class="fas fa-check text-success me-2"></i>
-              <span>무제한 메모리얼 등록</span>
-            </div>
-            <div class="upgrade-item mb-2">
-              <i class="fas fa-check text-success me-2"></i>
-              <span>고급 AI 기능 이용</span>
-            </div>
-            <div class="upgrade-item">
-              <i class="fas fa-check text-success me-2"></i>
-              <span>가족 공유 기능</span>
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <a href="/mobile/payment/upgrade" class="btn btn-primary me-2">
-            <i class="fas fa-crown"></i>
-            프리미엄 업그레이드
-          </a>
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-            나중에 업그레이드
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
 </section>
 
 <!-- Custom JavaScript -->
 <customJS>
-  <!-- 서버 사이드 데이터 전달 (단순화) -->
+  <!-- 서버 사이드 데이터 전달 -->
   <script th:inline="javascript">
-    // 서버에서 전달받은 데이터 (단순화)
+    // 서버에서 전달받은 데이터
     window.serverData = {
       isLoggedIn: /*[[${isLoggedIn}]]*/ false,
       memorialCount: /*[[${memorialCount}]]*/ 0,
       memorialList: /*[[${memorialList}]]*/ [],
       currentUser: /*[[${currentUser}]]*/ null,
+      hasMoreMemorials: /*[[${hasMoreMemorials}]]*/ false,
       showTrialBanner: /*[[${showTrialBanner}]]*/ false,
       trialDaysRemaining: /*[[${trialDaysRemaining}]]*/ 0,
       freeTrialMonths: /*[[${freeTrialMonths}]]*/ 3,
@@ -333,8 +307,8 @@
     // 개발 모드 활성화
     if (window.location.search.includes('debug=true')) {
       window.debugMode = true;
-      console.log('🔧 메인 페이지 디버그 모드 활성화');
-      console.log('📊 서버 데이터:', window.serverData);
+      console.log('메인 페이지 디버그 모드 활성화');
+      console.log('서버 데이터:', window.serverData);
     }
   </script>
 

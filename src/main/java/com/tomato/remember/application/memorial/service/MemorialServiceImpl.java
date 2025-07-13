@@ -11,12 +11,15 @@ import com.tomato.remember.application.member.entity.Member;
 import com.tomato.remember.common.code.ResponseStatus;
 import com.tomato.remember.common.dto.ListDTO;
 import com.tomato.remember.common.exception.APIException;
+
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -57,18 +60,20 @@ public class MemorialServiceImpl implements MemorialService {
 
         log.info("메모리얼 생성 시작 - 사용자: {}, 메모리얼명: {}", member.getId(), memorialData.getName());
 
+        List<String> uploadedFileUrls = new ArrayList<>();  // 업로드된 파일 URL 추적
+
         try {
             // 1. 메모리얼 엔티티 생성
             Memorial memorial = createMemorialEntity(memorialData, member);
 
             // 2. 프로필 이미지 파일 처리
-            processProfileImages(memorial, profileImages);
+            uploadedFileUrls.addAll(processProfileImages(memorial, profileImages));
 
             // 3. 음성 파일 처리
-            processVoiceFiles(memorial, voiceFiles);
+            uploadedFileUrls.addAll(processVoiceFiles(memorial, voiceFiles));
 
             // 4. 영상 파일 처리
-            processVideoFile(memorial, videoFile);
+            uploadedFileUrls.add(processVideoFile(memorial, videoFile));
 
             // 5. 메모리얼 저장
             Memorial savedMemorial = memorialRepository.save(memorial);
@@ -76,14 +81,31 @@ public class MemorialServiceImpl implements MemorialService {
             log.info("메모리얼 생성 완료 - ID: {}, 이름: {}", savedMemorial.getId(), savedMemorial.getName());
 
             return MemorialCreateResponseDTO.success(
-                savedMemorial.getId(),
-                savedMemorial.getName(),
-                savedMemorial.getNickname()
+                    savedMemorial.getId(),
+                    savedMemorial.getName(),
+                    savedMemorial.getNickname()
             );
 
         } catch (Exception e) {
             log.error("메모리얼 생성 실패 - 사용자: {}, 오류: {}", member.getId(), e.getMessage(), e);
+
+            // 파일 롤백 처리
+            rollbackUploadedFiles(uploadedFileUrls);
+
             throw new APIException(ResponseStatus.MEMORIAL_CREATION_FAILED);
+        }
+    }
+
+    /**
+     * 업로드된 파일들 롤백
+     */
+    private void rollbackUploadedFiles(List<String> fileUrls) {
+        for (String fileUrl : fileUrls) {
+            try {
+                deleteFile(fileUrl);
+            } catch (Exception e) {
+                log.error("파일 롤백 실패 - URL: {}, 오류: {}", fileUrl, e.getMessage());
+            }
         }
     }
 
@@ -160,10 +182,12 @@ public class MemorialServiceImpl implements MemorialService {
     /**
      * 프로필 이미지 파일 처리
      */
-    private void processProfileImages(Memorial memorial, List<MultipartFile> profileImages) {
+    private List<String> processProfileImages(Memorial memorial, List<MultipartFile> profileImages) {
         if (profileImages == null || profileImages.size() != 5) {
             throw new APIException(ResponseStatus.PROFILE_IMAGE_LIMIT_EXCEEDED);
         }
+
+        List<String> uploadedUrls = new ArrayList<>();
 
         for (int i = 0; i < profileImages.size(); i++) {
             MultipartFile file = profileImages.get(i);
@@ -177,6 +201,7 @@ public class MemorialServiceImpl implements MemorialService {
 
             // 파일 업로드 및 MemorialFile 생성 (실제 구현에서는 파일 저장 로직 필요)
             String fileUrl = uploadFile(file, MemorialFileType.PROFILE_IMAGE);
+            uploadedUrls.add(fileUrl);  // URL 추가
 
             MemorialFile memorialFile = MemorialFile.createProfileImage(
                 memorial,
@@ -191,15 +216,18 @@ public class MemorialServiceImpl implements MemorialService {
         }
 
         log.info("프로필 이미지 처리 완료 - 개수: {}", profileImages.size());
+        return uploadedUrls;  // URL 리스트 반환
     }
 
     /**
      * 음성 파일 처리
      */
-    private void processVoiceFiles(Memorial memorial, List<MultipartFile> voiceFiles) {
+    private List<String> processVoiceFiles(Memorial memorial, List<MultipartFile> voiceFiles) {
         if (voiceFiles == null || voiceFiles.size() != 3) {
             throw new APIException(ResponseStatus.VOICE_FILE_LIMIT_EXCEEDED);
         }
+
+        List<String> uploadedUrls = new ArrayList<>();
 
         for (int i = 0; i < voiceFiles.size(); i++) {
             MultipartFile file = voiceFiles.get(i);
@@ -213,28 +241,30 @@ public class MemorialServiceImpl implements MemorialService {
 
             // 파일 업로드 및 MemorialFile 생성
             String fileUrl = uploadFile(file, MemorialFileType.VOICE_FILE);
+            uploadedUrls.add(fileUrl);  // URL 추가
 
             MemorialFile memorialFile = MemorialFile.createVoiceFile(
-                memorial,
-                fileUrl,
-                file.getOriginalFilename(),
-                file.getSize(),
-                file.getContentType(),
-                i + 1  // 정렬 순서
+                    memorial,
+                    fileUrl,
+                    file.getOriginalFilename(),
+                    file.getSize(),
+                    file.getContentType(),
+                    i + 1
             );
 
             memorial.addFile(memorialFile);
         }
 
         log.info("음성 파일 처리 완료 - 개수: {}", voiceFiles.size());
+        return uploadedUrls;  // URL 리스트 반환
     }
 
     /**
      * 영상 파일 처리
      */
-    private void processVideoFile(Memorial memorial, MultipartFile videoFile) {
+    private String processVideoFile(Memorial memorial, MultipartFile videoFile) {
         if (videoFile == null || videoFile.isEmpty()) {
-            throw new APIException(ResponseStatus.USER_IMAGE_LIMIT_EXCEEDED);
+            throw new APIException(ResponseStatus.FILE_EMPTY);
         }
 
         // 파일 유효성 검사
@@ -244,16 +274,17 @@ public class MemorialServiceImpl implements MemorialService {
         String fileUrl = uploadFile(videoFile, MemorialFileType.VIDEO_FILE);
 
         MemorialFile memorialFile = MemorialFile.createVideoFile(
-            memorial,
-            fileUrl,
-            videoFile.getOriginalFilename(),
-            videoFile.getSize(),
-            videoFile.getContentType()
+                memorial,
+                fileUrl,
+                videoFile.getOriginalFilename(),
+                videoFile.getSize(),
+                videoFile.getContentType()
         );
 
         memorial.addFile(memorialFile);
 
         log.info("영상 파일 처리 완료 - 파일명: {}", videoFile.getOriginalFilename());
+        return fileUrl;  // URL 반환
     }
 
     /**
@@ -262,7 +293,7 @@ public class MemorialServiceImpl implements MemorialService {
     private void validateFile(MultipartFile file, MemorialFileType fileType) {
         // 파일 크기 검사
         if (file.getSize() > fileType.getMaxFileSize()) {
-            throw new APIException(ResponseStatus.TOO_MANY_FILES);
+            throw new APIException(ResponseStatus.FILE_SIZE_EXCEEDED);
         }
 
         // 파일 타입 검사
@@ -311,22 +342,29 @@ public class MemorialServiceImpl implements MemorialService {
      * 업로드 디렉토리 생성
      */
     private String createUploadDirectory(MemorialFileType fileType) throws IOException {
-        // 업로드 경로: /uploads/{fileType}/{yyyy/MM/dd}/
+        // OS별 경로 구분자 자동 처리
         String datePath = getCurrentDatePath();
-        String fullPath = String.format("%s/%s/%s",
-            uploadBasePath,
-            fileType.name().toLowerCase(),
-            datePath);
 
-        Path directory = Paths.get(fullPath);
+        Path basePath = Paths.get(uploadBasePath);
+        Path fullPath = basePath
+                .resolve(fileType.name().toLowerCase())
+                .resolve(datePath.replace("/", File.separator)); // 윈도우용 경로 변환
 
-        // 디렉토리가 없으면 생성
-        if (! Files.exists(directory)) {
-            Files.createDirectories(directory);
-            log.info("업로드 디렉토리 생성: {}", directory.toString());
+        if (!Files.exists(fullPath)) {
+            Files.createDirectories(fullPath);
+            log.info("업로드 디렉토리 생성: {}", fullPath.toAbsolutePath());
         }
 
-        return directory.toString();
+        return fullPath.toString();
+    }
+
+
+    private String createWebUrl(MemorialFileType fileType, String fileName) {
+        return String.format("%s/%s/%s/%s",
+                uploadBaseUrl,
+                fileType.name().toLowerCase(),
+                getCurrentDatePath(),  // 웹에서는 항상 '/'
+                fileName);
     }
 
     /**

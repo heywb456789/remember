@@ -21,7 +21,7 @@
   <div class="container">
     <!-- 페이지 헤더 -->
     <div class="page-header">
-      <button class="back-btn" type="button" onclick="history.back()">
+      <button class="back-btn" type="button" data-action="go-back">
         <i class="fas fa-arrow-left"></i>
       </button>
       <div class="header-content">
@@ -102,24 +102,23 @@
           <label class="form-label required" for="relationship">나와의 관계</label>
           <select id="relationship" name="relationship" class="form-select" required>
             <option value="">관계를 선택해주세요</option>
-            <option value="본인">본인</option>
-            <option value="배우자">배우자</option>
-            <option value="부">부</option>
-            <option value="모">모</option>
-            <option value="자">자</option>
-            <option value="자부">자부</option>
-            <option value="사위">사위</option>
-            <option value="배우자부">배우자부</option>
-            <option value="배우자모">배우자모</option>
-            <option value="형제/자매">형제/자매</option>
-            <option value="손">손</option>
-            <option value="증손">증손</option>
-            <option value="조부">조부</option>
-            <option value="조모">조모</option>
-            <option value="증조부">증조부</option>
-            <option value="증조모">증조모</option>
-            <option value="동거인">동거인</option>
-            <option value="기타">기타</option>
+            <option value="FATHER">아버지</option>
+            <option value="MOTHER">어머니</option>
+            <option value="GRANDFATHER">할아버지</option>
+            <option value="GRANDMOTHER">할머니</option>
+            <option value="HUSBAND">남편</option>
+            <option value="WIFE">아내</option>
+            <option value="SON">아들</option>
+            <option value="DAUGHTER">딸</option>
+            <option value="BROTHER">형/동생</option>
+            <option value="SISTER">누나/언니/여동생</option>
+            <option value="UNCLE">삼촌/외삼촌</option>
+            <option value="AUNT">이모/고모</option>
+            <option value="NEPHEW">조카(남)</option>
+            <option value="NIECE">조카(여)</option>
+            <option value="COUSIN">사촌</option>
+            <option value="FRIEND">친구</option>
+            <option value="OTHER">기타</option>
           </select>
           <div class="form-error" id="relationshipError"></div>
         </div>
@@ -200,7 +199,7 @@
           <h3 class="upload-title">
             <i class="fas fa-camera"></i>
             대표사진 (5장 필수)
-            <button type="button" class="btn-guide" onclick="showProfileImageGuide()">
+            <button type="button" class="btn-guide" data-action="show-profile-guide">
               <i class="fas fa-question-circle"></i>
             </button>
           </h3>
@@ -212,12 +211,14 @@
               <h4>사진 5장 선택</h4>
               <p>JPG, PNG 파일을 선택하거나<br>이곳에 드래그하세요</p>
               <div class="upload-specs">최대 5MB씩 5장</div>
-              <button type="button" class="btn btn-primary" onclick="showProfileImageGuide()">
+              <button type="button" class="btn btn-primary" data-action="show-profile-guide">
                 사진 선택
               </button>
             </div>
-            <div class="upload-preview-grid" id="profileImagePreview"></div>
           </div>
+
+          <!-- 선택된 파일 목록 -->
+          <div class="file-list" id="profileImagesList"></div>
         </div>
 
         <!-- 음성파일 업로드 -->
@@ -225,7 +226,7 @@
           <h3 class="upload-title">
             <i class="fas fa-microphone"></i>
             음성파일 (3개 필수)
-            <button type="button" class="btn-guide" onclick="showVoiceFileGuide()">
+            <button type="button" class="btn-guide" data-action="show-voice-guide">
               <i class="fas fa-question-circle"></i>
             </button>
           </h3>
@@ -238,13 +239,15 @@
               <p>MP3, WAV, M4A 파일을 선택하거나<br>이곳에 드래그하세요</p>
               <div class="upload-specs">최대 50MB씩 3개</div>
               <div class="upload-actions">
-                <button type="button" class="btn btn-primary" onclick="showVoiceFileGuide()">
+                <button type="button" class="btn btn-primary" data-action="show-voice-guide">
                   파일 선택
                 </button>
               </div>
             </div>
-            <div class="upload-preview-list" id="voiceFilePreview"></div>
           </div>
+
+          <!-- 선택된 파일 목록 -->
+          <div class="file-list" id="voiceFilesList"></div>
         </div>
 
         <!-- 영상파일 업로드 -->
@@ -252,7 +255,7 @@
           <h3 class="upload-title">
             <i class="fas fa-video"></i>
             영상파일 (1개 필수)
-            <button type="button" class="btn-guide" onclick="showVideoFileGuide()">
+            <button type="button" class="btn-guide" data-action="show-video-guide">
               <i class="fas fa-question-circle"></i>
             </button>
           </h3>
@@ -264,18 +267,20 @@
               <h4>영상 파일 1개 선택</h4>
               <p>MP4, MOV, AVI 파일을 선택하거나<br>이곳에 드래그하세요</p>
               <div class="upload-specs">최대 100MB</div>
-              <button type="button" class="btn btn-primary" onclick="showVideoFileGuide()">
+              <button type="button" class="btn btn-primary" data-action="show-video-guide">
                 파일 선택
               </button>
             </div>
-            <div class="upload-preview" id="videoFilePreview"></div>
           </div>
+
+          <!-- 선택된 파일 목록 -->
+          <div class="file-list" id="videoFileList"></div>
         </div>
       </div>
 
       <!-- 하단 버튼 -->
       <div class="form-actions">
-        <button type="button" class="btn btn-outline" onclick="history.back()">
+        <button type="button" class="btn btn-outline" data-action="go-back">
           취소
         </button>
         <button type="submit" class="btn btn-primary" id="submitBtn">
@@ -293,7 +298,7 @@
           <h5 class="modal-title">
             📸 대표사진 업로드 가이드
           </h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal">&times;</button>
+          <button type="button" class="btn-close" data-action="close-modal">&times;</button>
         </div>
         <div class="modal-body">
           <div class="guide-content">
@@ -356,7 +361,7 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-primary" data-bs-dismiss="modal">
+          <button type="button" class="btn btn-primary" data-action="select-profile-files">
             파일 선택하기
           </button>
         </div>
@@ -372,7 +377,7 @@
           <h5 class="modal-title">
             🎤 목소리 파일 업로드 가이드
           </h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal">&times;</button>
+          <button type="button" class="btn-close" data-action="close-modal">&times;</button>
         </div>
         <div class="modal-body">
           <div class="guide-content">
@@ -432,12 +437,12 @@
 
             <div class="warning">
               <h6>⚠️ 중요한 안내</h6>
-              <p>업로드된 모든 자료들은 AI 학습에 사용되며, 정확한 AI 기능을 위한 목적으로만 여러분이 인허되며 자료의 일자 보안지해 자유로운 디습니다.</p>
+              <p>업로드된 모든 자료들은 AI 학습에 사용되며, 정확한 AI 기능을 위한 목적으로만 사용됩니다.</p>
             </div>
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-primary" data-bs-dismiss="modal">
+          <button type="button" class="btn btn-primary" data-action="select-voice-files">
             파일 선택하기
           </button>
         </div>
@@ -453,7 +458,7 @@
           <h5 class="modal-title">
             🎬 영상 자료 업로드 가이드
           </h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal">&times;</button>
+          <button type="button" class="btn-close" data-action="close-modal">&times;</button>
         </div>
         <div class="modal-body">
           <div class="guide-content">
@@ -513,12 +518,12 @@
 
             <div class="warning">
               <h6>⚠️ 중요한 안내</h6>
-              <p>업로드된 모든 자료들은 AI 학습에 사용되며, 정확한 AI 기능을 위한 목적으로만 여러분이 인허되며 자료의 일자 보안지해 자유로운 디습니다.</p>
+              <p>업로드된 모든 자료들은 AI 학습에 사용되며, 정확한 AI 기능을 위한 목적으로만 사용됩니다.</p>
             </div>
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-primary" data-bs-dismiss="modal">
+          <button type="button" class="btn btn-primary" data-action="select-video-files">
             파일 선택하기
           </button>
         </div>
@@ -530,7 +535,7 @@
 
 <!-- Custom JavaScript -->
 <customJS>
-  <script th:src="@{/assets/mobile/js/memorial-create.js}"></script>
+  <script type="module" th:src="@{/assets/mobile/js/memorial-create.js}"></script>
 </customJS>
 </body>
 </html>

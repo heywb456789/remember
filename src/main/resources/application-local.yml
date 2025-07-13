@@ -62,7 +62,8 @@ spring:
   app:
     display: https://image.newstomato.com/newstomato/club
     upload:
-      root: /test
+      path: ${user.dir}/uploads/memorial  # 프로젝트 루트 기준
+      url: /uploads
       ftp:
         host: 1.201.174.63
         port: 21

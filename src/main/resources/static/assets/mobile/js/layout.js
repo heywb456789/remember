@@ -426,16 +426,6 @@ function handleKeyboardEvents(e) {
     console.log('⌨️ ESC 키로 메뉴 닫기');
     closeMenu();
   }
-
-  // 숫자 키로 네비게이션 이동 (1-4)
-  if (e.key >= '1' && e.key <= '4' && !e.ctrlKey && !e.altKey && !e.shiftKey) {
-    const navItems = document.querySelectorAll('.nav-item');
-    const index = parseInt(e.key) - 1;
-    if (navItems[index]) {
-      e.preventDefault();
-      navItems[index].click();
-    }
-  }
 }
 
 /**
