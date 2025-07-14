@@ -26,17 +26,8 @@ public class AuthController {
 
     @GetMapping("/login")
     public String loginPage(Model model, HttpServletRequest request) {
-        log.info("🚀 === Mobile Login Page Access ===");
-        log.info("📍 Request URI: {}", request.getRequestURI());
-        log.info("🌐 Request URL: {}", request.getRequestURL());
-        log.info("🔗 Query String: {}", request.getQueryString());
-        log.info("👤 Remote Address: {}", request.getRemoteAddr());
-        log.info("🎫 User Principal: {}", request.getUserPrincipal());
-
         // Authentication 정보 확인
         var auth = SecurityContextHolder.getContext().getAuthentication();
-        log.info("🔐 Current Authentication: {}", auth);
-        log.info("✅ Is Authenticated: {}", auth != null ? auth.isAuthenticated() : "null");
 
         // 기본 페이지 정보 설정
         model.addAttribute("pageTitle", "토마토 One-ID");
@@ -62,19 +53,94 @@ public class AuthController {
 
     @GetMapping("/register")
     public String registerPage(Model model, HttpServletRequest request) {
-        log.info("🚀 === Mobile Register Page Access ===");
 
         // 기본 페이지 정보 설정
-        model.addAttribute("pageTitle", "회원가입 - 토마토 One-ID");
-        model.addAttribute("appName", "토마토 One-ID");
+        model.addAttribute("pageTitle", "OneID 회원가입 - 토마토리멤버");
+        model.addAttribute("appName", "토마토 OneID");
 
-        // API 엔드포인트 정보 제공
-        model.addAttribute("registerApiUrl", "/api/auth/register");
+        // 페이지 네비게이션 URL들
         model.addAttribute("loginUrl", "/mobile/login");
+        model.addAttribute("nextUrl", "/mobile/register/phone");
+
+        // 디버그 모드 확인 (개발 환경에서만)
+        if ("true".equals(request.getParameter("debug"))) {
+            model.addAttribute("debugMode", true);
+        }
+
+        return "/mobile/login/register";
+    }
+
+    @GetMapping("/register/phone")
+    public String phoneVerifyPage(Model model) {
+        model.addAttribute("pageTitle", "핸드폰 인증 - 토마토리멤버");
         model.addAttribute("smsVerifyApiUrl", "/api/auth/sms/send");
         model.addAttribute("smsConfirmApiUrl", "/api/auth/sms/verify");
+        model.addAttribute("prevUrl", "/mobile/register");
+        model.addAttribute("nextUrl", "/mobile/register/password");
 
-        return "/mobile/register/register";
+        return "/mobile/login/phone-verify";
+    }
+
+    @GetMapping("/register/password")
+    public String registerPasswordPage(Model model) {
+        log.info("📱 비밀번호 설정 페이지 요청");
+
+        try {
+            // 페이지 기본 정보 설정
+            model.addAttribute("pageTitle", "비밀번호 설정 - 토마토리멤버");
+
+            // API 엔드포인트 설정
+            model.addAttribute("registerApiUrl", "/api/auth/register");
+
+            // 네비게이션 URL 설정
+            model.addAttribute("prevUrl", "/mobile/register/verify");
+            model.addAttribute("homeUrl", "/mobile/home");
+
+            // 메타 정보
+            model.addAttribute("activeMenu", "register");
+            model.addAttribute("activeSubMenu", "password");
+
+            log.info("✅ 비밀번호 설정 페이지 렌더링 준비 완료");
+
+            return "mobile/login/register-password";
+
+        } catch (Exception e) {
+            log.error("❌ 비밀번호 설정 페이지 오류", e);
+
+            // 에러 발생 시 이전 단계로 리다이렉트
+            return "redirect:/mobile/register/verify";
+        }
+    }
+
+    /**
+     * 회원가입 완료 페이지 표시
+     */
+    @GetMapping("/register/complete")
+    public String registerCompletePage(Model model) {
+        log.info("🎉 회원가입 완료 페이지 요청");
+
+        try {
+            // 페이지 기본 정보 설정
+            model.addAttribute("pageTitle", "가입완료 - 토마토리멤버");
+
+            // 네비게이션 URL 설정
+            model.addAttribute("loginUrl", "/mobile/login");
+            model.addAttribute("homeUrl", "/mobile/home");
+
+            // 메타 정보
+            model.addAttribute("activeMenu", "register");
+            model.addAttribute("activeSubMenu", "complete");
+
+            log.info("✅ 회원가입 완료 페이지 렌더링 준비 완료");
+
+            return "mobile/login/register-complete";
+
+        } catch (Exception e) {
+            log.error("❌ 회원가입 완료 페이지 오류", e);
+
+            // 에러 발생 시 로그인 페이지로 리다이렉트
+            return "redirect:/mobile/login";
+        }
     }
 
     /**

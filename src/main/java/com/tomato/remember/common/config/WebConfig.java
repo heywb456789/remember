@@ -43,6 +43,9 @@ public class WebConfig implements WebMvcConfigurer {
         log.info("정적 리소스 핸들러 등록 - OS: {}, 경로: {}",
                 System.getProperty("os.name"), resourceLocation);
 
+        registry.addResourceHandler("/images/**")
+                .addResourceLocations("classpath:/static/images/");
+
         //origianla
         // /uploads/** 요청을 실제 파일 시스템 위치로 매핑
 //        registry.addResourceHandler("/uploads/**")

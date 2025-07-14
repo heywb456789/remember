@@ -1,0 +1,407 @@
+/* register-complete.css - 회원가입 완료 페이지 (이미지 크기 확대) */
+
+/* CSS 변수 정의 */
+:root {
+  /* 브랜드 컬러 */
+  --primary-purple: #6C5CE7;
+  --primary-orange: #FF6B35;
+  --primary-gradient: linear-gradient(135deg, #6C5CE7 0%, #A29BFE 100%);
+
+  /* 그레이 스케일 */
+  --gray-50: #F8F9FA;
+  --gray-100: #F1F3F4;
+  --gray-200: #E9ECEF;
+  --gray-300: #DEE2E6;
+  --gray-400: #CED4DA;
+  --gray-500: #ADB5BD;
+  --gray-600: #6C757D;
+  --gray-700: #495057;
+  --gray-800: #343A40;
+  --gray-900: #212529;
+
+  /* 시스템 컬러 */
+  --success: #28A745;
+
+  /* 폰트 */
+  --font-primary: 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+
+  /* 크기 */
+  --button-height: 56px;
+  --border-radius: 12px;
+  --border-radius-small: 8px;
+
+  /* 그림자 */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+
+  /* 애니메이션 */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.3s ease;
+}
+
+/* 기본 스타일 리셋 */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-primary);
+  background: white;
+  color: var(--gray-800);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 페이지 컨테이너 */
+.register-complete-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  max-width: 480px;
+  margin: 0 auto;
+  background: white;
+  height: auto;
+  overflow: visible;
+}
+
+/* ===== 헤더 (뒤로가기 버튼 없음) ===== */
+.register-complete-header {
+  padding: 16px 20px;
+  background: white;
+  border-bottom: 1px solid var(--gray-200);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.header-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.etomato-logo {
+  height: 24px;
+  width: auto;
+}
+
+.page-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--gray-900);
+  margin: 0;
+}
+
+/* ===== 메인 컨텐츠 ===== */
+.register-complete-content {
+  flex: 1;
+  padding: 20px 20px 24px; /* 상단 패딩 줄임 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-height: 0;
+  overflow: visible;
+}
+
+/* ===== 완료 아이콘 섹션 ===== */
+.complete-icon-section {
+  margin-bottom: 32px; /* 여백 줄임 */
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.icon-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.complete-icon {
+  animation: iconAppear 0.6s ease-out;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.complete-icon-image {
+  /* 이미지 크기 대폭 확대 */
+  width: 220px;  /* 140px → 220px */
+  height: 280px; /* 250px → 220px (정사각형으로 맞춤) */
+  object-fit: contain;
+  flex-shrink: 0;
+
+  /* 추가 스타일 */
+  filter: drop-shadow(0 4px 12px rgba(108, 92, 231, 0.15));
+  transition: transform var(--transition-normal);
+}
+
+/* 이미지 호버 효과 추가 */
+.complete-icon-image:hover {
+  transform: scale(1.05);
+}
+
+@keyframes iconAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ===== 완료 메시지 섹션 ===== */
+.complete-message-section {
+  margin-bottom: 32px; /* 여백 줄임 */
+  max-width: 320px; /* 최대 너비 늘림 */
+}
+
+.complete-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--gray-900);
+  line-height: 1.4;
+  margin-bottom: 16px;
+  animation: textSlideUp 0.6s ease-out 0.2s both;
+}
+
+.complete-description {
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--gray-600);
+  line-height: 1.6;
+  margin: 0;
+  animation: textSlideUp 0.6s ease-out 0.4s both;
+}
+
+@keyframes textSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===== 여백 (푸시용) ===== */
+.spacer {
+  flex: 1;
+  min-height: 16px; /* 최소 높이 더 줄임 */
+}
+
+/* ===== 버튼 섹션 ===== */
+.button-section {
+  width: 100%;
+  max-width: 320px; /* 너비 늘림 */
+  animation: buttonSlideUp 0.6s ease-out 0.6s both;
+  flex-shrink: 0;
+}
+
+.login-button {
+  width: 100%;
+  height: var(--button-height);
+  background: var(--primary-gradient);
+  border: none;
+  border-radius: var(--border-radius);
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-button:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.login-button:focus {
+  outline: 2px solid var(--primary-purple);
+  outline-offset: 2px;
+}
+
+@keyframes buttonSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===== 반응형 디자인 ===== */
+
+/* 큰 화면 (375px 이상) */
+@media (min-width: 375px) {
+  .complete-icon-image {
+    width: 240px;  /* 더 큰 화면에서는 더 크게 */
+    height: 280px;
+  }
+}
+
+/* 중간 화면 (480px 이하) */
+@media (max-width: 480px) {
+  .register-complete-container {
+    max-width: 100%;
+  }
+
+  .register-complete-header {
+    padding: 12px 16px;
+  }
+
+  .register-complete-content {
+    padding: 16px 16px 20px; /* 패딩 더 줄임 */
+  }
+
+  .complete-title {
+    font-size: 22px;
+  }
+
+  .complete-description {
+    font-size: 14px;
+  }
+
+  .button-section {
+    max-width: 100%;
+  }
+
+  /* 중간 화면에서도 이미지 크기 유지 */
+  .complete-icon-image {
+    width: 200px;
+    height: 280px;
+  }
+}
+
+/* 작은 화면 (375px 이하) */
+@media (max-width: 375px) {
+  .register-complete-header {
+    padding: 10px 14px;
+  }
+
+  .register-complete-content {
+    padding: 12px 14px 18px; /* 패딩 더 줄임 */
+  }
+
+  .page-title {
+    font-size: 16px;
+  }
+
+  .complete-title {
+    font-size: 20px;
+  }
+
+  .complete-description {
+    font-size: 13px;
+  }
+
+  /* 작은 화면에서도 충분히 큰 이미지 */
+  .complete-icon-image {
+    width: 180px;
+    height: 180px;
+  }
+
+  .complete-icon-section {
+    margin-bottom: 24px; /* 여백 더 줄임 */
+  }
+
+  .complete-message-section {
+    margin-bottom: 24px; /* 여백 더 줄임 */
+  }
+}
+
+/* 매우 작은 화면 (320px 이하) */
+@media (max-width: 320px) {
+  .complete-icon-image {
+    width: 160px;
+    height: 160px;
+  }
+
+  .register-complete-content {
+    padding: 8px 12px 16px;
+  }
+}
+
+/* ===== 세로 화면 최적화 ===== */
+@media (max-height: 700px) {
+  .register-complete-content {
+    padding-top: 12px;
+  }
+
+  .complete-icon-section {
+    margin-bottom: 20px;
+  }
+
+  .complete-message-section {
+    margin-bottom: 20px;
+  }
+
+  .spacer {
+    min-height: 8px;
+  }
+}
+
+@media (max-height: 600px) {
+  .complete-icon-image {
+    width: 160px !important;
+    height: 160px !important;
+  }
+
+  .complete-icon-section {
+    margin-bottom: 16px;
+  }
+
+  .complete-message-section {
+    margin-bottom: 16px;
+  }
+}
+
+/* ===== 접근성 개선 ===== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ===== 다크모드 대응 ===== */
+@media (prefers-color-scheme: dark) {
+  .register-complete-container.dark-mode {
+    background: #1a202c;
+    color: #e2e8f0;
+  }
+
+  .register-complete-container.dark-mode .register-complete-header {
+    background: #2d3748;
+    border-bottom-color: #4a5568;
+  }
+
+  .register-complete-container.dark-mode .complete-title {
+    color: #e2e8f0;
+  }
+
+  .register-complete-container.dark-mode .complete-description {
+    color: #a0aec0;
+  }
+}

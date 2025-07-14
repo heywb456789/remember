@@ -165,7 +165,8 @@ public class SecurityConfig {
                         "/api/auth/refresh",
                         "/api/auth/register",
                         "/api/memorial/public/**",
-                        "/api/videos/public/**"
+                        "/api/videos/public/**",
+                        "/api/auth/smsCert/**"
                 )
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+  <meta name="format-detection" content="telephone=no"/>
+  <title th:text="${pageTitle} ?: '핸드폰 인증 - 토마토리멤버'">핸드폰 인증 - 토마토리멤버</title>
+
+  <!-- Bootstrap CSS -->
+  <link th:href="@{/bootstrap/css/bootstrap.css}" rel="stylesheet"/>
+
+  <!-- Custom CSS -->
+  <link th:href="@{/assets/mobile/css/phone-verify.css}" rel="stylesheet"/>
+</head>
+<body>
+  <div class="phone-verify-container">
+    <!-- 헤더 -->
+    <div class="phone-verify-header">
+      <div class="header-left">
+        <button class="back-button" onclick="history.back()" aria-label="뒤로가기">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M15 18l-6-6 6-6"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="header-center">
+<!--        <img th:src="@{/images/etomato_title.png}" alt="ETomato" class="etomato-logo">-->
+        <img th:src="@{/images/new_main_logo.png}" alt="ETomato" class="etomato-logo">
+        <h1 class="page-title">OneID 회원가입</h1>
+      </div>
+
+      <div class="header-right">
+        <!-- 오른쪽 공간 확보용 -->
+      </div>
+    </div>
+
+    <!-- 메인 컨텐츠 -->
+    <div class="phone-verify-content">
+      <!-- 웰컴 메시지 -->
+      <div class="welcome-section">
+        <h2 class="welcome-title">증권통, 뉴스통, 통통 등 토마토그룹의 다양한 서비스를 One-ID 하나로 편리하게 이용할 수 있습니다.</h2>
+      </div>
+
+      <!-- 그룹사 로고 섹션 -->
+      <div class="company-logos-section">
+        <div class="logos-container">
+          <img th:src="@{/images/signup_middle.png}" alt="토마토그룹 서비스" class="group-logo">
+        </div>
+      </div>
+
+      <!-- 핸드폰 번호 입력 폼 -->
+      <div class="form-section">
+        <div class="form-group">
+          <div class="phone-input-row">
+            <select class="country-select" id="countryCode">
+              <option value="+82">🇰🇷 +82</option>
+              <option value="+1">🇺🇸 +1</option>
+              <option value="+81">🇯🇵 +81</option>
+              <option value="+86">🇨🇳 +86</option>
+            </select>
+            <input type="tel"
+                   class="phone-input"
+                   id="phoneNumber"
+                   placeholder="토마토ONE-ID(대표번호)"
+                   maxlength="15"
+                   autocomplete="tel">
+            <button type="button" class="verify-button" id="verifyRequestButton">
+              <span class="button-text">인증번호 받기</span>
+              <div class="button-loading" style="display: none;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                </svg>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- 인증번호 입력 섹션 (처음에는 숨김) -->
+        <div class="form-group verification-group" id="verificationSection" style="display: none;">
+          <div class="verification-input-row">
+            <input type="text"
+                   class="verification-input"
+                   id="verificationCode"
+                   placeholder="인증번호 입력"
+                   maxlength="6">
+            <button type="button" class="confirm-button" id="confirmButton">
+              <span>확인</span>
+            </button>
+          </div>
+          <div class="timer-container">
+            <span class="timer" id="timer">03:00</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 다음 버튼 -->
+      <button type="button" class="next-button" id="nextButton" disabled>
+        <span>다음</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 알림 모달 -->
+  <div class="modal-overlay" id="alertModal" style="display: none;">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 class="modal-title">알림</h3>
+      </div>
+      <div class="modal-body">
+        <p id="alertMessage">메시지</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="modal-confirm-button" id="alertConfirm">
+          <span>확인</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script th:src="@{/bootstrap/js/bootstrap.bundle.js}"></script>
+
+  <!-- 핸드폰 인증 JavaScript -->
+  <script type="module" th:src="@{/assets/mobile/js/phone-verify.js}"></script>
+
+  <!-- 전역 설정 -->
+  <script th:inline="javascript">
+    // API 엔드포인트 설정
+    window.API_ENDPOINTS = {
+      SMS_SEND: /*[[${smsVerifyApiUrl}]]*/ '/api/auth/sms/send',
+      SMS_VERIFY: /*[[${smsConfirmApiUrl}]]*/ '/api/auth/sms/verify'
+    };
+
+    // 페이지 설정
+    window.PAGE_CONFIG = {
+      prevUrl: /*[[${prevUrl}]]*/ '/mobile/register',
+      nextUrl: /*[[${nextUrl}]]*/ '/mobile/register/password'
+    };
+
+    console.log('🔧 Phone verify page config loaded');
+  </script>
+</body>
+</html>

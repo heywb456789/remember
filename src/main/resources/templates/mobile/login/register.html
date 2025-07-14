@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+  <meta name="format-detection" content="telephone=no"/>
+  <title th:text="${pageTitle} ?: 'OneID 회원가입 - 토마토리멤버'">OneID 회원가입 - 토마토리멤버</title>
+
+  <!-- Bootstrap CSS -->
+  <link th:href="@{/bootstrap/css/bootstrap.css}" rel="stylesheet"/>
+
+  <!-- Custom CSS -->
+  <link th:href="@{/assets/mobile/css/register.css}" rel="stylesheet"/>
+</head>
+<body>
+  <div class="register-container">
+    <!-- 헤더 -->
+    <div class="register-header">
+      <div class="header-left">
+        <button class="back-button" onclick="history.back()" aria-label="뒤로가기">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M15 18l-6-6 6-6"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="header-center">
+        <img th:src="@{/images/new_main_logo.png}" alt="ETomato" class="etomato-logo">
+        <h1 class="page-title">OneID 회원가입</h1>
+      </div>
+
+      <div class="header-right">
+        <!-- 오른쪽 공간 확보용 -->
+      </div>
+    </div>
+
+    <!-- 메인 컨텐츠 -->
+    <div class="register-content">
+      <!-- 웰컴 메시지 -->
+      <div class="welcome-section">
+        <h2 class="welcome-title">증권통, 뉴스통, 통통 등 토마토그룹의 다양한 서비스를 One-ID 하나로 편리하게 이용할 수 있습니다.</h2>
+      </div>
+
+      <!-- 그룹사 로고 섹션 -->
+      <div class="company-logos-section">
+        <div class="logos-container">
+          <img th:src="@{/images/signup_middle.png}" alt="토마토그룹 서비스" class="group-logo">
+        </div>
+      </div>
+
+      <!-- 약관 동의 섹션 -->
+      <div class="agreement-section">
+        <!-- 전체 동의 -->
+        <label class="checkbox-wrapper main-agreement">
+          <input type="checkbox" id="agreeAll" class="checkbox-input">
+          <span class="checkbox-custom"></span>
+          <span class="checkbox-text">약관 전체 동의</span>
+        </label>
+
+        <!-- 개별 약관 목록 -->
+        <div class="agreement-list">
+          <label class="checkbox-wrapper">
+            <input type="checkbox" id="agreeTerms" class="checkbox-input" required>
+            <span class="checkbox-custom"></span>
+            <span class="checkbox-text">(필수)이용 약관 동의</span>
+            <button type="button" class="agreement-link" data-agreement="terms">보기</button>
+          </label>
+
+          <label class="checkbox-wrapper">
+            <input type="checkbox" id="agreePrivacy" class="checkbox-input" required>
+            <span class="checkbox-custom"></span>
+            <span class="checkbox-text">(필수)개인정보처리방침 약관 동의</span>
+            <button type="button" class="agreement-link" data-agreement="privacy">보기</button>
+          </label>
+
+          <label class="checkbox-wrapper">
+            <input type="checkbox" id="agreeLocation" class="checkbox-input" required>
+            <span class="checkbox-custom"></span>
+            <span class="checkbox-text">(필수)위치정보 약관 동의</span>
+            <button type="button" class="agreement-link" data-agreement="location">보기</button>
+          </label>
+
+          <label class="checkbox-wrapper">
+            <input type="checkbox" id="agreeMarketing" class="checkbox-input">
+            <span class="checkbox-custom"></span>
+            <span class="checkbox-text">(선택)마케팅 정보 수신 동의</span>
+            <button type="button" class="agreement-link" data-agreement="marketing">보기</button>
+          </label>
+        </div>
+      </div>
+
+      <!-- 다음 버튼 -->
+      <button type="button" class="next-button" id="nextButton" disabled>
+        <span>다음</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 약관 내용 모달 -->
+  <div class="modal-overlay" id="agreementModal" style="display: none;">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modalTitle">약관 내용</h3>
+        <button type="button" class="modal-close" id="modalClose">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body" id="modalBody">
+        <!-- 약관 내용이 여기에 로드됩니다 -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="modal-confirm-button" id="modalConfirm" disabled>
+          <span>확인</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 약관 동의 요청 모달 -->
+  <div class="modal-overlay" id="agreementRequestModal" style="display: none;">
+    <div class="modal-container small">
+      <div class="modal-header">
+        <h3 class="modal-title">알림</h3>
+      </div>
+      <div class="modal-body">
+        <p>약관 동의를 해주세요.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="modal-confirm-button" id="agreementRequestConfirm">
+          <span>확인</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script th:src="@{/bootstrap/js/bootstrap.bundle.js}"></script>
+
+  <!-- 회원가입 JavaScript -->
+  <script type="module" th:src="@{/assets/mobile/js/register.js}"></script>
+
+  <!-- 전역 설정 -->
+  <script th:inline="javascript">
+    // API 엔드포인트 설정
+    window.API_ENDPOINTS = {
+      TERMS: '/api/legal/terms',
+      PRIVACY: '/api/legal/privacy',
+      LOCATION: '/api/legal/location',
+      MARKETING: '/api/legal/marketing',
+      REGISTER_NEXT: '/mobile/register/form'
+    };
+
+    // 페이지 설정
+    window.PAGE_CONFIG = {
+      loginUrl: /*[[${loginUrl}]]*/ '/mobile/login',
+      nextUrl: '/mobile/register/phone'
+    };
+
+    console.log('🔧 OneID Register page config loaded');
+  </script>
+</body>
+</html>

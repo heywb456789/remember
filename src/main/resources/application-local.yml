@@ -11,7 +11,7 @@ spring:
   # =======================================================
   jpa:
     hibernate:
-#      ddl-auto: create-drop  # 로컬에서는 매번 새로 생성
+#      ddl-auto: create  # 로컬에서는 매번 새로 생성
       ddl-auto: update  # 로컬에서는 매번 새로 생성
     show-sql: true          # 로컬에서는 SQL 로그 활성화
 

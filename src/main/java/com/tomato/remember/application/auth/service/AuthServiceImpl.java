@@ -23,6 +23,7 @@ import com.tomato.remember.common.code.MemberStatus;
 import com.tomato.remember.common.util.InviteCodeGenerator;
 import com.tomato.remember.common.util.UserDeviceInfoUtil;
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -162,7 +163,7 @@ public class AuthServiceImpl implements AuthService {
                     return memberRepository.save(m);
                 });
 
-        if (!member.getProfileImg().equals(profileImg)) {
+        if (! Objects.equals(member.getProfileImg(), profileImg)) {
             member.setProfileImg(profileImg);
         }
 

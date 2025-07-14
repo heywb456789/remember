@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+  <meta name="format-detection" content="telephone=no"/>
+  <title th:text="${pageTitle} ?: '가입완료 - 토마토리멤버'">가입완료 - 토마토리멤버</title>
+
+  <!-- Bootstrap CSS -->
+  <link th:href="@{/bootstrap/css/bootstrap.css}" rel="stylesheet"/>
+
+  <!-- Custom CSS -->
+  <link th:href="@{/assets/mobile/css/register-complete.css}" rel="stylesheet"/>
+</head>
+<body>
+  <div class="register-complete-container">
+    <!-- 헤더 (뒤로가기 버튼 없음) -->
+    <div class="register-complete-header">
+      <div class="header-center">
+        <img th:src="@{/images/new_main_logo.png}" alt="토마토리멤버" class="etomato-logo">
+        <h1 class="page-title">OneID 회원가입</h1>
+      </div>
+    </div>
+
+    <!-- 메인 컨텐츠 -->
+    <div class="register-complete-content">
+      <!-- 완료 아이콘 섹션 -->
+      <div class="complete-icon-section">
+        <div class="icon-container">
+          <!-- 완료 아이콘 이미지 -->
+          <div class="complete-icon">
+            <img th:src="@{/images/register-complete.png}" alt="가입완료" class="complete-icon-image">
+          </div>
+        </div>
+      </div>
+
+      <!-- 완료 메시지 섹션 -->
+      <div class="complete-message-section">
+        <h2 class="complete-title">토마토 ONE-ID<br>가입이 완료되었습니다.</h2>
+        <p class="complete-description">
+          토마토리멤버에 오신 것을 환영합니다.<br>
+          이제 로그인하여 모든 서비스를 이용하실 수 있습니다.
+        </p>
+      </div>
+
+      <!-- 여백 (푸시용) -->
+      <div class="spacer"></div>
+
+      <!-- 로그인 버튼 -->
+      <div class="button-section">
+        <button type="button" class="login-button" id="loginButton">
+          <span>로그인</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script th:src="@{/bootstrap/js/bootstrap.bundle.js}"></script>
+
+  <!-- 회원가입 완료 JavaScript -->
+  <script type="module" th:src="@{/assets/mobile/js/register-complete.js}"></script>
+
+  <!-- 전역 설정 -->
+  <script th:inline="javascript">
+    // 페이지 설정
+    window.PAGE_CONFIG = {
+      loginUrl: /*[[${loginUrl}]]*/ '/mobile/login',
+      homeUrl: /*[[${homeUrl}]]*/ '/mobile/home'
+    };
+
+    console.log('🔧 Register complete page config loaded');
+  </script>
+</body>
+</html>

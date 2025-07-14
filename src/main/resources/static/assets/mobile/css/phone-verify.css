@@ -1,0 +1,610 @@
+/* phone-verify.css - 핸드폰 번호 인증 페이지 (버튼 스타일 개선) */
+
+/* CSS 변수 정의 */
+:root {
+  /* 브랜드 컬러 */
+  --primary-purple: #6C5CE7;
+  --primary-orange: #FF6B35;
+  --primary-gradient: linear-gradient(135deg, #6C5CE7 0%, #A29BFE 100%);
+
+  /* 그레이 스케일 */
+  --gray-50: #F8F9FA;
+  --gray-100: #F1F3F4;
+  --gray-200: #E9ECEF;
+  --gray-300: #DEE2E6;
+  --gray-400: #CED4DA;
+  --gray-500: #ADB5BD;
+  --gray-600: #6C757D;
+  --gray-700: #495057;
+  --gray-800: #343A40;
+  --gray-900: #212529;
+
+  /* 시스템 컬러 */
+  --success: #28A745;
+  --error: #DC3545;
+  --warning: #FFC107;
+
+  /* 폰트 */
+  --font-primary: 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+
+  /* 크기 */
+  --input-height: 56px;
+  --button-height: 56px;
+  --border-radius: 12px;
+  --border-radius-small: 8px;
+
+  /* 그림자 */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+
+  /* 애니메이션 */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.3s ease;
+}
+
+/* 기본 스타일 리셋 */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-primary);
+  background: white;
+  color: var(--gray-800);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 페이지 컨테이너 */
+.phone-verify-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  max-width: 480px;
+  margin: 0 auto;
+  background: white;
+}
+
+/* ===== 헤더 (라인에 꽉차게) ===== */
+.phone-verify-header {
+  padding: 16px 20px;
+  background: white;
+  border-bottom: 1px solid var(--gray-200);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.header-left {
+  width: 60px;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.header-center {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.header-right {
+  width: 60px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.back-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--gray-600);
+  transition: color var(--transition-fast);
+  padding: 8px;
+  border-radius: var(--border-radius-small);
+  flex-shrink: 0;
+}
+
+.back-button:hover {
+  color: var(--gray-800);
+  background: var(--gray-100);
+}
+
+.etomato-logo {
+  height: 24px;
+  width: auto;
+}
+
+.page-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--gray-900);
+  margin: 0;
+}
+
+/* ===== 메인 컨텐츠 ===== */
+.phone-verify-content {
+  flex: 1;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 웰컴 섹션 */
+.welcome-section {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.welcome-title {
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--gray-700);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* ===== 그룹사 로고 섹션 ===== */
+.company-logos-section {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.logos-container {
+  width: 100%;
+  max-width: 350px;
+  height: 260px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.group-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* ===== 폼 섹션 ===== */
+.form-section {
+  flex: 1;
+  margin-bottom: 24px;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+/* 핸드폰 번호 입력 행 - 개선된 스타일 */
+.phone-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.country-select {
+  width: 100px;
+  height: var(--input-height);
+  padding: 0 12px;
+  border: 2px solid var(--gray-300);
+  border-radius: var(--border-radius);
+  background: white;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--gray-700);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 8px center;
+  background-repeat: no-repeat;
+  background-size: 12px;
+  padding-right: 32px;
+  flex-shrink: 0;
+}
+
+.country-select:focus {
+  outline: none;
+  border-color: var(--primary-purple);
+  box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.1);
+}
+
+.phone-input {
+  flex: 1;
+  height: var(--input-height);
+  padding: 0 16px;
+  border: 2px solid var(--gray-300);
+  border-radius: var(--border-radius);
+  font-size: 14px;
+  background: white;
+  transition: all var(--transition-fast);
+  min-width: 0; /* flexbox에서 overflow 방지 */
+}
+
+.phone-input:focus {
+  outline: none;
+  border-color: var(--primary-purple);
+  box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.1);
+}
+
+.phone-input::placeholder {
+  color: var(--gray-400);
+}
+
+/* 인증번호 받기 버튼 - 개선된 스타일 */
+.verify-button {
+  flex-shrink: 0;
+  width: 110px; /* 약간 줄임 */
+  height: var(--input-height);
+  background: var(--primary-purple);
+  border: none;
+  border-radius: var(--border-radius);
+  color: white;
+  font-size: 13px; /* 폰트 크기 약간 키움 */
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  white-space: nowrap; /* 텍스트 줄바꿈 방지 */
+  min-width: 110px; /* 최소 너비 보장 */
+}
+
+.verify-button:hover:not(:disabled) {
+  background: #5A4FCF;
+  transform: translateY(-1px);
+}
+
+.verify-button:disabled {
+  background: var(--gray-300);
+  color: var(--gray-500);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.verify-button .button-text {
+  display: block;
+}
+
+.verify-button .button-loading {
+  display: none;
+}
+
+.button-loading {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ===== 인증번호 입력 섹션 ===== */
+.verification-group {
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.verification-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+  margin-bottom: 8px;
+}
+
+.verification-input {
+  flex: 1;
+  height: var(--input-height);
+  padding: 0 16px;
+  border: 2px solid var(--gray-300);
+  border-radius: var(--border-radius);
+  font-size: 16px;
+  text-align: center;
+  letter-spacing: 2px;
+  background: white;
+  transition: all var(--transition-fast);
+}
+
+.verification-input:focus {
+  outline: none;
+  border-color: var(--primary-purple);
+  box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.1);
+}
+
+.verification-input::placeholder {
+  color: var(--gray-400);
+  letter-spacing: normal;
+}
+
+.confirm-button {
+  flex-shrink: 0;
+  width: 80px;
+  height: var(--input-height);
+  background: var(--primary-purple);
+  border: none;
+  border-radius: var(--border-radius);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+}
+
+.confirm-button:hover:not(:disabled) {
+  background: #5A4FCF;
+  transform: translateY(-1px);
+}
+
+.confirm-button:disabled {
+  background: var(--gray-300);
+  color: var(--gray-500);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.timer-container {
+  text-align: center;
+  margin-top: 8px;
+}
+
+.timer {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--error);
+}
+
+/* ===== 다음 버튼 ===== */
+.next-button {
+  width: 100%;
+  height: var(--button-height);
+  background: var(--primary-gradient);
+  border: none;
+  border-radius: var(--border-radius);
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  box-shadow: var(--shadow-md);
+}
+
+.next-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.next-button:disabled,
+.next-button.disabled {
+  background: var(--gray-300) !important;
+  color: var(--gray-500) !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.next-button.enabled {
+  background: var(--primary-gradient) !important;
+  color: white !important;
+  cursor: pointer !important;
+}
+
+.next-button:not(:disabled):not(.disabled) {
+  background: var(--primary-gradient);
+  color: white;
+  cursor: pointer;
+}
+
+/* ===== 모달 스타일 ===== */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  transition: opacity var(--transition-normal);
+}
+
+.modal-overlay.show {
+  opacity: 1;
+}
+
+.modal-container {
+  background: white;
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-lg);
+  max-width: 320px;
+  width: 100%;
+  max-height: 300px;
+  display: flex;
+  flex-direction: column;
+  transform: scale(0.9);
+  transition: transform var(--transition-normal);
+}
+
+.modal-overlay.show .modal-container {
+  transform: scale(1);
+}
+
+.modal-header {
+  padding: 20px 20px 0;
+  text-align: center;
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--gray-900);
+  margin: 0;
+}
+
+.modal-body {
+  padding: 20px;
+  text-align: center;
+  flex: 1;
+}
+
+.modal-body p {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--gray-700);
+  margin: 0;
+}
+
+.modal-footer {
+  padding: 0 20px 20px;
+}
+
+.modal-confirm-button {
+  width: 100%;
+  height: 48px;
+  background: var(--primary-gradient);
+  border: none;
+  border-radius: var(--border-radius);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+}
+
+.modal-confirm-button:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+/* ===== 반응형 디자인 ===== */
+@media (max-width: 480px) {
+  .phone-verify-container {
+    max-width: 100%;
+  }
+
+  .phone-verify-header {
+    padding: 12px 16px;
+  }
+
+  .phone-verify-content {
+    padding: 20px 16px;
+  }
+
+  .logos-container {
+    max-width: 300px;
+    height: 220px;
+  }
+
+  .verify-button {
+    width: 100px;
+    font-size: 12px;
+  }
+
+  .country-select {
+    width: 90px;
+  }
+}
+
+@media (max-width: 375px) {
+  .phone-verify-header {
+    padding: 10px 14px;
+  }
+
+  .phone-verify-content {
+    padding: 16px 14px;
+  }
+
+  .page-title {
+    font-size: 16px;
+  }
+
+  .logos-container {
+    max-width: 280px;
+    height: 200px;
+  }
+
+  .header-left,
+  .header-right {
+    width: 50px;
+  }
+
+  .verify-button {
+    width: 90px;
+    font-size: 11px;
+  }
+
+  .country-select {
+    width: 80px;
+    font-size: 13px;
+  }
+
+  .phone-input-row {
+    gap: 6px;
+  }
+
+  .verification-input-row {
+    gap: 6px;
+  }
+}
+
+@media (max-width: 320px) {
+  .verify-button {
+    width: 80px;
+    font-size: 10px;
+    padding: 0 8px;
+  }
+
+  .country-select {
+    width: 70px;
+    font-size: 12px;
+    padding: 0 8px;
+    padding-right: 28px;
+  }
+}
+
+/* ===== 접근성 개선 ===== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ===== 포커스 스타일 ===== */
+.back-button:focus,
+.country-select:focus,
+.phone-input:focus,
+.verify-button:focus,
+.verification-input:focus,
+.confirm-button:focus,
+.next-button:focus,
+.modal-confirm-button:focus {
+  outline: 2px solid var(--primary-purple);
+  outline-offset: 2px;
+}

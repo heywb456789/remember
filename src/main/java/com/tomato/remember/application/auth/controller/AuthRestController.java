@@ -4,8 +4,12 @@ import com.tomato.remember.application.auth.dto.AuthRequestDTO;
 import com.tomato.remember.application.auth.dto.AuthResponseDTO;
 import com.tomato.remember.application.auth.service.AuthService;
 import com.tomato.remember.application.member.dto.MemberDTO;
+import com.tomato.remember.application.oneld.dto.OneIdResponse;
+import com.tomato.remember.application.oneld.dto.OneIdVerifyResponse;
+import com.tomato.remember.application.oneld.service.TomatoAuthService;
 import com.tomato.remember.application.security.MemberUserDetails;
 import com.tomato.remember.common.dto.ResponseDTO;
+import com.tomato.remember.common.exception.BadRequestException;
 import com.tomato.remember.common.util.CookieUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -26,6 +30,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import reactor.core.publisher.Mono;
 
 /**
  * 모바일/앱 공용 API 컨트롤러 (JWT Bearer 토큰 기반)
@@ -45,6 +50,7 @@ public class AuthRestController {
 
     private final AuthService authService;
     private final CookieUtil cookieUtil;
+    private final TomatoAuthService tomatoService;
 
     @Operation(
             summary = "토큰 유효성 검증",
@@ -135,6 +141,43 @@ public class AuthRestController {
             log.error("API login failed for phone: {}, error: {}", req.getPhoneNumber(), e.getMessage());
             throw e; // 기존 예외 처리 로직 유지
         }
+    }
+
+    @Operation(
+        summary = "회원가입",
+        description = "새로운 사용자 계정을 생성하고 JWT 토큰을 발급받습니다."
+    )
+    @ApiResponses({
+        @ApiResponse(
+            responseCode = "200",
+            description = "회원가입 성공",
+            content = @Content(schema = @Schema(implementation = AuthResponseDTO.class))
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "잘못된 요청",
+            content = @Content(schema = @Schema(implementation = AuthResponseDTO.class))
+        )
+    })
+    @PostMapping("/register")
+    public ResponseDTO<AuthResponseDTO> register(
+        @Parameter(description = "회원가입 정보", required = true)
+        @RequestBody @Valid AuthRequestDTO req,
+        @Parameter(hidden = true) HttpServletRequest servletRequest,
+        @Parameter(hidden = true) HttpServletResponse servletResponse
+    ) {
+        OneIdResponse resp = tomatoService.createOneId(req);
+
+        if (resp == null || !resp.isResult()) {
+            throw new BadRequestException("외부 회원 인증 실패");
+        }
+        AuthResponseDTO authResponse = authService.createToken(resp, req, servletRequest);
+
+        cookieUtil.setMemberTokensWithSync(servletResponse,
+                    authResponse.getAccessToken(),
+                    authResponse.getRefreshToken());
+
+        return ResponseDTO.ok(authResponse);
     }
 
     @Operation(
@@ -299,5 +342,68 @@ public class AuthRestController {
                 "authorities", auth.getAuthorities(),
                 "tokenType", "MEMBER_ACCESS_TOKEN"
         ));
+    }
+
+    @Operation(
+        summary = "SMS 인증번호 발송",
+        description = "회원가입을 위한 SMS 인증번호를 발송합니다."
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "SMS 발송 성공"),
+        @ApiResponse(responseCode = "400", description = "잘못된 요청")
+    })
+    @PostMapping("/smsCert/send")
+    public Mono<ResponseDTO<OneIdResponse>> sendSmsCert(
+        @Parameter(
+            description = "SMS 발송 정보",
+            required = true,
+            content = @Content(
+                schema = @Schema(
+                    implementation = AuthRequestDTO.class,
+                    example = """
+                        {
+                            "phoneNumber": "01012341234",
+                            "name": "홍길동",
+                            "birthday": "19900101"
+                        }
+                        """
+                )
+            )
+        )
+        @RequestBody AuthRequestDTO req
+    ) {
+        return tomatoService.sendSmsCert(req)
+            .map(ResponseDTO::ok);
+    }
+
+    @Operation(
+        summary = "SMS 인증번호 확인",
+        description = "발송된 SMS 인증번호를 확인합니다."
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "SMS 인증 성공"),
+        @ApiResponse(responseCode = "400", description = "잘못된 인증번호")
+    })
+    @PostMapping("/smsCert/verify")
+    public Mono<ResponseDTO<OneIdVerifyResponse>> verifySmsCert(
+        @Parameter(
+            description = "SMS 인증 정보",
+            required = true,
+            content = @Content(
+                schema = @Schema(
+                    implementation = AuthRequestDTO.class,
+                    example = """
+                        {
+                            "phoneNumber": "01012341234",
+                            "certNum": "123456"
+                        }
+                        """
+                )
+            )
+        )
+        @RequestBody AuthRequestDTO req
+    ) {
+        return tomatoService.verifySmsCert(req)
+            .map(ResponseDTO::ok);
     }
 }
