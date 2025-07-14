@@ -34,12 +34,6 @@ import reactor.core.publisher.Mono;
 
 /**
  * 모바일/앱 공용 API 컨트롤러 (JWT Bearer 토큰 기반)
- *
- * 새로운 인증 시스템:
- * - ApiJwtFilter에서 Bearer 토큰 검증
- * - 자동 토큰 갱신 없음 (클라이언트에서 수동 처리)
- * - 회원용 JWT 토큰만 처리
- * - JSON 요청/응답만 처리
  */
 @Slf4j
 @RestController
@@ -90,94 +84,107 @@ public class AuthRestController {
 
     @Operation(
             summary = "로그인",
-            description = "휴대폰 번호와 비밀번호로 로그인하여 JWT 토큰을 발급받습니다. One-ID 로그인을 우선 시도하고, 실패 시 DB 로그인을 시도합니다."
+            description = "휴대폰 번호와 비밀번호로 로그인하여 JWT 토큰을 발급받습니다."
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "로그인 성공",
-                    content = @Content(schema = @Schema(implementation = ResponseDTO.class))),
-            @ApiResponse(responseCode = "401", description = "인증 실패 - 잘못된 휴대폰 번호 또는 비밀번호"),
+            @ApiResponse(responseCode = "200", description = "로그인 성공"),
+            @ApiResponse(responseCode = "401", description = "인증 실패"),
             @ApiResponse(responseCode = "400", description = "잘못된 요청 데이터")
     })
     @PostMapping("/login")
     public ResponseDTO<AuthResponseDTO> login(
-            @Parameter(
-                    description = "로그인 정보 (JSON 형식)",
-                    required = true,
-                    content = @Content(
-                            schema = @Schema(
-                                    implementation = AuthRequestDTO.class,
-                                    example = """
-                        {
-                            "phoneNumber": "01012341234",
-                            "password": "password123",
-                            "autoLogin": false
-                        }
-                        """
-                            )
-                    )
-            )
             @Valid @RequestBody AuthRequestDTO req,
             @Parameter(hidden = true) HttpServletRequest servletRequest,
             @Parameter(hidden = true) HttpServletResponse servletResponse
     ) {
-        log.info("API login attempt for phone: {}", req.getPhoneNumber());
+        String clientInfo = String.format("%s %s", servletRequest.getRemoteAddr(), servletRequest.getHeader("User-Agent"));
+        log.info("API login attempt for phone: {}, client: {}", req.getPhoneNumber(), clientInfo);
+
+        // 현재 쿠키 상태 로깅 (로그인 전)
+        cookieUtil.logCookieStatus(servletRequest);
 
         try {
             // 기존 비즈니스 로직 유지 (One-ID → DB 순서)
             AuthResponseDTO authResponse = authService.loginProcess(req, servletRequest);
 
+            log.info("API login successful for member: {} (ID: {})",
+                    authResponse.getMember().getName(), authResponse.getMember().getId());
+
             // 모바일 뷰에서 사용할 수 있도록 쿠키에도 토큰 설정
+            log.debug("Setting tokens in cookies for mobile view compatibility");
             cookieUtil.setMemberTokensWithSync(servletResponse,
                     authResponse.getAccessToken(),
                     authResponse.getRefreshToken());
 
-            log.info("API login successful for member: {} (ID: {})",
-                    authResponse.getMember().getName(),
-                    authResponse.getMember().getId());
+            // 쿠키 설정 후 상태 확인을 위한 로깅
+            log.debug("Tokens set in response cookies. Client should verify cookie receipt.");
 
             return ResponseDTO.ok(authResponse);
 
         } catch (Exception e) {
             log.error("API login failed for phone: {}, error: {}", req.getPhoneNumber(), e.getMessage());
-            throw e; // 기존 예외 처리 로직 유지
+
+            // 로그인 실패 시 쿠키 정리
+            try {
+                cookieUtil.clearMemberTokenCookies(servletResponse);
+                log.debug("Cleared any existing cookies after login failure");
+            } catch (Exception clearEx) {
+                log.warn("Failed to clear cookies after login failure", clearEx);
+            }
+
+            throw e;
         }
     }
 
     @Operation(
-        summary = "회원가입",
-        description = "새로운 사용자 계정을 생성하고 JWT 토큰을 발급받습니다."
+            summary = "회원가입",
+            description = "새로운 사용자 계정을 생성하고 JWT 토큰을 발급받습니다."
     )
     @ApiResponses({
-        @ApiResponse(
-            responseCode = "200",
-            description = "회원가입 성공",
-            content = @Content(schema = @Schema(implementation = AuthResponseDTO.class))
-        ),
-        @ApiResponse(
-            responseCode = "400",
-            description = "잘못된 요청",
-            content = @Content(schema = @Schema(implementation = AuthResponseDTO.class))
-        )
+            @ApiResponse(responseCode = "200", description = "회원가입 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청")
     })
     @PostMapping("/register")
     public ResponseDTO<AuthResponseDTO> register(
-        @Parameter(description = "회원가입 정보", required = true)
-        @RequestBody @Valid AuthRequestDTO req,
-        @Parameter(hidden = true) HttpServletRequest servletRequest,
-        @Parameter(hidden = true) HttpServletResponse servletResponse
+            @RequestBody @Valid AuthRequestDTO req,
+            @Parameter(hidden = true) HttpServletRequest servletRequest,
+            @Parameter(hidden = true) HttpServletResponse servletResponse
     ) {
-        OneIdResponse resp = tomatoService.createOneId(req);
+        String clientInfo = String.format("%s %s", servletRequest.getRemoteAddr(), servletRequest.getHeader("User-Agent"));
+        log.info("API registration attempt for phone: {}, client: {}", req.getPhoneNumber(), clientInfo);
 
-        if (resp == null || !resp.isResult()) {
-            throw new BadRequestException("외부 회원 인증 실패");
-        }
-        AuthResponseDTO authResponse = authService.createToken(resp, req, servletRequest);
+        try {
+            OneIdResponse resp = tomatoService.createOneId(req);
 
-        cookieUtil.setMemberTokensWithSync(servletResponse,
+            if (resp == null || !resp.isResult()) {
+                log.warn("One-ID registration failed for phone: {}", req.getPhoneNumber());
+                throw new BadRequestException("외부 회원 인증 실패");
+            }
+
+            AuthResponseDTO authResponse = authService.createToken(resp, req, servletRequest);
+
+            log.info("API registration successful for member: {} (ID: {})",
+                    authResponse.getMember().getName(), authResponse.getMember().getId());
+
+            // 쿠키에도 토큰 설정
+            cookieUtil.setMemberTokensWithSync(servletResponse,
                     authResponse.getAccessToken(),
                     authResponse.getRefreshToken());
 
-        return ResponseDTO.ok(authResponse);
+            return ResponseDTO.ok(authResponse);
+
+        } catch (Exception e) {
+            log.error("API registration failed for phone: {}, error: {}", req.getPhoneNumber(), e.getMessage());
+
+            // 회원가입 실패 시 쿠키 정리
+            try {
+                cookieUtil.clearMemberTokenCookies(servletResponse);
+            } catch (Exception clearEx) {
+                log.warn("Failed to clear cookies after registration failure", clearEx);
+            }
+
+            throw e;
+        }
     }
 
     @Operation(
@@ -222,7 +229,7 @@ public class AuthRestController {
 
     @Operation(
             summary = "토큰 갱신",
-            description = "Refresh Token을 사용하여 새로운 Access Token을 발급받습니다. API에서는 자동 갱신이 없으므로 클라이언트에서 수동으로 호출해야 합니다."
+            description = "Refresh Token을 사용하여 새로운 Access Token을 발급받습니다."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "토큰 갱신 성공"),
@@ -230,32 +237,21 @@ public class AuthRestController {
     })
     @PostMapping("/refresh")
     public ResponseDTO<AuthResponseDTO> refreshToken(
-            @Parameter(
-                    description = "리프레시 토큰 정보 (JSON 형식)",
-                    required = true,
-                    content = @Content(
-                            schema = @Schema(
-                                    type = "object",
-                                    example = """
-                        {
-                            "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                        }
-                        """
-                            )
-                    )
-            )
             @RequestBody Map<String, String> request,
             @Parameter(hidden = true) HttpServletRequest servletRequest,
             @Parameter(hidden = true) HttpServletResponse servletResponse
     ) {
         String refreshToken = request.get("refreshToken");
+        String clientInfo = String.format("%s %s", servletRequest.getRemoteAddr(), servletRequest.getHeader("User-Agent"));
 
-        log.debug("API token refresh requested");
+        log.info("API token refresh requested from client: {}", clientInfo);
+        log.debug("Refresh token provided: {}", refreshToken != null ? "YES (length=" + refreshToken.length() + ")" : "NO");
 
         try {
             AuthResponseDTO authResponse = authService.refreshToken(refreshToken, servletRequest);
 
             // 모바일 뷰에서 사용할 수 있도록 쿠키에도 토큰 업데이트
+            log.debug("Updating cookies with refreshed tokens");
             cookieUtil.setMemberTokensWithSync(servletResponse,
                     authResponse.getToken(),
                     authResponse.getRefreshToken());
@@ -268,6 +264,15 @@ public class AuthRestController {
 
         } catch (Exception e) {
             log.error("API token refresh failed, error: {}", e.getMessage());
+
+            // 갱신 실패 시 쿠키 정리
+            try {
+                cookieUtil.clearMemberTokenCookies(servletResponse);
+                log.debug("Cleared cookies after token refresh failure");
+            } catch (Exception clearEx) {
+                log.warn("Failed to clear cookies after token refresh failure", clearEx);
+            }
+
             throw e;
         }
     }
@@ -294,7 +299,7 @@ public class AuthRestController {
         try {
             authService.delete(userDetails, request);
 
-            // 🆕 쿠키도 함께 정리
+            // 쿠키도 함께 정리
             cookieUtil.clearMemberTokenCookies(response);
 
             log.info("API member deletion successful for member: {} (ID: {})",
@@ -312,9 +317,6 @@ public class AuthRestController {
         }
     }
 
-    /**
-     * 추가 기능: 토큰 정보 조회 (디버깅용)
-     */
     @Operation(
             summary = "토큰 정보 조회",
             description = "현재 토큰의 상세 정보를 조회합니다. (디버깅 및 모니터링용)"
@@ -327,11 +329,15 @@ public class AuthRestController {
     @GetMapping("/token-info")
     public ResponseDTO<Map<String, Object>> tokenInfo(
             @Parameter(hidden = true) @AuthenticationPrincipal MemberUserDetails userDetails,
-            @Parameter(hidden = true) Authentication auth
+            @Parameter(hidden = true) Authentication auth,
+            @Parameter(hidden = true) HttpServletRequest request
     ) {
         log.debug("Token info requested for member: {} (ID: {})",
                 userDetails.getMember().getName(),
                 userDetails.getMember().getId());
+
+        // 쿠키 상태도 함께 로깅
+        cookieUtil.logCookieStatus(request);
 
         return ResponseDTO.ok(Map.of(
                 "memberId", userDetails.getMember().getId(),
@@ -340,70 +346,50 @@ public class AuthRestController {
                 "memberStatus", userDetails.getMember().getStatus().getDisplayName(),
                 "authenticated", auth.isAuthenticated(),
                 "authorities", auth.getAuthorities(),
-                "tokenType", "MEMBER_ACCESS_TOKEN"
+                "tokenType", "MEMBER_ACCESS_TOKEN",
+                "cookieConfig", cookieUtil.getCookieConfigInfo()
         ));
     }
 
     @Operation(
-        summary = "SMS 인증번호 발송",
-        description = "회원가입을 위한 SMS 인증번호를 발송합니다."
+            summary = "SMS 인증번호 발송",
+            description = "회원가입을 위한 SMS 인증번호를 발송합니다."
     )
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "SMS 발송 성공"),
-        @ApiResponse(responseCode = "400", description = "잘못된 요청")
+            @ApiResponse(responseCode = "200", description = "SMS 발송 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청")
     })
     @PostMapping("/smsCert/send")
     public Mono<ResponseDTO<OneIdResponse>> sendSmsCert(
-        @Parameter(
-            description = "SMS 발송 정보",
-            required = true,
-            content = @Content(
-                schema = @Schema(
-                    implementation = AuthRequestDTO.class,
-                    example = """
-                        {
-                            "phoneNumber": "01012341234",
-                            "name": "홍길동",
-                            "birthday": "19900101"
-                        }
-                        """
-                )
-            )
-        )
-        @RequestBody AuthRequestDTO req
+            @RequestBody AuthRequestDTO req
     ) {
+        log.info("SMS certification send requested for phone: {}", req.getPhoneNumber());
+
         return tomatoService.sendSmsCert(req)
-            .map(ResponseDTO::ok);
+                .doOnSuccess(response -> log.info("SMS certification sent for phone: {}", req.getPhoneNumber()))
+                .doOnError(error -> log.error("SMS certification send failed for phone: {}, error: {}",
+                        req.getPhoneNumber(), error.getMessage()))
+                .map(ResponseDTO::ok);
     }
 
     @Operation(
-        summary = "SMS 인증번호 확인",
-        description = "발송된 SMS 인증번호를 확인합니다."
+            summary = "SMS 인증번호 확인",
+            description = "발송된 SMS 인증번호를 확인합니다."
     )
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "SMS 인증 성공"),
-        @ApiResponse(responseCode = "400", description = "잘못된 인증번호")
+            @ApiResponse(responseCode = "200", description = "SMS 인증 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 인증번호")
     })
     @PostMapping("/smsCert/verify")
     public Mono<ResponseDTO<OneIdVerifyResponse>> verifySmsCert(
-        @Parameter(
-            description = "SMS 인증 정보",
-            required = true,
-            content = @Content(
-                schema = @Schema(
-                    implementation = AuthRequestDTO.class,
-                    example = """
-                        {
-                            "phoneNumber": "01012341234",
-                            "certNum": "123456"
-                        }
-                        """
-                )
-            )
-        )
-        @RequestBody AuthRequestDTO req
+            @RequestBody AuthRequestDTO req
     ) {
+        log.info("SMS certification verify requested for phone: {}", req.getPhoneNumber());
+
         return tomatoService.verifySmsCert(req)
-            .map(ResponseDTO::ok);
+                .doOnSuccess(response -> log.info("SMS certification verified for phone: {}", req.getPhoneNumber()))
+                .doOnError(error -> log.error("SMS certification verify failed for phone: {}, error: {}",
+                        req.getPhoneNumber(), error.getMessage()))
+                .map(ResponseDTO::ok);
     }
 }

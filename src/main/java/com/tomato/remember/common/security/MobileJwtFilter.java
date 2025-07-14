@@ -50,7 +50,8 @@ public class MobileJwtFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
 
         String requestURI = request.getRequestURI();
-        log.debug("MobileJwtFilter processing: {}", requestURI);
+        String requestMethod = request.getMethod();
+        log.debug("MobileJwtFilter processing: {} {}", requestMethod, requestURI);
 
         // 로그인 관련 경로는 필터에서 제외
         if (shouldSkipFilter(requestURI)) {
@@ -62,32 +63,35 @@ public class MobileJwtFilter extends OncePerRequestFilter {
         boolean isAuthRequired = isAuthRequiredPath(requestURI);
         log.debug("Auth required for {}: {}", requestURI, isAuthRequired);
 
+        // 현재 쿠키 상태 로깅
+        logCurrentCookieState(request);
+
         try {
             String accessToken = cookieUtil.getMemberAccessToken(request);
-            log.debug("Access token from cookie: {}", accessToken != null ? "PRESENT" : "NULL");
+            log.debug("Access token from cookie: {}", accessToken != null ? "PRESENT (length=" + accessToken.length() + ")" : "NULL");
 
             if (accessToken == null) {
-                log.debug("No access token found in cookies");
+                log.info("No access token found in cookies for request: {}", requestURI);
                 handleNoToken(request, response, filterChain, isAuthRequired);
                 return;
             }
 
             // 토큰 유효성 검증
             if (tokenProvider.validateMemberToken(accessToken)) {
-                log.debug("Valid token found, authenticating member");
+                log.debug("Valid token found, authenticating member for request: {}", requestURI);
                 authenticateMember(request, accessToken);
                 filterChain.doFilter(request, response);
             } else {
-                log.debug("Invalid access token found");
+                log.warn("Invalid access token found for request: {}", requestURI);
                 handleInvalidToken(request, response, filterChain, isAuthRequired);
             }
 
         } catch (ExpiredJwtException ex) {
-            log.debug("Access token expired: {}", ex.getMessage());
+            log.info("Access token expired for request: {}, attempting refresh", requestURI);
             handleExpiredToken(request, response, filterChain, isAuthRequired);
 
         } catch (JwtException | IllegalArgumentException ex) {
-            log.debug("JWT validation failed: {}", ex.getMessage());
+            log.warn("JWT validation failed for request: {}, error: {}", requestURI, ex.getMessage());
             handleInvalidToken(request, response, filterChain, isAuthRequired);
 
         } catch (Exception ex) {
@@ -95,10 +99,34 @@ public class MobileJwtFilter extends OncePerRequestFilter {
 
             // 토큰 관련 오류가 아닌 일반적인 오류는 그대로 전달
             if (isTokenRelatedError(ex)) {
+                log.warn("Token related error detected, treating as invalid token");
                 handleInvalidToken(request, response, filterChain, isAuthRequired);
             } else {
+                log.debug("Non-token related error, continuing filter chain");
                 filterChain.doFilter(request, response);
             }
+        }
+    }
+
+    /**
+     * 현재 쿠키 상태 로깅
+     */
+    private void logCurrentCookieState(HttpServletRequest request) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            log.debug("Current cookies count: {}", cookies.length);
+            for (Cookie cookie : cookies) {
+                if (cookie.getName().startsWith("MEMBER_")) {
+                    log.debug("Cookie found: name={}, value_length={}, maxAge={}, secure={}, httpOnly={}",
+                            cookie.getName(),
+                            cookie.getValue() != null ? cookie.getValue().length() : 0,
+                            cookie.getMaxAge(),
+                            cookie.getSecure(),
+                            cookie.isHttpOnly());
+                }
+            }
+        } else {
+            log.debug("No cookies found in request");
         }
     }
 
@@ -124,14 +152,58 @@ public class MobileJwtFilter extends OncePerRequestFilter {
     /**
      * 토큰이 없는 경우 처리
      */
-    private void handleNoToken(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain, boolean isAuthRequired)
-            throws IOException, ServletException {
+    private void handleNoToken(HttpServletRequest request, HttpServletResponse response,
+                               FilterChain filterChain, boolean isAuthRequired) throws IOException, ServletException {
+
+        String requestURI = request.getRequestURI();
+        log.debug("Handling no token scenario for: {}, authRequired: {}", requestURI, isAuthRequired);
+
+        // 🆕 RefreshToken이 있으면 갱신 시도
+        String refreshToken = cookieUtil.getMemberRefreshToken(request);
+        if (refreshToken != null) {
+            log.info("No access token but refresh token found, attempting refresh for: {}", requestURI);
+            try {
+                if (tokenProvider.validateMemberToken(refreshToken)) {
+                    handleTokenRefreshFromNoAccess(request, response, filterChain, refreshToken, isAuthRequired);
+                    return;
+                } else {
+                    log.warn("Refresh token invalid, clearing all tokens");
+                    cookieUtil.clearAllMemberTokens(response);
+                }
+            } catch (Exception e) {
+                log.error("Error during refresh token validation", e);
+                cookieUtil.clearAllMemberTokens(response);
+            }
+        }
+
+        // 기존 로직
         if (isAuthRequired) {
-            log.debug("Redirecting to login for auth required path");
+            log.info("Redirecting to login for auth required path: {}", requestURI);
             redirectToLogin(response);
         } else {
-            log.debug("Continuing as guest for optional auth path");
+            log.debug("Continuing as guest for optional auth path: {}", requestURI);
             filterChain.doFilter(request, response);
+        }
+    }
+
+    private void handleTokenRefreshFromNoAccess(HttpServletRequest request, HttpServletResponse response,
+                                                FilterChain filterChain, String refreshToken, boolean isAuthRequired) throws ServletException, IOException {
+        try {
+            TokenRefreshResult refreshResult = performAtomicTokenRefresh(request, response, refreshToken);
+
+            if (refreshResult.isSuccess()) {
+                log.info("Token refresh successful from no-access scenario");
+                authenticateMember(request, refreshResult.getNewAccessToken());
+                filterChain.doFilter(request, response);
+            } else {
+                log.error("Token refresh failed from no-access scenario: {}", refreshResult.getErrorMessage());
+                cookieUtil.clearAllMemberTokens(response);
+                handlePostClearAction(request, response, filterChain, isAuthRequired);
+            }
+        } catch (Exception e) {
+            log.error("Error during token refresh from no-access scenario", e);
+            cookieUtil.clearAllMemberTokens(response);
+            handlePostClearAction(request, response, filterChain, isAuthRequired);
         }
     }
 
@@ -140,14 +212,21 @@ public class MobileJwtFilter extends OncePerRequestFilter {
      */
     private void handleInvalidToken(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain filterChain, boolean isAuthRequired) throws IOException, ServletException {
-        log.debug("Handling invalid token - clearing cookies");
+
+        String requestURI = request.getRequestURI();
+        log.info("Handling invalid token for: {}, clearing all cookies", requestURI);
+
+        // 쿠키 정리 전 상태 로깅
+        logCurrentCookieState(request);
+
         cookieUtil.clearMemberTokenCookies(response);
+        log.info("Member token cookies cleared for request: {}", requestURI);
 
         if (isAuthRequired) {
-            log.debug("Redirecting to login for invalid token");
+            log.info("Redirecting to login for invalid token on auth required path: {}", requestURI);
             redirectToLogin(response);
         } else {
-            log.debug("Continuing as guest after token invalidation");
+            log.debug("Continuing as guest after token invalidation for path: {}", requestURI);
             filterChain.doFilter(request, response);
         }
     }
@@ -160,15 +239,17 @@ public class MobileJwtFilter extends OncePerRequestFilter {
                                     FilterChain filterChain,
                                     boolean isAuthRequired) throws IOException, ServletException {
 
-        log.debug("🔄 Handling expired access token");
+        String requestURI = request.getRequestURI();
+        log.info("Handling expired access token for request: {}", requestURI);
 
         // 1. 토큰 상태 진단
         TokenStateInfo tokenState = cookieUtil.diagnoseTokenState(request);
-        log.debug("🔍 Token state: {}", tokenState);
+        log.info("Token state diagnosis: hasAccess={}, hasRefresh={}, isPartiallyBroken={}",
+                tokenState.isHasAccessToken(), tokenState.isHasRefreshToken(), tokenState.isPartiallyBroken());
 
         // 2. 부분 손상 감지
         if (tokenState.isPartiallyBroken()) {
-            log.warn(" Partial token corruption detected - cleaning all tokens");
+            log.warn("Partial token corruption detected for request: {}, cleaning all tokens", requestURI);
             cookieUtil.clearAllMemberTokens(response);
             handlePostClearAction(request, response, filterChain, isAuthRequired);
             return;
@@ -176,63 +257,76 @@ public class MobileJwtFilter extends OncePerRequestFilter {
 
         String refreshToken = cookieUtil.getMemberRefreshToken(request);
         if (refreshToken == null) {
-            log.debug("No refresh token found");
+            log.warn("No refresh token found for expired access token, request: {}", requestURI);
             cookieUtil.clearAllMemberTokens(response);
             handlePostClearAction(request, response, filterChain, isAuthRequired);
             return;
         }
 
+        log.debug("Refresh token found (length={}), attempting validation", refreshToken.length());
+
         try {
             // RefreshToken 검증
             if (!tokenProvider.validateMemberToken(refreshToken)) {
-                log.debug("Refresh token invalid");
+                log.warn("Refresh token validation failed for request: {}", requestURI);
                 cookieUtil.clearAllMemberTokens(response);
                 handlePostClearAction(request, response, filterChain, isAuthRequired);
                 return;
             }
 
-            // 🎯 원자적 토큰 갱신
-            log.debug("🔄 Attempting atomic token refresh");
+            log.info("Refresh token valid, attempting atomic token refresh for request: {}", requestURI);
+
+            // 원자적 토큰 갱신
             TokenRefreshResult refreshResult = performAtomicTokenRefresh(request, response, refreshToken);
 
             if (refreshResult.isSuccess()) {
-                log.info("Token refresh successful");
+                log.info("Token refresh successful for member ID: {}, request: {}",
+                        refreshResult.getMemberId(), requestURI);
                 authenticateMember(request, refreshResult.getNewAccessToken());
                 filterChain.doFilter(request, response);
             } else {
-                log.error("Token refresh failed: {}", refreshResult.getErrorMessage());
+                log.error("Token refresh failed for request: {}, error: {}", requestURI, refreshResult.getErrorMessage());
+                // 갱신 실패 시 반드시 모든 토큰 정리
+                cookieUtil.clearAllMemberTokens(response);
+                log.info("All member tokens cleared after refresh failure for request: {}", requestURI);
                 handlePostClearAction(request, response, filterChain, isAuthRequired);
             }
 
         } catch (ExpiredJwtException ex) {
-            log.debug("Refresh token also expired");
+            log.warn("Refresh token also expired for request: {}", requestURI);
             cookieUtil.clearAllMemberTokens(response);
             handlePostClearAction(request, response, filterChain, isAuthRequired);
 
         } catch (Exception ex) {
-            log.error("Error during token refresh", ex);
+            log.error("Error during token refresh for request: {}", requestURI, ex);
             cookieUtil.clearAllMemberTokens(response);
             handlePostClearAction(request, response, filterChain, isAuthRequired);
         }
     }
 
     /**
-     * 원자적 토큰 갱신 - 새로 추가
+     * 원자적 토큰 갱신
      */
     private TokenRefreshResult performAtomicTokenRefresh(HttpServletRequest request,
                                                          HttpServletResponse response,
                                                          String refreshToken) {
         try {
+            log.debug("Starting atomic token refresh process");
+
             // 1. 회원 정보 조회
             String memberIdStr = tokenProvider.getSubject(refreshToken);
             Long memberId = Long.parseLong(memberIdStr);
+            log.debug("Token refresh for member ID: {}", memberId);
 
             UserDetails userDetails = memberUserDetailsService.loadUserById(memberId);
             Member member = ((MemberUserDetails) userDetails).getMember();
+            log.debug("Member loaded: name={}, status={}", member.getName(), member.getStatus());
 
             // 2. 새 토큰 쌍 생성
             String newAccessToken = tokenProvider.createMemberAccessToken(member);
             String newRefreshToken = tokenProvider.createMemberRefreshToken(member, false);
+            log.debug("New tokens generated: accessToken_length={}, refreshToken_length={}",
+                    newAccessToken.length(), newRefreshToken.length());
 
             // 3. 원자적 쿠키 설정
             TokenUpdateResult updateResult = cookieUtil.setMemberTokensAtomic(
@@ -240,16 +334,19 @@ public class MobileJwtFilter extends OncePerRequestFilter {
             );
 
             if (!updateResult.isSuccess()) {
+                log.error("Cookie atomic update failed: {}", updateResult.getErrorMessage());
                 return TokenRefreshResult.failure("Cookie update failed: " + updateResult.getErrorMessage());
             }
 
             // 4. Request 속성 설정
             cookieUtil.setTokenRefreshAttributes(request, newAccessToken, newRefreshToken);
+            log.debug("Token refresh attributes set in request");
 
+            log.info("Atomic token refresh completed successfully for member: {}", member.getName());
             return TokenRefreshResult.success(newAccessToken, newRefreshToken, memberId);
 
         } catch (Exception e) {
-            log.error("Token refresh failed", e);
+            log.error("Atomic token refresh failed", e);
             return TokenRefreshResult.failure(e.getMessage());
         }
     }
@@ -261,13 +358,16 @@ public class MobileJwtFilter extends OncePerRequestFilter {
                                        HttpServletResponse response,
                                        FilterChain filterChain,
                                        boolean isAuthRequired) throws IOException, ServletException {
+
+        String requestURI = request.getRequestURI();
         SecurityContextHolder.clearContext();
+        log.debug("Security context cleared for request: {}", requestURI);
 
         if (isAuthRequired) {
-            log.debug("Auth required - redirecting to login");
+            log.info("Auth required - redirecting to login for request: {}", requestURI);
             response.sendRedirect("/mobile/login?reason=token_expired");
         } else {
-            log.debug("Guest access allowed - continuing");
+            log.debug("Guest access allowed - continuing for request: {}", requestURI);
             filterChain.doFilter(request, response);
         }
     }
@@ -277,17 +377,22 @@ public class MobileJwtFilter extends OncePerRequestFilter {
      */
     private void authenticateMember(HttpServletRequest request, String token) {
         try {
+            log.debug("Starting member authentication process");
+
             Map<String, Object> claims = tokenProvider.getMemberClaims(token);
             Long memberId = extractMemberId(claims, token);
+            log.debug("Extracted member ID from token: {}", memberId);
 
             UserDetails userDetails = memberUserDetailsService.loadUserById(memberId);
+            Member member = ((MemberUserDetails) userDetails).getMember();
 
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
-            log.debug("Member authenticated successfully: {}", memberId);
+            log.info("Member authenticated successfully: ID={}, name={}, role={}",
+                    member.getId(), member.getName(), member.getRole());
 
         } catch (Exception e) {
             log.error("Failed to authenticate member", e);
@@ -304,9 +409,11 @@ public class MobileJwtFilter extends OncePerRequestFilter {
 
         if (memberIdClaim instanceof Number) {
             memberId = ((Number) memberIdClaim).longValue();
+            log.debug("Member ID extracted from Number claim: {}", memberId);
         } else if (memberIdClaim instanceof String) {
             try {
                 memberId = Long.parseLong((String) memberIdClaim);
+                log.debug("Member ID extracted from String claim: {}", memberId);
             } catch (NumberFormatException e) {
                 log.error("Invalid memberId format in claim: {}", memberIdClaim);
                 throw new RuntimeException("Invalid memberId format in claim", e);
@@ -318,6 +425,7 @@ public class MobileJwtFilter extends OncePerRequestFilter {
             String memberIdStr = tokenProvider.getSubject(token);
             try {
                 memberId = Long.parseLong(memberIdStr);
+                log.debug("Member ID extracted from token subject: {}", memberId);
             } catch (NumberFormatException e) {
                 log.error("Invalid member ID format in subject: {}", memberIdStr);
                 throw new RuntimeException("Invalid member ID format in subject", e);
@@ -325,6 +433,7 @@ public class MobileJwtFilter extends OncePerRequestFilter {
         }
 
         if (memberId == null) {
+            log.error("Member ID not found in token claims or subject");
             throw new RuntimeException("Member ID not found in token");
         }
 
@@ -332,39 +441,12 @@ public class MobileJwtFilter extends OncePerRequestFilter {
     }
 
     /**
-     * 토큰 갱신
-     */
-    private String refreshTokens(HttpServletRequest request, HttpServletResponse response, String refreshToken) {
-        try {
-            String memberIdStr = tokenProvider.getSubject(refreshToken);
-            Long memberId = Long.parseLong(memberIdStr);
-
-            log.debug("Refreshing tokens for member ID: {}", memberId);
-
-            UserDetails userDetails = memberUserDetailsService.loadUserById(memberId);
-            Member member = ((MemberUserDetails) userDetails).getMember();
-
-            String newAccessToken = tokenProvider.createMemberAccessToken(member);
-            String newRefreshToken = tokenProvider.createMemberRefreshToken(member, false);
-
-            cookieUtil.setMemberTokensWithSync(response, newAccessToken, newRefreshToken);
-            cookieUtil.setTokenRefreshAttributes(request, newAccessToken, newRefreshToken);
-
-            log.debug("Tokens refreshed successfully for member: {}", member.getName());
-            return newAccessToken;
-
-        } catch (Exception e) {
-            log.error("Failed to refresh tokens", e);
-            throw new RuntimeException("Token refresh failed", e);
-        }
-    }
-
-    /**
      * 로그인 페이지로 리다이렉션
      */
     private void redirectToLogin(HttpServletResponse response) throws IOException {
-        log.debug("Redirecting to login page");
-        response.sendRedirect("/mobile/login");
+        String redirectUrl = "/mobile/login";
+        log.info("Redirecting to login page: {}", redirectUrl);
+        response.sendRedirect(redirectUrl);
     }
 
     /**
@@ -375,12 +457,15 @@ public class MobileJwtFilter extends OncePerRequestFilter {
             if (path.contains("*")) {
                 String pattern = path.replace("*", "[^/]+");
                 if (requestURI.matches(pattern)) {
+                    log.debug("Auth required path matched (pattern): {} -> {}", path, requestURI);
                     return true;
                 }
             } else if (requestURI.equals(path) || requestURI.startsWith(path + "/")) {
+                log.debug("Auth required path matched (exact): {} -> {}", path, requestURI);
                 return true;
             }
         }
+        log.debug("Auth not required for path: {}", requestURI);
         return false;
     }
 

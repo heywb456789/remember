@@ -2,35 +2,36 @@ package com.tomato.remember.common.util;
 
 import com.tomato.remember.common.dto.TokenStateInfo;
 import com.tomato.remember.common.dto.TokenUpdateResult;
+import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
 
-import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
-@Component
-@RequiredArgsConstructor
 @Slf4j
+@Component
 public class CookieUtil {
 
-    // 쿠키 설정값들
+    // JWT 쿠키 설정값들
     @Value("${spring.security.jwt.cookie.secure:true}")
     private boolean cookieSecure;
 
     @Value("${spring.security.jwt.cookie.http-only:true}")
     private boolean cookieHttpOnly;
 
-    @Value("${spring.security.jwt.cookie.same-site:Lax}")
+    @Value("${spring.security.jwt.cookie.same-site:Strict}")
     private String cookieSameSite;
 
     @Value("${spring.security.jwt.cookie.path:/}")
     private String cookiePath;
+
+    @Value("${spring.security.jwt.cookie.domain:}")
+    private String cookieDomain;
 
     @Value("${spring.security.jwt.access-token-expiration:3600000}")
     private long accessTokenExpiration;
@@ -39,362 +40,326 @@ public class CookieUtil {
     private long refreshTokenExpiration;
 
     // 쿠키 이름 상수
-    public static final String MEMBER_ACCESS_TOKEN = "MEMBER_ACCESS_TOKEN";
-    public static final String MEMBER_REFRESH_TOKEN = "MEMBER_REFRESH_TOKEN";
+    private static final String MEMBER_ACCESS_TOKEN_COOKIE = "MEMBER_ACCESS_TOKEN";
+    private static final String MEMBER_REFRESH_TOKEN_COOKIE = "MEMBER_REFRESH_TOKEN";
 
-    // 동기화용 헤더 이름
-    public static final String HEADER_NEW_ACCESS_TOKEN = "X-New-Access-Token";
-    public static final String HEADER_NEW_REFRESH_TOKEN = "X-New-Refresh-Token";
+    @PostConstruct
+    public void validateCookieConfiguration() {
+        log.info("Cookie configuration validation starting");
+        log.info("Cookie settings: secure={}, httpOnly={}, sameSite={}, path={}, domain='{}'",
+                cookieSecure, cookieHttpOnly, cookieSameSite, cookiePath, cookieDomain);
 
-    /**
-     * 회원 JWT 토큰 쿠키 설정 (모바일 뷰용)
-     */
-    public void setMemberTokenCookies(HttpServletResponse response, String accessToken, String refreshToken) {
-        log.info("🍪 Setting member JWT token cookies...");
-
-        if (accessToken != null) {
-            ResponseCookie accessCookie = createTokenCookie(
-                    MEMBER_ACCESS_TOKEN,
-                    accessToken,
-                    (int) (accessTokenExpiration / 1000)
-            );
-            response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
-            log.info("✅ {} cookie set (expires in {} seconds)",
-                    MEMBER_ACCESS_TOKEN, accessTokenExpiration / 1000);
+        // SameSite=None + Secure=false 조합 경고
+        if ("None".equalsIgnoreCase(cookieSameSite) && !cookieSecure) {
+            log.error("INVALID COOKIE CONFIGURATION: SameSite=None requires Secure=true. Current: Secure={}", cookieSecure);
+            log.error("Cookies may not be set in this configuration! Consider changing SameSite to 'Lax' for HTTP environments.");
         }
 
-        if (refreshToken != null) {
-            ResponseCookie refreshCookie = createTokenCookie(
-                    MEMBER_REFRESH_TOKEN,
-                    refreshToken,
-                    (int) (refreshTokenExpiration / 1000)
-            );
-            response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
-            log.info("✅ {} cookie set (expires in {} seconds)",
-                    MEMBER_REFRESH_TOKEN, refreshTokenExpiration / 1000);
+        // IP 환경에서 domain 설정 경고
+        if (cookieDomain != null && !cookieDomain.isEmpty()) {
+            log.warn("Domain is set to '{}'. For IP addresses, domain should be empty.", cookieDomain);
         }
 
-        log.info("✅ Member JWT token cookies setting completed");
+        log.info("Cookie configuration validation completed");
     }
 
     /**
-     * 회원 JWT 토큰 쿠키 + localStorage 동기화 헤더 설정
+     * 회원 토큰을 쿠키에 설정하고 동기화용 속성 추가
      */
     public void setMemberTokensWithSync(HttpServletResponse response, String accessToken, String refreshToken) {
-        log.info("🔧 Setting member tokens with sync...");
-
-        // 1. 쿠키 설정
-        setMemberTokenCookies(response, accessToken, refreshToken);
-
-        // 2. localStorage 동기화용 헤더 설정
-        if (accessToken != null) {
-            response.setHeader(HEADER_NEW_ACCESS_TOKEN, accessToken);
-            log.debug("📤 Set sync header for access token");
-        }
-
-        if (refreshToken != null) {
-            response.setHeader(HEADER_NEW_REFRESH_TOKEN, refreshToken);
-            log.debug("📤 Set sync header for refresh token");
-        }
-
-        log.info("✅ Member tokens set with sync headers");
-    }
-
-    /**
-     * 회원 토큰 쿠키에서 Access Token 추출
-     */
-    public String getMemberAccessToken(HttpServletRequest request) {
-        return getCookieValue(request, MEMBER_ACCESS_TOKEN);
-    }
-
-    /**
-     * 회원 토큰 쿠키에서 Refresh Token 추출
-     */
-    public String getMemberRefreshToken(HttpServletRequest request) {
-        return getCookieValue(request, MEMBER_REFRESH_TOKEN);
-    }
-
-    /**
-     * 회원 JWT 토큰 쿠키 삭제
-     */
-    public void clearMemberTokenCookies(HttpServletResponse response) {
-        log.info("🗑️ Clearing member JWT token cookies...");
-
-        ResponseCookie clearAccessCookie = createClearCookie(MEMBER_ACCESS_TOKEN);
-        response.addHeader(HttpHeaders.SET_COOKIE, clearAccessCookie.toString());
-        log.info("🗑️ {} cookie cleared", MEMBER_ACCESS_TOKEN);
-
-        ResponseCookie clearRefreshCookie = createClearCookie(MEMBER_REFRESH_TOKEN);
-        response.addHeader(HttpHeaders.SET_COOKIE, clearRefreshCookie.toString());
-        log.info("🗑️ {} cookie cleared", MEMBER_REFRESH_TOKEN);
-
-        log.info("✅ Member JWT token cookies cleared");
-    }
-
-    /**
-     * 특정 쿠키값 추출
-     */
-    public String getCookieValue(HttpServletRequest request, String cookieName) {
-        log.debug("🔍 Looking for cookie: {}", cookieName);
-
-        if (request.getCookies() == null) {
-            log.warn("❌ No cookies found in request");
-            return null;
-        }
-
-        log.debug("🍪 Total cookies in request: {}", request.getCookies().length);
-
-        for (Cookie cookie : request.getCookies()) {
-            log.debug("🍪 Checking cookie: {} = {}",
-                    cookie.getName(),
-                    cookie.getValue() != null && cookie.getValue().length() > 30 ?
-                            cookie.getValue().substring(0, 30) + "..." : cookie.getValue());
-
-            if (cookieName.equals(cookie.getName())) {
-                String value = cookie.getValue();
-                boolean isValidValue = value != null && !value.trim().isEmpty();
-
-                // JWT 토큰 형식 검증 추가
-                if (isValidValue && (cookieName.equals(MEMBER_ACCESS_TOKEN) || cookieName.equals(MEMBER_REFRESH_TOKEN))) {
-                    // JWT는 세 부분으로 구성: header.payload.signature
-                    String[] parts = value.split("\\.");
-                    if (parts.length != 3) {
-                        log.error("❌ Invalid JWT format in cookie {}: expected 3 parts, got {}", cookieName, parts.length);
-                        log.error("❌ Cookie value: {}", value);
-                        return null;
-                    }
-
-                    // 각 부분이 Base64로 인코딩되어 있는지 확인
-                    for (int i = 0; i < parts.length; i++) {
-                        if (parts[i].isEmpty()) {
-                            log.error("❌ Empty JWT part {} in cookie {}", i, cookieName);
-                            return null;
-                        }
-                    }
-
-                    log.debug("✅ JWT format validation passed for cookie: {}", cookieName);
-                }
-
-                log.info("✅ Cookie found: {} = {} (valid: {})",
-                        cookieName,
-                        value != null && value.length() > 30 ? value.substring(0, 30) + "..." : value,
-                        isValidValue);
-
-                return isValidValue ? value.trim() : null;
-            }
-        }
-
-        log.warn("❌ Cookie not found: {}", cookieName);
-        return null;
-    }
-
-    /**
-     * 쿠키 생성 (공통 로직)
-     */
-    private ResponseCookie createTokenCookie(String name, String value, int maxAgeSeconds) {
-        return ResponseCookie.from(name, value)
-            .httpOnly(cookieHttpOnly)
-            .secure(cookieSecure)
-            .sameSite(cookieSameSite)
-            .path(cookiePath)
-            .maxAge(Duration.ofSeconds(maxAgeSeconds))
-            .build();
-    }
-
-    /**
-     * 쿠키 삭제용 빈 쿠키 생성
-     */
-    private ResponseCookie createClearCookie(String name) {
-        return ResponseCookie.from(name, "")
-            .httpOnly(cookieHttpOnly)
-            .secure(cookieSecure)
-            .sameSite(cookieSameSite)
-            .path(cookiePath)
-            .maxAge(0)
-            .build();
-    }
-
-    /**
-     * 동적 보안 설정으로 쿠키 생성 (환경별 대응)
-     */
-    public void setMemberTokenCookiesWithDynamicSecurity(HttpServletResponse response,
-                                                        HttpServletRequest request,
-                                                        String accessToken,
-                                                        String refreshToken) {
-        log.debug("Setting member JWT token cookies with dynamic security");
-
-        boolean isSecureRequest = isSecureRequest(request);
-
-        if (accessToken != null) {
-            ResponseCookie accessCookie = ResponseCookie.from(MEMBER_ACCESS_TOKEN, accessToken)
-                .httpOnly(cookieHttpOnly)
-                .secure(isSecureRequest)
-                .sameSite(cookieSameSite)
-                .path(cookiePath)
-                .maxAge(Duration.ofSeconds(accessTokenExpiration / 1000))
-                .build();
-            response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
-        }
-
-        if (refreshToken != null) {
-            ResponseCookie refreshCookie = ResponseCookie.from(MEMBER_REFRESH_TOKEN, refreshToken)
-                .httpOnly(cookieHttpOnly)
-                .secure(isSecureRequest)
-                .sameSite(cookieSameSite)
-                .path(cookiePath)
-                .maxAge(Duration.ofSeconds(refreshTokenExpiration / 1000))
-                .build();
-            response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
-        }
-
-        log.debug("Member JWT token cookies set with secure: {}", isSecureRequest);
-    }
-
-    /**
-     * 요청의 보안 상태 확인 (HTTPS 여부)
-     */
-    private boolean isSecureRequest(HttpServletRequest request) {
-        return request.isSecure() ||
-               "https".equalsIgnoreCase(request.getScheme()) ||
-               "https".equalsIgnoreCase(request.getHeader("X-Forwarded-Proto"));
-    }
-
-    /**
-     * 쿠키 설정 정보 로깅 (디버깅용)
-     */
-    public void logCookieSettings() {
-        log.info("=== Cookie Settings ===");
-        log.info("Secure: {}", cookieSecure);
-        log.info("HttpOnly: {}", cookieHttpOnly);
-        log.info("SameSite: {}", cookieSameSite);
-        log.info("Path: {}", cookiePath);
-        log.info("Access Token Expiration: {} seconds", accessTokenExpiration / 1000);
-        log.info("Refresh Token Expiration: {} seconds", refreshTokenExpiration / 1000);
-        log.info("=====================");
-    }
-
-    /**
-     * Request에 토큰 갱신 정보 설정 (필터 → 컨트롤러 전달용)
-     */
-    public void setTokenRefreshAttributes(HttpServletRequest request, String accessToken, String refreshToken) {
-        if (accessToken != null) {
-            request.setAttribute("NEW_ACCESS_TOKEN", accessToken);
-        }
-        if (refreshToken != null) {
-            request.setAttribute("NEW_REFRESH_TOKEN", refreshToken);
-        }
-    }
-
-    /**
-     * Request에서 토큰 갱신 정보 추출
-     */
-    public String getNewAccessToken(HttpServletRequest request) {
-        return (String) request.getAttribute("NEW_ACCESS_TOKEN");
-    }
-
-    public String getNewRefreshToken(HttpServletRequest request) {
-        return (String) request.getAttribute("NEW_REFRESH_TOKEN");
-    }
-
-    /**
-     * 원자적 토큰 설정 - All or Nothing 방식
-     */
-    public TokenUpdateResult setMemberTokensAtomic(HttpServletResponse response,
-                                                   String accessToken,
-                                                   String refreshToken) {
-        log.info("🔧 Starting atomic token update...");
+        log.info("Setting member tokens with sync attributes");
+        log.debug("Token details: accessToken_length={}, refreshToken_length={}",
+                accessToken != null ? accessToken.length() : 0,
+                refreshToken != null ? refreshToken.length() : 0);
 
         try {
-            // 1단계: 검증
-            if (!isValidTokenPair(accessToken, refreshToken)) {
-                log.error("❌ Invalid token pair provided");
-                return TokenUpdateResult.failure("Invalid tokens");
+            // 쿠키 설정
+            TokenUpdateResult result = setMemberTokensAtomic(response, accessToken, refreshToken);
+            if (!result.isSuccess()) {
+                log.error("Failed to set member tokens atomically: {}", result.getErrorMessage());
+                throw new RuntimeException("Failed to set tokens: " + result.getErrorMessage());
             }
 
-            // 2단계: 원자적 설정
-            setMemberTokensWithSync(response, accessToken, refreshToken);
+            log.info("Member tokens successfully set in cookies");
 
-            // 3단계: 성공 로그
-            log.info("✅ Atomic token update completed successfully");
+        } catch (Exception e) {
+            log.error("Failed to set member tokens with sync", e);
+            throw e;
+        }
+    }
+
+    /**
+     * 원자적 토큰 설정 - 모두 성공하거나 모두 실패
+     */
+    public TokenUpdateResult setMemberTokensAtomic(HttpServletResponse response, String accessToken, String refreshToken) {
+        log.debug("Starting atomic token update");
+
+        try {
+            // 유효성 검증
+            if (accessToken == null || accessToken.trim().isEmpty()) {
+                log.error("Access token is null or empty");
+                return TokenUpdateResult.failure("Access token is null or empty");
+            }
+
+            if (refreshToken == null || refreshToken.trim().isEmpty()) {
+                log.error("Refresh token is null or empty");
+                return TokenUpdateResult.failure("Refresh token is null or empty");
+            }
+
+            // 쿠키 생성
+            Cookie accessCookie = createMemberAccessTokenCookie(accessToken);
+            Cookie refreshCookie = createMemberRefreshTokenCookie(refreshToken);
+
+            // 쿠키 유효성 검증
+            if (accessCookie == null) {
+                log.error("Failed to create access token cookie");
+                return TokenUpdateResult.failure("Failed to create access token cookie");
+            }
+
+            if (refreshCookie == null) {
+                log.error("Failed to create refresh token cookie");
+                return TokenUpdateResult.failure("Failed to create refresh token cookie");
+            }
+
+            // 원자적 설정
+            response.addCookie(accessCookie);
+            response.addCookie(refreshCookie);
+
+            log.info("Tokens set atomically - Access cookie: name={}, secure={}, httpOnly={}, maxAge={}",
+                    accessCookie.getName(), accessCookie.getSecure(), accessCookie.isHttpOnly(), accessCookie.getMaxAge());
+            log.info("Tokens set atomically - Refresh cookie: name={}, secure={}, httpOnly={}, maxAge={}",
+                    refreshCookie.getName(), refreshCookie.getSecure(), refreshCookie.isHttpOnly(), refreshCookie.getMaxAge());
+
             return TokenUpdateResult.success();
 
         } catch (Exception e) {
-            log.error("❌ Atomic token update failed - performing cleanup", e);
+            log.error("Atomic token update failed", e);
 
-            // 실패 시 모든 토큰 정리
-            clearAllMemberTokens(response);
+            // 실패 시 정리 시도
+            try {
+                log.warn("Attempting to clear cookies after atomic update failure");
+                clearMemberTokenCookies(response);
+            } catch (Exception clearEx) {
+                log.error("Failed to clear cookies after atomic update failure", clearEx);
+            }
 
             return TokenUpdateResult.failure(e.getMessage());
         }
     }
 
     /**
-     * 완전한 토큰 정리 - 모든 관련 토큰/헤더 삭제
+     * Access Token 쿠키 생성
      */
-    public void clearAllMemberTokens(HttpServletResponse response) {
-        log.info("🗑️ Starting complete token cleanup...");
-
-        // 1. 기존 쿠키 정리 메서드 호출
-        clearMemberTokenCookies(response);
-
-        // 2. 동기화 헤더 정리 신호
-        response.setHeader("X-Token-Cleared", "true");
-        response.setHeader("X-Clear-LocalStorage", "member_tokens");
-
-        // 3. 기존 동기화 헤더 제거
-        response.setHeader(HEADER_NEW_ACCESS_TOKEN, "");
-        response.setHeader(HEADER_NEW_REFRESH_TOKEN, "");
-
-        log.info("✅ Complete token cleanup finished");
+    private Cookie createMemberAccessTokenCookie(String accessToken) {
+        try {
+            int maxAge = (int) (accessTokenExpiration / 1000); // JWT 만료 시간과 동일
+            Cookie cookie = createTokenCookie(MEMBER_ACCESS_TOKEN_COOKIE, accessToken, maxAge);
+            log.debug("Access token cookie created: maxAge={} seconds", maxAge);
+            return cookie;
+        } catch (Exception e) {
+            log.error("Failed to create access token cookie", e);
+            return null;
+        }
     }
 
     /**
-     * 토큰 쌍 유효성 검증
+     * Refresh Token 쿠키 생성
      */
-    private boolean isValidTokenPair(String accessToken, String refreshToken) {
-        if (accessToken == null || refreshToken == null) {
-            return false;
+    private Cookie createMemberRefreshTokenCookie(String refreshToken) {
+        try {
+            int maxAge = (int) (refreshTokenExpiration / 1000);
+            Cookie cookie = createTokenCookie(MEMBER_REFRESH_TOKEN_COOKIE, refreshToken, maxAge);
+            log.debug("Refresh token cookie created: maxAge={} seconds", maxAge);
+            return cookie;
+        } catch (Exception e) {
+            log.error("Failed to create refresh token cookie", e);
+            return null;
         }
-
-        // JWT 형식 검증
-        return isValidJwtFormat(accessToken) && isValidJwtFormat(refreshToken);
     }
 
     /**
-     * JWT 형식 검증
+     * 공통 토큰 쿠키 생성
      */
-    private boolean isValidJwtFormat(String token) {
-        if (token == null || token.trim().isEmpty()) {
-            return false;
+    private Cookie createTokenCookie(String name, String value, int maxAge) {
+        log.debug("Creating cookie: name={}, value_length={}, maxAge={}", name, value.length(), maxAge);
+
+        Cookie cookie = new Cookie(name, value);
+        cookie.setHttpOnly(cookieHttpOnly);
+        cookie.setSecure(cookieSecure);
+        cookie.setPath(cookiePath);
+        cookie.setMaxAge(maxAge);
+
+        // Domain 설정 (비어있지 않은 경우에만)
+        if (cookieDomain != null && !cookieDomain.trim().isEmpty()) {
+            cookie.setDomain(cookieDomain);
+            log.debug("Cookie domain set to: {}", cookieDomain);
+        } else {
+            log.debug("Cookie domain not set (using default)");
         }
 
-        String[] parts = token.split("\\.");
-        if (parts.length != 3) {
-            return false;
-        }
+        log.debug("Cookie created with settings: secure={}, httpOnly={}, path={}",
+                cookie.getSecure(), cookie.isHttpOnly(), cookie.getPath());
 
-        for (String part : parts) {
-            if (part.isEmpty()) {
-                return false;
+        return cookie;
+    }
+
+    /**
+     * 요청에서 Access Token 추출
+     */
+    public String getMemberAccessToken(HttpServletRequest request) {
+        String token = getCookieValue(request, MEMBER_ACCESS_TOKEN_COOKIE);
+        log.debug("Access token retrieval: {}", token != null ? "found (length=" + token.length() + ")" : "not found");
+        return token;
+    }
+
+    /**
+     * 요청에서 Refresh Token 추출
+     */
+    public String getMemberRefreshToken(HttpServletRequest request) {
+        String token = getCookieValue(request, MEMBER_REFRESH_TOKEN_COOKIE);
+        log.debug("Refresh token retrieval: {}", token != null ? "found (length=" + token.length() + ")" : "not found");
+        return token;
+    }
+
+    /**
+     * 쿠키값 추출 유틸리티
+     */
+    private String getCookieValue(HttpServletRequest request, String cookieName) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if (cookieName.equals(cookie.getName())) {
+                    log.debug("Cookie found: name={}, value_length={}", cookieName,
+                            cookie.getValue() != null ? cookie.getValue().length() : 0);
+                    return cookie.getValue();
+                }
             }
         }
+        log.debug("Cookie not found: {}", cookieName);
+        return null;
+    }
 
-        return true;
+    /**
+     * 회원 토큰 쿠키 삭제
+     */
+    public void clearMemberTokenCookies(HttpServletResponse response) {
+        log.info("Clearing member token cookies");
+
+        try {
+            // Access Token 쿠키 삭제
+            Cookie accessCookie = new Cookie(MEMBER_ACCESS_TOKEN_COOKIE, "");
+            accessCookie.setHttpOnly(cookieHttpOnly);
+            accessCookie.setSecure(cookieSecure);
+            accessCookie.setPath(cookiePath);
+            accessCookie.setMaxAge(0);
+
+            if (cookieDomain != null && !cookieDomain.trim().isEmpty()) {
+                accessCookie.setDomain(cookieDomain);
+            }
+
+            response.addCookie(accessCookie);
+            log.debug("Access token cookie deletion scheduled");
+
+            // Refresh Token 쿠키 삭제
+            Cookie refreshCookie = new Cookie(MEMBER_REFRESH_TOKEN_COOKIE, "");
+            refreshCookie.setHttpOnly(cookieHttpOnly);
+            refreshCookie.setSecure(cookieSecure);
+            refreshCookie.setPath(cookiePath);
+            refreshCookie.setMaxAge(0);
+
+            if (cookieDomain != null && !cookieDomain.trim().isEmpty()) {
+                refreshCookie.setDomain(cookieDomain);
+            }
+
+            response.addCookie(refreshCookie);
+            log.debug("Refresh token cookie deletion scheduled");
+
+            log.info("Member token cookies cleared successfully");
+
+        } catch (Exception e) {
+            log.error("Failed to clear member token cookies", e);
+            throw e;
+        }
+    }
+
+    /**
+     * 모든 회원 토큰 정리 (확장된 버전)
+     */
+    public void clearAllMemberTokens(HttpServletResponse response) {
+        log.info("Clearing all member tokens");
+        clearMemberTokenCookies(response);
+        log.info("All member tokens cleared");
     }
 
     /**
      * 토큰 상태 진단
      */
     public TokenStateInfo diagnoseTokenState(HttpServletRequest request) {
+        log.debug("Diagnosing token state");
+
         String accessToken = getMemberAccessToken(request);
         String refreshToken = getMemberRefreshToken(request);
 
+        boolean hasAccess = accessToken != null && !accessToken.trim().isEmpty();
+        boolean hasRefresh = refreshToken != null && !refreshToken.trim().isEmpty();
+        boolean isPartiallyBroken = (hasAccess && !hasRefresh) || (!hasAccess && hasRefresh);
+
+        log.debug("Token state: hasAccess={}, hasRefresh={}, isPartiallyBroken={}",
+                hasAccess, hasRefresh, isPartiallyBroken);
+
         return TokenStateInfo.builder()
-                .hasAccessToken(accessToken != null)
-                .hasRefreshToken(refreshToken != null)
-                .accessTokenValid(isValidJwtFormat(accessToken))
-                .refreshTokenValid(isValidJwtFormat(refreshToken))
-                .isComplete(accessToken != null && refreshToken != null)
+                .hasAccessToken(hasAccess)
+                .hasRefreshToken(hasRefresh)
+                .isPartiallyBroken(isPartiallyBroken)
                 .build();
+    }
+
+    /**
+     * 토큰 갱신용 Request 속성 설정 (Thymeleaf 동기화용)
+     */
+    public void setTokenRefreshAttributes(HttpServletRequest request, String newAccessToken, String newRefreshToken) {
+        log.debug("Setting token refresh attributes for Thymeleaf sync");
+
+        request.setAttribute("newAccessToken", newAccessToken);
+        request.setAttribute("newRefreshToken", newRefreshToken);
+        request.setAttribute("tokenRefreshedAt", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+
+        log.debug("Token refresh attributes set: accessToken_length={}, refreshToken_length={}",
+                newAccessToken.length(), newRefreshToken.length());
+    }
+
+    /**
+     * 쿠키 설정 정보 반환 (디버깅용)
+     */
+    public String getCookieConfigInfo() {
+        return String.format("CookieConfig[secure=%s, httpOnly=%s, sameSite=%s, path=%s, domain='%s']",
+                cookieSecure, cookieHttpOnly, cookieSameSite, cookiePath, cookieDomain);
+    }
+
+    /**
+     * 현재 쿠키 상태 로깅 (디버깅용)
+     */
+    public void logCookieStatus(HttpServletRequest request) {
+        log.info("=== Cookie Status Debug ===");
+        log.info("Configuration: {}", getCookieConfigInfo());
+
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            log.info("Total cookies: {}", cookies.length);
+            for (Cookie cookie : cookies) {
+                if (cookie.getName().startsWith("MEMBER_")) {
+                    log.info("Member cookie: name={}, value_length={}, maxAge={}, secure={}, httpOnly={}, path={}",
+                            cookie.getName(),
+                            cookie.getValue() != null ? cookie.getValue().length() : 0,
+                            cookie.getMaxAge(),
+                            cookie.getSecure(),
+                            cookie.isHttpOnly(),
+                            cookie.getPath());
+                }
+            }
+        } else {
+            log.info("No cookies found in request");
+        }
+        log.info("=== End Cookie Status ===");
     }
 }

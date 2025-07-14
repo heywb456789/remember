@@ -6,18 +6,15 @@ import lombok.Data;
 @Data
 @Builder
 public class TokenStateInfo {
-    private boolean hasAccessToken;
-    private boolean hasRefreshToken;
-    private boolean accessTokenValid;
-    private boolean refreshTokenValid;
-    private boolean isComplete;
-    
-    public boolean isPartiallyBroken() {
-        return (hasAccessToken != hasRefreshToken) || 
-               (accessTokenValid != refreshTokenValid);
+    private final boolean hasAccessToken;
+    private final boolean hasRefreshToken;
+    private final boolean isPartiallyBroken;
+
+    public boolean isComplete() {
+        return hasAccessToken && hasRefreshToken;
     }
-    
-    public boolean isCompletelyBroken() {
+
+    public boolean isEmpty() {
         return !hasAccessToken && !hasRefreshToken;
     }
 }

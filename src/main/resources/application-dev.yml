@@ -15,7 +15,7 @@ spring:
   # =======================================================
   jpa:
     hibernate:
-      ddl-auto: validate  # 기존 설정 유지 (스키마 검증만)
+      ddl-auto: update  # 기존 설정 유지 (스키마 검증만)
     show-sql: false       # 개발서버에서는 SQL 로그 비활성화
 
   # =======================================================
@@ -35,7 +35,7 @@ spring:
       # 🍪 IP 주소 환경 최적화 쿠키 설정
       cookie:
         secure: false           # HTTP 사용
-        same-site: None         # IP 주소에서는 None이 더 안전 (Lax 대신)
+        same-site: Lax         # IP 주소에서는 None이 더 안전 (Lax 대신)
         domain: ""              # IP 주소에서는 domain 설정하지 않음 (중요!)
         path: /                 # 전체 경로
         http-only: true         # JavaScript 접근 차단 유지
@@ -44,11 +44,14 @@ spring:
   # 데이터소스 설정 (기존 설정 유지)
   # =======================================================
   datasource:
-    url: ${DB_URL:jdbc:log4jdbc:mariadb://127.0.0.1:3306/tomato_remember}  # DB명만 변경
+#    url: ${DB_URL:jdbc:log4jdbc:mariadb://127.0.0.1:3306/tomato_remember}  # DB명만 변경
+    url: ${DB_URL:jdbc:log4jdbc:mariadb://localhost:3307/remember}  # DB명 변경
 #    url: ${DB_URL:jdbc:log4jdbc:mariadb://114.31.52.64:3306/tomato_remember}
     driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
-    username: ${DB_ID:aml60}
-    password: ${DB_PW:aml60}
+#    username: ${DB_ID:aml60}
+    username: ${DB_ID:root}
+    password: ${DB_PW:root}
+#    password: ${DB_PW:aml60}
     hikari:
       connection-timeout: 30000
       maximum-pool-size: 10
