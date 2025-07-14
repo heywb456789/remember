@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+    <meta name="format-detection" content="telephone=no"/>
+    <meta name="mobile-web-app-capable" content="yes"/>
+    <meta name="apple-mobile-web-app-capable" content="yes"/>
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+    <meta name="theme-color" content="#28a745"/>
+
+    <title>프로필 설정 - 토마토리멤버</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/favicon.ico"/>
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png"/>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"/>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap CSS -->
+    <link th:href="@{/bootstrap/css/bootstrap.css}" rel="stylesheet"/>
+
+    <!-- Common CSS -->
+    <link th:href="@{/assets/mobile/css/common.css}" rel="stylesheet"/>
+
+    <!-- Profile Settings CSS -->
+    <link th:href="@{/assets/mobile/css/profile-settings.css}" rel="stylesheet"/>
+</head>
+
+<body class="profile-settings-page">
+    <div class="container">
+        <!-- 페이지 헤더 -->
+        <div class="page-header">
+            <button class="back-btn" id="backBtn" aria-label="뒤로가기">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <h1 class="page-title">프로필 설정</h1>
+        </div>
+
+        <!-- 프로필 정보 카드 -->
+        <div class="profile-card fade-in">
+            <div class="profile-header">
+                <div class="profile-avatar" id="profileAvatar">
+                    <span th:text="${currentUser?.name?.substring(0,1) ?: '?'}">?</span>
+                </div>
+                <div class="profile-info">
+                    <h2 id="profileName" th:text="${currentUser?.name ?: '사용자'}">사용자</h2>
+                    <p id="profileEmail" th:text="${currentUser?.email ?: currentUser?.phoneNumber ?: '정보 없음'}">정보 없음</p>
+                </div>
+            </div>
+
+            <!-- 개인정보 섹션 -->
+            <div class="section-header">
+                <h3 class="section-title">
+                    <i class="fas fa-user"></i>
+                    내 정보
+                </h3>
+            </div>
+
+            <form id="profileForm">
+                <input type="hidden" id="memberId" th:value="${currentUser?.id}">
+
+                <div class="form-group">
+                    <label for="userName" class="form-label">이름 *</label>
+                    <input type="text" class="form-control" id="userName"
+                           th:value="${currentUser?.name}" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="userBirthDate" class="form-label">생년월일</label>
+                    <input type="date" class="form-control" id="userBirthDate">
+                </div>
+
+                <div class="form-group">
+                    <label for="userPhone" class="form-label">연락처</label>
+                    <input type="tel" class="form-control" id="userPhone"
+                           th:value="${currentUser?.phoneNumber}"
+                           placeholder="010-0000-0000">
+                </div>
+
+                <div class="form-group">
+                    <label for="userEmail" class="form-label">이메일</label>
+                    <input type="email" class="form-control" id="userEmail"
+                           th:value="${currentUser?.email}"
+                           placeholder="example@email.com">
+                </div>
+            </form>
+        </div>
+
+        <!-- 프로필 사진 섹션 -->
+        <div class="photo-section fade-in">
+            <div class="section-header">
+                <h3 class="section-title">
+                    <i class="fas fa-camera"></i>
+                    프로필 사진
+                </h3>
+            </div>
+
+            <div class="photo-notice">
+                <i class="fas fa-info-circle"></i>
+                <p>학습에 필요한 프로필 사진 정면 사진 5장을 준비해주세요.</p>
+            </div>
+
+            <!-- 사진 업로드 조건부 알림 -->
+            <div class="alert alert-warning" id="photoAlert" style="display: none;">
+                프로필 사진을 업로드하시면 반드시 5장을 모두 등록해야 합니다.
+            </div>
+
+            <!-- 필수 사진 알림 (영상통화 접근 시) -->
+            <div class="alert alert-info" th:if="${redirectFromVideoCall}" id="videoCallAlert">
+                <strong>영상통화를 위해 프로필 사진이 필요합니다!</strong><br>
+                5장의 정면 사진을 등록해주세요.
+            </div>
+
+            <!-- 사진 그리드 -->
+            <div class="photo-grid" id="photoGrid">
+                <div class="photo-slot" th:each="i : ${#numbers.sequence(0, 4)}"
+                     th:attr="data-index=${i}">
+                    <i class="fas fa-camera"></i>
+                    <span th:switch="${i}">
+                        <span th:case="0">첫 번째<br>사진</span>
+                        <span th:case="1">두 번째<br>사진</span>
+                        <span th:case="2">세 번째<br>사진</span>
+                        <span th:case="3">네 번째<br>사진</span>
+                        <span th:case="4">다섯 번째<br>사진</span>
+                    </span>
+                </div>
+            </div>
+
+            <!-- 파일 입력 -->
+            <input type="file" class="file-input" id="photoInput" accept="image/*" multiple>
+
+            <!-- 업로드 버튼 -->
+            <button class="photo-upload-btn" id="photoUploadBtn">
+                <i class="fas fa-camera"></i>
+                사진 선택하기
+            </button>
+
+            <div class="alert alert-info" style="margin-top: var(--spacing-md);">
+                <strong>사진 촬영 가이드:</strong><br>
+                • 정면을 바라보는 얼굴이 잘 보이도록 촬영해주세요<br>
+                • 밝은 곳에서 선명하게 촬영해주세요<br>
+                • 안경이나 모자 등으로 얼굴이 가려지지 않도록 해주세요
+            </div>
+        </div>
+
+        <!-- 저장 버튼 -->
+        <button class="btn btn-primary btn-block" id="saveBtn">
+            <i class="fas fa-save"></i>
+            프로필 저장
+        </button>
+
+        <!-- 회원탈퇴 섹션 -->
+        <div class="delete-account-section">
+            <button class="btn btn-danger" id="deleteAccountBtn">
+                <i class="fas fa-user-times"></i>
+                회원탈퇴
+            </button>
+        </div>
+    </div>
+
+    <!-- 로딩 오버레이 -->
+    <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+        <div class="loading-content">
+            <div class="loading-spinner">
+                <div class="spinner-ring"></div>
+            </div>
+            <p class="loading-message" id="loadingMessage">처리 중...</p>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script th:src="@{/bootstrap/js/bootstrap.bundle.js}"></script>
+
+    <!-- 토큰 동기화 스크립트 -->
+    <div th:replace="~{fragments/token-sync :: tokenSync}"></div>
+
+    <!-- Common JS -->
+    <script th:src="@{/assets/mobile/js/common.js}" type="module"></script>
+    <script th:src="@{/assets/mobile/js/commonFetch.js}" type="module"></script>
+
+    <!-- 서버 데이터 전달 -->
+    <script th:inline="javascript">
+        window.serverData = {
+            currentUser: {
+                id: /*[[ ${currentUser?.id} ]]*/ null,
+                name: /*[[ ${currentUser?.name} ]]*/ null,
+                email: /*[[ ${currentUser?.email} ]]*/ null,
+                phoneNumber: /*[[ ${currentUser?.phoneNumber} ]]*/ null,
+                profileImages: /*[[ ${profileData?.imageUrls} ]]*/ []  // ✅ 기존 스크립트가 사용하는 필드
+            },
+            redirectFromVideoCall: /*[[ ${redirectFromVideoCall ?: false} ]]*/ false,
+            maxProfileImages: 5,
+            // ✅ 추가 프로필 정보
+            profileStats: {
+                uploadedCount: /*[[ ${profileData?.uploadedImageCount} ]]*/ 0,
+                validCount: /*[[ ${profileData?.validImageCount} ]]*/ 0,
+                canStartVideoCall: /*[[ ${profileData?.canStartVideoCall} ]]*/ false,
+                completionPercentage: /*[[ ${profileData?.completionPercentage} ]]*/ 0,
+                hasAnyImages: /*[[ ${profileData?.hasAnyImages} ]]*/ false,
+                needsCompleteUpload: /*[[ ${profileData?.needsCompleteUpload} ]]*/ false
+            }
+        };
+    </script>
+
+    <!-- Profile Settings JS -->
+    <script th:src="@{/assets/mobile/js/profile-settings.js}" type="module"></script>
+
+    <!-- 전역 설정 스크립트 -->
+    <script>
+        // 기본 전역 설정
+        window.APP_CONFIG = {
+            baseUrl: '',
+            currentUser: /*[[ ${currentUser} ]]*/ null,
+            isLoggedIn: /*[[ ${currentUser != null} ]]*/ false
+        };
+
+        // API 엔드포인트 설정
+        window.API_ENDPOINTS = {
+            PROFILE_UPDATE: '/api/profile/update',
+            PROFILE_IMAGE_UPLOAD: '/api/profile/upload-image',
+            PROFILE_IMAGE_DELETE: '/api/profile/delete-image',
+            ACCOUNT_DELETE: '/api/profile/delete-account'
+        };
+
+        // 페이지 로드 완료 이벤트
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('📱 프로필 설정 페이지 로드 완료');
+            console.log('👤 로그인 상태:', window.APP_CONFIG.isLoggedIn);
+        });
+
+        // 페이지 가시성 변경 감지
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                console.log('👁️ 페이지 가시성 복원');
+            }
+        });
+
+        // 온라인/오프라인 상태 감지
+        window.addEventListener('online', function() {
+            console.log('🌐 온라인 상태 복원');
+        });
+
+        window.addEventListener('offline', function() {
+            console.log('📴 오프라인 상태');
+        });
+
+        // 키보드 단축키 지원
+        document.addEventListener('keydown', function(e) {
+            // ESC 키로 뒤로가기
+            if (e.key === 'Escape') {
+                const backBtn = document.getElementById('backBtn');
+                if (backBtn) {
+                    backBtn.click();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

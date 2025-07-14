@@ -174,71 +174,250 @@ tomato-remember:
       max-age: 3600
 
 # =======================================================
-# SpringDoc OpenAPI 설정 (JWT Bearer 토큰 지원 추가)
+# SpringDoc OpenAPI 2.6.0 버전 설정
 # =======================================================
 springdoc:
   swagger-ui:
     enabled: ${SWAGGER_ENABLED:true}
     path: /swagger-ui.html
+    url: /v3/api-docs
+
+    # PetStore 예시 비활성화
+    disable-swagger-default-url: true
+
+    # 그룹 및 정렬 설정
     groups-order: ASC
     tags-sorter: alpha
     operations-sorter: alpha
+
+    # UI 기능 설정
     try-it-out-enabled: true
     filter: true
     display-request-duration: true
+    display-operation-id: false
+    show-extensions: false
+    show-common-extensions: false
+
+    # 모델 확장 설정
     default-models-expand-depth: 2
     default-model-expand-depth: 2
+    default-model-rendering: example
 
-    # JWT Bearer 토큰 인증 버튼 추가
+    # OAuth2 및 인증 설정
     config-url: /v3/api-docs/swagger-config
     oauth2-redirect-url: /swagger-ui/oauth2-redirect.html
 
-    # 기존 커스텀 CSS 유지 (토마토 브랜드 색상)
+    # 지속성 설정 (토큰 유지)
+    persist-authorization: true
+
+    # 토마토리멤버 브랜드 커스텀 CSS
     custom-css: |
+      /* 토마토리멤버 브랜딩 */
       .swagger-ui .topbar { 
-        background-color: #6c5ce7; 
-        border-bottom: 2px solid #a29bfe;
+        background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
+        border-bottom: 2px solid #ff8c42;
+        box-shadow: 0 2px 8px rgba(255, 107, 53, 0.3);
       }
+      
       .swagger-ui .topbar .download-url-wrapper { 
         display: none; 
       }
+      
+      .swagger-ui .topbar .link {
+        color: white;
+        font-weight: 600;
+      }
+      
+      /* 제목 및 정보 스타일링 */
       .swagger-ui .info .title { 
         color: #2d3436; 
         font-weight: 700;
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
       }
+      
+      .swagger-ui .info .description {
+        color: #636e72;
+        line-height: 1.6;
+      }
+      
+      /* 인증 버튼 스타일링 */
       .swagger-ui .scheme-container { 
-        background: #f8f9fa; 
-        padding: 15px; 
-        border-radius: 8px;
-        margin: 15px 0;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border: 1px solid #dee2e6;
+        padding: 20px; 
+        border-radius: 12px;
+        margin: 20px 0;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       }
+      
       .swagger-ui .auth-wrapper { 
         display: flex; 
         justify-content: flex-end; 
-        margin: 10px 0;
+        align-items: center;
+        margin: 15px 0;
+        gap: 10px;
       }
+      
       .swagger-ui .btn.authorize { 
-        background-color: #00b894; 
-        border-color: #00a085;
+        background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
+        border: none;
+        border-radius: 8px;
+        color: white;
+        font-weight: 600;
+        padding: 10px 20px;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0, 184, 148, 0.3);
+      }
+      
+      .swagger-ui .btn.authorize:hover {
+        background: linear-gradient(135deg, #00a085 0%, #008f75 100%);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 184, 148, 0.4);
+      }
+      
+      .swagger-ui .btn.authorize svg {
+        margin-right: 8px;
+      }
+      
+      /* 그룹 탭 스타일링 */
+      .swagger-ui .tab {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 8px 8px 0 0;
+        padding: 12px 20px;
+        margin-right: 4px;
+        transition: all 0.3s ease;
+      }
+      
+      .swagger-ui .tab.active {
+        background: white;
+        border-bottom: 1px solid white;
+        color: #ff6b35;
+        font-weight: 600;
+      }
+      
+      /* 작업 태그 스타일링 */
+      .swagger-ui .opblock-tag {
+        background: linear-gradient(135deg, #f1f3f4 0%, #e8eaed 100%);
+        border: 1px solid #dadce0;
+        border-radius: 8px;
+        margin: 10px 0;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      }
+      
+      .swagger-ui .opblock-tag-section h3 {
+        color: #3c4043;
+        font-weight: 600;
+        padding: 15px 20px;
+      }
+      
+      /* HTTP 메서드별 색상 */
+      .swagger-ui .opblock.opblock-get .opblock-summary {
+        border-color: #61affe;
+        background: rgba(97, 175, 254, 0.1);
+      }
+      
+      .swagger-ui .opblock.opblock-post .opblock-summary {
+        border-color: #49cc90;
+        background: rgba(73, 204, 144, 0.1);
+      }
+      
+      .swagger-ui .opblock.opblock-put .opblock-summary {
+        border-color: #fca130;
+        background: rgba(252, 161, 48, 0.1);
+      }
+      
+      .swagger-ui .opblock.opblock-delete .opblock-summary {
+        border-color: #f93e3e;
+        background: rgba(249, 62, 62, 0.1);
+      }
+      
+      /* 응답 코드 스타일링 */
+      .swagger-ui .responses-inner h4,
+      .swagger-ui .responses-inner h5 {
+        color: #3c4043;
+        font-weight: 600;
+      }
+      
+      .swagger-ui .response-col_status {
+        font-weight: 600;
+      }
+      
+      /* 스크롤바 스타일링 */
+      .swagger-ui ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      
+      .swagger-ui ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+      }
+      
+      .swagger-ui ::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 4px;
+      }
+      
+      .swagger-ui ::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
+      }
+      
+      /* 모바일 반응형 */
+      @media (max-width: 768px) {
+        .swagger-ui .info .title {
+          font-size: 1.5rem;
+        }
+        
+        .swagger-ui .scheme-container {
+          padding: 15px;
+          margin: 15px 0;
+        }
+        
+        .swagger-ui .auth-wrapper {
+          justify-content: center;
+        }
       }
 
   api-docs:
     enabled: true
     path: /v3/api-docs
+
+    # 그룹 설정
     groups:
       enabled: true
 
+  # 전역 설정
   packages-to-scan: com.tomato.remember
-  paths-to-match: /api/**,/admin/api/**  # 관리자 API도 문서화에 포함
+  paths-to-match: /api/**,/admin/api/**
 
+  # PetStore 및 기본 예시 제거
+  paths-to-exclude: /swagger-resources/**,/swagger-ui/**,/v2/**,/webjars/**
+
+  # 응답 설정
   default-consumes-media-type: application/json
   default-produces-media-type: application/json
+
+  # 모델 설정
   model-and-view-allowed: true
   override-with-generic-response: false
-  remove-broken-reference-definitions: false
-  writer-with-order-by-keys: true
+
+  # 캐시 설정
   cache:
     disabled: false
+
+  # 추가 설정
+  show-actuator: false
+  auto-tag-classes: true
+
+  # 웹 MVC 설정
+  webjars:
+    prefix: /webjars
+
+  # 사용자 정의 설정
+  use-management-port: false
+  pre-loading-enabled: false
 
 # =======================================================
 # 토마토 ONE-ID 설정 (기존 설정 정리)
@@ -254,8 +433,9 @@ one-id:
     register: /v1/api/external/{apptype}/join
     coin-info: /v1/api/external/{apptype}/coin-info
     profile-img: /v1/api/external/{apptype}/profile/img/upload/{userkey}
-
+##################파일 Default
 app:
-  upload:
-    path: /var/uploads/memorial  # 실제 파일 저장 경로
-    url: /uploads               # 웹 접근 URL 경로
+  file:
+    upload-dir: /uploads
+    base-url: http://localhost:8080
+    url-pattern: /uploads/**    # 웹 접근 URL 경로

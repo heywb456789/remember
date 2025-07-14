@@ -48,7 +48,7 @@ public class AuthController {
         model.addAttribute("registerUrl", "/mobile/register");
         model.addAttribute("mainUrl", "/mobile/home");
 
-        return "/mobile/login/login";
+        return "mobile/login/login";
     }
 
     @GetMapping("/register")
@@ -67,7 +67,7 @@ public class AuthController {
             model.addAttribute("debugMode", true);
         }
 
-        return "/mobile/login/register";
+        return "mobile/login/register";
     }
 
     @GetMapping("/register/phone")
@@ -78,7 +78,7 @@ public class AuthController {
         model.addAttribute("prevUrl", "/mobile/register");
         model.addAttribute("nextUrl", "/mobile/register/password");
 
-        return "/mobile/login/phone-verify";
+        return "mobile/login/phone-verify";
     }
 
     @GetMapping("/register/password")
@@ -155,7 +155,7 @@ public class AuthController {
         model.addAttribute("updateProfileApiUrl", "/api/auth/profile");
         model.addAttribute("paymentApiUrl", "/api/payment/history");
 
-        return "/mobile/mypage/profile";
+        return "mobile/mypage/profile";
     }
 
 }

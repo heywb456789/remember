@@ -10,10 +10,12 @@ import com.tomato.remember.common.audit.Audit;
 import com.tomato.remember.common.code.MemberRole;
 import com.tomato.remember.common.code.MemberStatus;
 import jakarta.persistence.*;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.Comment;
@@ -71,6 +73,10 @@ public class Member extends Audit {
     @Comment("사용자 명")
     @Column(length = 50, nullable = false)
     private String name;
+
+    @Comment("생년월일")
+    @Column(name = "birth_date")
+    private LocalDate birthDate;
 
     @Comment("마지막 접속 시간")
     @Column(name = "last_access_at")
@@ -143,6 +149,155 @@ public class Member extends Audit {
     @Builder.Default
     @JsonIgnore
     private List<MemberActivity> memberActivities = new ArrayList<>();
+
+    @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("sortOrder ASC")
+    @Builder.Default
+    @JsonIgnore
+    private List<MemberAiProfileImage> profileImages = new ArrayList<>();
+
+    //이미지 메서드
+
+    /**
+     * 필수 프로필 이미지 보유 여부 확인 (5장 + AI 학습 완료)
+     */
+    public boolean hasRequiredProfileImages() {
+        return profileImages.size() >= 5 &&
+            profileImages.stream().allMatch(MemberAiProfileImage::isValid);
+    }
+
+    /**
+     * 업로드된 프로필 이미지 개수 (AI 처리 여부 무관)
+     */
+    public int getUploadedProfileImageCount() {
+        return profileImages.size();
+    }
+
+    /**
+     * AI 처리 완료된 프로필 이미지 개수
+     */
+    public int getValidProfileImageCount() {
+        return (int) profileImages.stream()
+            .filter(MemberAiProfileImage::isValid)
+            .count();
+    }
+
+    /**
+     * 프로필 이미지 URL 목록 반환 (모든 이미지)
+     */
+    public List<String> getProfileImageUrls() {
+        return profileImages.stream()
+            .map(MemberAiProfileImage::getImageUrl)
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * 유효한 프로필 이미지 URL 목록 반환 (AI 처리 완료된 이미지만)
+     */
+    public List<String> getValidProfileImageUrls() {
+        return profileImages.stream()
+            .filter(MemberAiProfileImage::isValid)
+            .map(MemberAiProfileImage::getImageUrl)
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * 프로필 이미지 추가
+     */
+    public void addProfileImage(MemberAiProfileImage profileImage) {
+        profileImage.setMember(this);
+        this.profileImages.add(profileImage);
+    }
+
+    /**
+     * 프로필 이미지 제거
+     */
+    public void removeProfileImage(MemberAiProfileImage profileImage) {
+        this.profileImages.remove(profileImage);
+        profileImage.setMember(null);
+    }
+
+    /**
+     * 모든 프로필 이미지 제거
+     */
+    public void clearProfileImages() {
+        this.profileImages.clear();
+    }
+
+    /**
+     * 특정 순서의 프로필 이미지 조회
+     */
+    public MemberAiProfileImage getProfileImageByOrder(Integer sortOrder) {
+        return profileImages.stream()
+            .filter(img -> img.getSortOrder().equals(sortOrder))
+            .findFirst()
+            .orElse(null);
+    }
+
+    /**
+     * 영상통화 가능 여부 확인
+     */
+    public boolean canStartVideoCall() {
+        return isActive() &&
+            isUserActive() &&
+            hasRequiredProfileImages();  // 5장 + AI 처리 완료
+    }
+
+    /**
+     * 프로필 이미지 업로드 가능 개수 확인
+     */
+    public int getAvailableImageSlots() {
+        return Math.max(0, 5 - profileImages.size());
+    }
+
+    /**
+     * AI 처리 진행률 계산 (0-100%)
+     */
+    public int getAiProcessingProgress() {
+        if (profileImages.isEmpty()) {
+            return 0;
+        }
+
+        long processedCount = profileImages.stream()
+            .filter(MemberAiProfileImage::isValid)
+            .count();
+
+        return (int) ((processedCount * 100) / profileImages.size());
+    }
+
+    /**
+     * AI 처리 대기 중인 이미지 개수
+     */
+    public int getPendingAiProcessingCount() {
+        return (int) profileImages.stream()
+            .filter(img -> ! img.isValid())
+            .count();
+    }
+
+    /**
+     * 프로필 이미지 업로드 완료 여부 (5장 모두 업로드)
+     */
+    public boolean isProfileImageUploadComplete() {
+        return profileImages.size() >= 5;
+    }
+
+    /**
+     * 영상통화 준비 완료 여부 (5장 업로드 + AI 처리 완료)
+     */
+    public boolean isVideoCallReady() {
+        return isProfileImageUploadComplete() && hasRequiredProfileImages();
+    }
+
+    /**
+     * 프로필 완성도 퍼센트 (0-100%) - 업로드: 50% (5장 모두 업로드 시) - AI 처리: 50% (모든 이미지 AI 처리 완료 시)
+     */
+    public int getProfileCompletionPercentage() {
+        int uploadProgress = Math.min(100, (profileImages.size() * 100) / 5);
+        int aiProgress = getAiProcessingProgress();
+
+        // 업로드 50% + AI 처리 50%
+        return (uploadProgress + aiProgress) / 2;
+    }
 
     // 비즈니스 메서드
     public void setStatus(MemberStatus status) {
@@ -268,7 +423,7 @@ public class Member extends Audit {
     }
 
     public String getProfileImageUrl() {
-        if (this.profileImg != null && !this.profileImg.trim().isEmpty()) {
+        if (this.profileImg != null && ! this.profileImg.trim().isEmpty()) {
             // profileImg가 절대 경로인지 확인
             if (this.profileImg.startsWith("http://") || this.profileImg.startsWith("https://")) {
                 return this.profileImg;
@@ -325,5 +480,9 @@ public class Member extends Audit {
             .freeTrialStartAt(freeTrialStartAt)
             .freeTrialEndAt(freeTrialEndAt)
             .build();
+    }
+
+    public void setBirthDate(LocalDate birthDate) {
+        this.birthDate = birthDate;
     }
 }

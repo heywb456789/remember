@@ -167,3 +167,12 @@ management:
 #     key-store-password: ${SSL_KEYSTORE_PASSWORD}
 #     key-store-type: PKCS12
 #     key-alias: tomato-remember
+
+# =======================================================
+# 스웨거 환경별 설정
+# =======================================================
+springdoc:
+  swagger-ui:
+    enabled: false
+  api-docs:
+    enabled: false

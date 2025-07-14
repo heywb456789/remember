@@ -3,53 +3,111 @@ package com.tomato.remember.common.util;
 import com.tomato.remember.common.code.ResponseStatus;
 import com.tomato.remember.common.code.StorageCategory;
 import com.tomato.remember.common.exception.APIException;
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.BufferedReader;
-import java.io.UncheckedIOException;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FilenameUtils;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.net.ftp.FTP;
-import org.apache.commons.net.ftp.FTPClient;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-import org.springframework.web.multipart.MultipartFile;
 
-@Component
+/**
+ * 파일 저장 서비스 (로컬 파일 시스템)
+ * - 프로필 이미지, 동영상, Base64 이미지 등 모든 파일 타입 지원
+ * - /uploads 기본 경로에서 카테고리별 자동 폴더 생성
+ * - 기존 FTP 방식에서 로컬 파일 시스템으로 변경
+ */
 @Slf4j
+@Service
 public class FileStorageService {
 
-    @Value("${spring.app.upload.ftp.host}")
-    private String ftpHost;
-
-    @Value("${spring.app.upload.ftp.port:21}")
-    private int ftpPort;
-
-    @Value("${spring.app.upload.ftp.user}")
-    private String ftpUser;
-
-    @Value("${spring.app.upload.ftp.password}")
-    private String ftpPassword;
-
-    @Value("${spring.app.upload.root:/uploads}")
+    @Value("${app.file.upload-dir:/uploads}")
     private String uploadRoot;
 
-    // 허용된 비디오 확장자 목록
-    private static final List<String> ALLOWED_VIDEO_EXTENSIONS =
-        List.of("mp4", "mov", "avi", "wmv", "mkv", "webm", "flv", "mpg", "mpeg", "m4v");
+    @Value("${app.file.base-url:http://localhost:8080}")
+    private String baseUrl;
+
+    // 허용된 이미지 확장자
+    private static final List<String> ALLOWED_IMAGE_EXTENSIONS = Arrays.asList(
+        "jpg", "jpeg", "png", "gif", "webp", "bmp", "svg"
+    );
+
+    // 허용된 비디오 확장자
+    private static final List<String> ALLOWED_VIDEO_EXTENSIONS = Arrays.asList(
+        "mp4", "mov", "avi", "wmv", "mkv", "webm", "flv", "mpg", "mpeg", "m4v"
+    );
+
+    // 최대 파일 크기 (10MB)
+    private static final long MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+    // ===== 프로필 이미지 업로드 =====
 
     /**
-     * MultipartFile 업로드
+     * 프로필 이미지 저장
+     *
+     * @param file 업로드할 파일
+     * @param memberId 회원 ID
+     * @param sortOrder 정렬 순서
+     * @return 저장된 파일의 URL
+     */
+    public String saveProfileImage(MultipartFile file, Long memberId, Integer sortOrder) throws IOException {
+        log.info("프로필 이미지 저장 시작 - 회원 ID: {}, 순서: {}, 파일: {}",
+            memberId, sortOrder, file.getOriginalFilename());
+
+        validateImageFile(file);
+
+        // 프로필 이미지 전용 경로 생성
+        String subDirectory = createProfileImagePath(memberId);
+        Path uploadPath = Paths.get(uploadRoot, subDirectory);
+        createDirectoryIfNotExists(uploadPath);
+
+        // 파일명 생성
+        String fileName = generateProfileImageFileName(memberId, sortOrder, file.getOriginalFilename());
+        Path filePath = uploadPath.resolve(fileName);
+
+        try {
+            // 파일 저장
+            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+            // URL 생성
+            String fileUrl = generateFileUrl(subDirectory, fileName);
+
+            log.info("프로필 이미지 저장 완료 - 경로: {}, URL: {}", filePath, fileUrl);
+
+            return fileUrl;
+
+        } catch (IOException e) {
+            log.error("프로필 이미지 저장 실패 - 경로: {}", filePath, e);
+            throw new APIException("파일 저장에 실패했습니다.", ResponseStatus.FILE_UPLOAD_FAILED);
+        }
+    }
+
+    // ===== 범용 파일 업로드 (기존 로직 통합) =====
+
+    /**
+     * MultipartFile 업로드 (범용)
+     *
+     * @param file 업로드할 파일
+     * @param category 저장 카테고리
+     * @param postId 게시물 ID
+     * @return 저장된 파일의 상대 경로
      */
     public String upload(MultipartFile file, StorageCategory category, Long postId) {
-        String ext = FilenameUtils.getExtension(file.getOriginalFilename());
+        validateFile(file);
+
+        String ext = getFileExtension(file.getOriginalFilename());
         String filename = UUID.randomUUID() + "." + ext;
+
         return storeFile(category, postId, filename, () -> file.getInputStream());
     }
 
@@ -57,290 +115,458 @@ public class FileStorageService {
      * 비디오 파일 변환 및 업로드
      * 비디오 파일을 검증하고, 필요시 MP4로 변환 후 업로드합니다.
      *
-     * @param videoFile      업로드할 비디오 파일
-     * @param category       파일 카테고리
-     * @param postId         연관된 게시물 ID
-     * @return               업로드된 파일의 상대 경로
-     * @throws APIException  파일 처리 과정에서 오류 발생 시
+     * @param videoFile 업로드할 비디오 파일
+     * @param category 파일 카테고리
+     * @param postId 연관된 게시물 ID
+     * @return 업로드된 파일의 상대 경로
+     * @throws APIException 파일 처리 과정에서 오류 발생 시
      */
     public String uploadVideo(MultipartFile videoFile, StorageCategory category, Long postId) {
-        // 1. 파일명 및 확장자 확인
+        log.info("비디오 파일 업로드 시작 - 카테고리: {}, 게시물 ID: {}, 파일: {}",
+            category, postId, videoFile.getOriginalFilename());
+
+        // 파일명 및 확장자 확인
         String originalFilename = videoFile.getOriginalFilename();
         if (originalFilename == null || originalFilename.isEmpty()) {
-            throw new APIException(ResponseStatus.BAD_REQUEST);
+            throw new APIException("파일명이 없습니다.", ResponseStatus.BAD_REQUEST);
         }
 
-        // 2. 확장자 검증
-        String ext = FilenameUtils.getExtension(originalFilename).toLowerCase();
+        // 확장자 검증
+        String ext = getFileExtension(originalFilename);
         if (!ALLOWED_VIDEO_EXTENSIONS.contains(ext)) {
-            throw new APIException(ResponseStatus.BAD_REQUEST);
+            throw new APIException("지원하지 않는 비디오 형식입니다. 지원 형식: " + String.join(", ", ALLOWED_VIDEO_EXTENSIONS), ResponseStatus.INVALID_FILE_TYPE);
         }
 
-        // 3. 임시 파일 생성
+        // 임시 파일 생성
         File tempFile;
         try {
             tempFile = File.createTempFile("upload-", "." + ext);
             videoFile.transferTo(tempFile);
         } catch (IOException e) {
-            log.error("Failed to create temporary file", e);
-            throw new APIException(ResponseStatus.FILE_UPLOAD_FAIL);
+            log.error("임시 파일 생성 실패", e);
+            throw new APIException("임시 파일 생성에 실패했습니다.", ResponseStatus.FILE_UPLOAD_FAILED);
         }
 
-        // 4. MP4가 아닌 경우 FFmpeg로 변환
-        File finalFile;
-        boolean needsConversion = !"mp4".equals(ext);
+        try {
+            // MP4가 아닌 경우 FFmpeg로 변환
+            File finalFile;
+            boolean needsConversion = !"mp4".equals(ext);
 
-        if (needsConversion) {
-            finalFile = convertToMp4(tempFile, ext);
-            // 변환된 파일을 업로드
-            try (InputStream in = java.nio.file.Files.newInputStream(finalFile.toPath())) {
+            if (needsConversion) {
+                finalFile = convertToMp4(tempFile, ext);
                 String filename = UUID.randomUUID() + ".mp4";
-                String result = storeFile(category, postId, filename, () -> in);
+                String result = storeFile(category, postId, filename,
+                    () -> Files.newInputStream(finalFile.toPath()));
 
-                // 임시 파일들 정리
-                tempFile.delete();
+                // 변환된 파일 정리
                 finalFile.delete();
-
+                log.info("비디오 변환 및 업로드 완료 - 원본: {}, 결과: {}", ext, result);
                 return result;
-            } catch (IOException e) {
-                log.error("Failed to upload converted video file", e);
-                // 임시 파일 정리
+            } else {
+                // MP4는 바로 업로드
+                String filename = UUID.randomUUID() + ".mp4";
+                String result = storeFile(category, postId, filename,
+                    () -> Files.newInputStream(tempFile.toPath()));
+
+                log.info("비디오 업로드 완료 - 파일: {}", result);
+                return result;
+            }
+        } catch (Exception e) {
+            log.error("비디오 파일 처리 실패", e);
+            throw new APIException("비디오 파일 처리에 실패했습니다.", ResponseStatus.FILE_UPLOAD_FAILED);
+        } finally {
+            // 임시 파일 정리
+            if (tempFile.exists()) {
                 tempFile.delete();
-                if (finalFile.exists()) {
-                    finalFile.delete();
+            }
+        }
+    }
+
+    /**
+     * Base64 이미지 업로드
+     *
+     * @param base64Data Base64 인코딩된 이미지 데이터 (data URI 형태도 지원)
+     * @param category 파일 카테고리
+     * @param postId 게시물 ID
+     * @return 저장된 파일의 상대 경로
+     */
+    public String uploadBase64Image(String base64Data, StorageCategory category, Long postId) {
+        log.info("Base64 이미지 업로드 시작 - 카테고리: {}, 게시물 ID: {}", category, postId);
+
+        String dataPart;
+        String ext = "png"; // 기본값
+
+        // data URI 형태인지 확인 (data:image/jpeg;base64,...)
+        if (base64Data.startsWith("data:")) {
+            String[] parts = base64Data.split(",", 2);
+            if (parts.length < 2) {
+                throw new APIException("올바르지 않은 data URI 형식입니다.", ResponseStatus.BAD_REQUEST);
+            }
+
+            String meta = parts[0]; // data:image/jpeg;base64
+            dataPart = parts[1];
+
+            // MIME 타입에서 확장자 추출
+            if (meta.contains("image/")) {
+                String mime = meta.substring(meta.indexOf("image/") + 6, meta.indexOf(';'));
+                switch (mime) {
+                    case "jpeg": ext = "jpg"; break;
+                    case "png": ext = "png"; break;
+                    case "gif": ext = "gif"; break;
+                    case "webp": ext = "webp"; break;
+                    case "svg+xml": ext = "svg"; break;
+                    default: ext = "png"; break;
                 }
-                throw new APIException(ResponseStatus.FILE_UPLOAD_FAIL);
             }
         } else {
-            // MP4는 바로 업로드
-            String filename = UUID.randomUUID() + ".mp4";
-            String result = storeFile(category, postId, filename,
-                () -> java.nio.file.Files.newInputStream(tempFile.toPath()));
+            dataPart = base64Data;
+        }
 
-            // 임시 파일 정리
-            tempFile.delete();
+        // Base64 디코딩
+        byte[] decoded;
+        try {
+            decoded = Base64.getDecoder().decode(dataPart.trim());
+        } catch (IllegalArgumentException e) {
+            throw new APIException("유효하지 않은 Base64 데이터입니다.", ResponseStatus.BAD_REQUEST);
+        }
 
-            return result;
+        String filename = UUID.randomUUID() + "." + ext;
+        String result = storeFile(category, postId, filename, () -> new ByteArrayInputStream(decoded));
+
+        log.info("Base64 이미지 업로드 완료 - 파일: {}", result);
+        return result;
+    }
+
+    // ===== 파일 삭제 =====
+
+    /**
+     * 파일 삭제 (URL 기반)
+     *
+     * @param fileUrl 삭제할 파일의 URL
+     * @return 삭제 성공 여부
+     */
+    public boolean deleteFile(String fileUrl) {
+        if (fileUrl == null || fileUrl.trim().isEmpty()) {
+            log.warn("삭제할 파일 URL이 비어있습니다.");
+            return false;
+        }
+
+        try {
+            // URL에서 파일 경로 추출
+            String relativePath = extractRelativePathFromUrl(fileUrl);
+            Path filePath = Paths.get(uploadRoot, relativePath);
+
+            if (Files.exists(filePath)) {
+                Files.delete(filePath);
+                log.info("파일 삭제 완료 - 경로: {}", filePath);
+
+                // 빈 디렉토리 정리 시도
+                cleanupEmptyDirectories(filePath.getParent());
+                return true;
+            } else {
+                log.warn("삭제할 파일이 존재하지 않습니다 - 경로: {}", filePath);
+                return false;
+            }
+
+        } catch (Exception e) {
+            log.error("파일 삭제 실패 - URL: {}", fileUrl, e);
+            return false;
+        }
+    }
+
+    /**
+     * 파일 삭제 (상대 경로 기반)
+     *
+     * @param relativePath 상대 경로 (예: profile/2024/01/123/file.jpg)
+     * @return 삭제 성공 여부
+     */
+    public boolean delete(String relativePath) {
+        if (relativePath == null || relativePath.trim().isEmpty()) {
+            log.warn("삭제할 파일 경로가 비어있습니다.");
+            return false;
+        }
+
+        try {
+            Path filePath = Paths.get(uploadRoot, relativePath);
+
+            if (Files.exists(filePath)) {
+                Files.delete(filePath);
+                log.info("파일 삭제 완료 - 경로: {}", filePath);
+
+                // 빈 디렉토리 정리 시도
+                cleanupEmptyDirectories(filePath.getParent());
+                return true;
+            } else {
+                log.warn("삭제할 파일이 존재하지 않습니다 - 경로: {}", filePath);
+                return false;
+            }
+
+        } catch (Exception e) {
+            log.error("파일 삭제 실패 - 경로: {}", relativePath, e);
+            return false;
+        }
+    }
+
+    // ===== Private Helper Methods =====
+
+    /**
+     * 범용 파일 저장 로직
+     */
+    private String storeFile(StorageCategory category, Long postId, String filename, StreamSupplier supplier) {
+        try {
+            // 저장 경로 생성
+            String subDirectory = createDirectoryPath(category, postId);
+            Path uploadPath = Paths.get(uploadRoot, subDirectory);
+            createDirectoryIfNotExists(uploadPath);
+
+            // 파일 저장
+            Path filePath = uploadPath.resolve(filename);
+            try (InputStream inputStream = supplier.get()) {
+                Files.copy(inputStream, filePath, StandardCopyOption.REPLACE_EXISTING);
+            }
+
+            // 상대 경로 반환 (URL 생성용)
+            String relativePath = subDirectory + "/" + filename;
+
+            log.info("파일 저장 완료 - 경로: {}, 상대경로: {}", filePath, relativePath);
+            return relativePath;
+
+        } catch (IOException e) {
+            log.error("파일 저장 실패 - 카테고리: {}, ID: {}, 파일명: {}", category, postId, filename, e);
+            throw new APIException("파일 저장에 실패했습니다.", ResponseStatus.FILE_UPLOAD_FAILED);
         }
     }
 
     /**
      * 비디오 파일을 MP4로 변환
-     *
-     * @param inputFile      입력 파일
-     * @param sourceExt      소스 파일 확장자
-     * @return               변환된 MP4 파일
-     * @throws APIException  변환 실패 시
-     * ffmpeg -y -i input.file -c:v libx264 -preset fast -c:a aac output.file
-     * ffmpeg - 프로그램 자체를 호출합니다.
-     *      -y - 출력 파일이 이미 존재할 경우 확인 없이 덮어씁니다(yes to overwrite).
-     *      -i inputFile.getAbsolutePath() - 입력 파일을 지정합니다.
-     *      -c:v libx264 - 비디오 코덱을 H.264로, 즉 비디오 스트림을 어떻게 인코딩할지를 지정합니다.
-     *      -c:v는 video codec을 지정하는 플래그이며, libx264는 H.264 코덱 구현체입니다.
-     *      H.264는 효율적인 압축률과 높은 호환성을 제공하는 인기 있는 비디오 코덱입니다.
-     *      -preset fast - 인코딩 속도와 압축 품질 간의 균형을 조정합니다.
-     *
-     *      FFmpeg는 ultrafast, superfast, veryfast, faster, fast, medium, slow, slower, veryslow 등의 프리셋을 제공합니다.
-     *      fast는 빠른 인코딩 속도를 위해 어느 정도 품질을 희생합니다.
-     *      속도가 빠를수록 품질이 낮아지고, 속도가 느릴수록 품질이 높아집니다.
-     *
-     *      -c:a aac - 오디오 코덱을 AAC로 지정합니다.
-     *
-     *      -c:a는 audio codec을 지정하는 플래그입니다.
-     *      AAC(Advanced Audio Coding)는 MP3의 후속으로 설계된 디지털 오디오 압축 표준입니다.
-     *      AAC는 효율적인 압축률과 높은 품질, 좋은 호환성을 제공합니다.
+     * FFmpeg를 사용하여 다양한 비디오 형식을 MP4로 변환
      */
     private File convertToMp4(File inputFile, String sourceExt) {
         File outputFile = new File(inputFile.getParent(), UUID.randomUUID() + ".mp4");
 
         try {
             ProcessBuilder pb = new ProcessBuilder(
-                "ffmpeg", "-y",
-                "-i", inputFile.getAbsolutePath(),
-                "-c:v", "libx264",
-                "-preset", "fast",
-                "-c:a", "aac",
-                outputFile.getAbsolutePath()
+                "ffmpeg", "-y",                    // 기존 파일 덮어쓰기
+                "-i", inputFile.getAbsolutePath(), // 입력 파일
+                "-c:v", "libx264",                 // 비디오 코덱: H.264
+                "-preset", "fast",                 // 인코딩 속도 설정
+                "-c:a", "aac",                     // 오디오 코덱: AAC
+                outputFile.getAbsolutePath()       // 출력 파일
             );
 
             Process process = pb.redirectErrorStream(true).start();
 
             // FFmpeg 출력 로깅
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(process.getInputStream()))) {
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    log.info("[ffmpeg] {}", line);
+                    log.debug("[ffmpeg] {}", line);
                 }
             }
 
             int exitCode = process.waitFor();
             if (exitCode != 0) {
-                log.error("FFmpeg process exited with code {}", exitCode);
-                throw new APIException(ResponseStatus.FILE_UPLOAD_FAIL);
+                log.error("FFmpeg 프로세스 실패 - 종료 코드: {}", exitCode);
+                throw new APIException("비디오 변환에 실패했습니다.", ResponseStatus.FILE_UPLOAD_FAILED);
             }
 
+            log.info("비디오 변환 완료 - 입력: {}, 출력: {}", inputFile.getName(), outputFile.getName());
             return outputFile;
+
         } catch (IOException | InterruptedException e) {
-            log.error("Error during video conversion", e);
+            log.error("비디오 변환 중 오류 발생", e);
             if (e instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
             }
-            throw new APIException(ResponseStatus.FILE_UPLOAD_FAIL);
+            throw new APIException("비디오 변환 중 오류가 발생했습니다.", ResponseStatus.FILE_UPLOAD_FAILED);
         }
     }
 
     /**
-     * 순수 Base64 문자열 업로드 (data URI 형태도 지원)
+     * 카테고리별 저장 경로 생성
      */
-    public String uploadBase64Image(String base64Data,
-                                    StorageCategory category,
-                                    Long postId) {
-        String dataPart;
-        String ext = "png";
-        if (base64Data.startsWith("data:")) {
-            String[] parts = base64Data.split(",", 2);
-            String meta = parts[0];      // ex) data:image/jpeg;base64
-            dataPart = parts.length > 1 ? parts[1] : "";
-            String mime = meta.substring(5, meta.indexOf(';'));
-            switch (mime) {
-                case "image/jpeg": ext = "jpg"; break;
-                case "image/png":  ext = "png"; break;
-                case "image/gif":  ext = "gif"; break;
-                case "image/svg+xml": ext = "svg"; break;
-            }
-        } else {
-            dataPart = base64Data;
+    private String createDirectoryPath(StorageCategory category, Long postId) {
+        LocalDateTime now = LocalDateTime.now();
+        String yearMonth = now.format(DateTimeFormatter.ofPattern("yyyy/MM"));
+
+        return String.format("%s/%s/%d", category.getFolder(), yearMonth, postId);
+    }
+
+    /**
+     * 프로필 이미지 저장 경로 생성
+     */
+    private String createProfileImagePath(Long memberId) {
+        LocalDateTime now = LocalDateTime.now();
+        String yearMonth = now.format(DateTimeFormatter.ofPattern("yyyy/MM"));
+        return String.format("profile/%s/%d", yearMonth, memberId);
+    }
+
+    /**
+     * 프로필 이미지 파일명 생성
+     */
+    private String generateProfileImageFileName(Long memberId, Integer sortOrder, String originalFilename) {
+        String extension = getFileExtension(originalFilename);
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+        String uuid = UUID.randomUUID().toString().substring(0, 8);
+
+        return String.format("profile_%d_%d_%s_%s.%s",
+            memberId, sortOrder, timestamp, uuid, extension);
+    }
+
+    /**
+     * 파일 확장자 추출
+     */
+    private String getFileExtension(String filename) {
+        if (filename == null) return "jpg";
+
+        String ext = FilenameUtils.getExtension(filename);
+        return ext.isEmpty() ? "jpg" : ext.toLowerCase();
+    }
+
+    /**
+     * 디렉토리 생성
+     */
+    private void createDirectoryIfNotExists(Path path) throws IOException {
+        if (!Files.exists(path)) {
+            Files.createDirectories(path);
+            log.debug("디렉토리 생성: {}", path);
+        }
+    }
+
+    /**
+     * 파일 URL 생성 (절대 URL)
+     */
+    private String generateFileUrl(String subDirectory, String fileName) {
+        return String.format("%s/uploads/%s/%s", baseUrl, subDirectory, fileName);
+    }
+
+    /**
+     * 상대 경로를 절대 URL로 변환
+     */
+    public String toAbsoluteUrl(String relativePath) {
+        if (relativePath == null || relativePath.trim().isEmpty()) {
+            return null;
         }
 
-        byte[] decoded;
+        return String.format("%s/uploads/%s", baseUrl, relativePath);
+    }
+
+    /**
+     * URL에서 상대 경로 추출
+     */
+    private String extractRelativePathFromUrl(String fileUrl) {
+        String uploadsPrefix = "/uploads/";
+        int index = fileUrl.indexOf(uploadsPrefix);
+
+        if (index == -1) {
+            throw new IllegalArgumentException("올바르지 않은 파일 URL입니다: " + fileUrl);
+        }
+
+        return fileUrl.substring(index + uploadsPrefix.length());
+    }
+
+    /**
+     * 빈 디렉토리 정리 (상위 디렉토리까지 재귀적으로)
+     */
+    private void cleanupEmptyDirectories(Path directory) {
         try {
-            decoded = Base64.getDecoder().decode(dataPart.getBytes());
-        } catch (IllegalArgumentException e) {
-            throw new UncheckedIOException(new IOException("유효하지 않은 Base64 데이터입니다.", e));
-        }
-
-        String filename = UUID.randomUUID() + "." + ext;
-        return storeFile(category, postId, filename, () -> new ByteArrayInputStream(decoded));
-    }
-
-    /**
-     * DTO 그대로 받아서 업로드 + URL 세팅
-     */
-//    public String uploadBase64Image(Base64ImageData imageData,
-//                                    StorageCategory category,
-//                                    Long postId) {
-//        // 1) 확장자 지정 (DTO.imageType 예: "png", "jpeg")
-//        String ext = imageData.getImageType();
-//        if (ext == null || ext.isBlank()) {
-//            // fallback: mime 추출 로직 재사용
-//            ext = FilenameUtils.getExtension(imageData.getOriginalTag());
-//            if (ext == null || ext.isBlank()) {
-//                ext = "png";
-//            }
-//        }
-//        // jpeg → jpg
-//        if ("jpeg".equalsIgnoreCase(ext)) {
-//            ext = "jpg";
-//        }
-//
-//        // 2) 파일명
-//        String filename = UUID.randomUUID() + "." + ext;
-//
-//        // 3) FTP 저장
-//        String urlPath = storeFile(category, postId, filename,
-//            () -> new ByteArrayInputStream(imageData.decodeBase64()));
-//
-//        // 4) DTO에 새 URL 세팅
-//        imageData.setNewImageUrl(urlPath);
-//        return urlPath;
-//    }
-
-    /**
-     * FTP 삭제
-     */
-    public boolean delete(String urlPath) {
-        if (urlPath == null || urlPath.isBlank()) {
-            log.warn("Attempt to delete null or blank URL path");
-            return false;
-        }
-
-        FTPClient ftp = new FTPClient();
-        try {
-            ftp.connect(ftpHost, ftpPort);
-            if (!ftp.login(ftpUser, ftpPassword)) {
-                throw new IOException("FTP 로그인 실패: " + ftpUser);
+            if (directory == null || !Files.exists(directory)) {
+                return;
             }
-            ftp.enterLocalPassiveMode();
-            boolean deleted = ftp.deleteFile(urlPath);
-            if (deleted) {
-                String dir = urlPath.substring(0, urlPath.lastIndexOf('/'));
-                ftp.removeDirectory(dir);
+
+            // 디렉토리가 비어있고, 업로드 루트가 아닌 경우 삭제
+            Path uploadRootPath = Paths.get(uploadRoot);
+            if (Files.isDirectory(directory) &&
+                isDirEmpty(directory) &&
+                !directory.equals(uploadRootPath)) {
+
+                Files.delete(directory);
+                log.debug("빈 디렉토리 삭제: {}", directory);
+
+                // 상위 디렉토리도 확인
+                cleanupEmptyDirectories(directory.getParent());
             }
-            ftp.logout();
-            return deleted;
         } catch (IOException e) {
-            log.error("FTP 파일 삭제 실패: " + urlPath, e);
-            throw new UncheckedIOException("FTP 파일 삭제 실패: " + urlPath, e);
-        } finally {
-            if (ftp.isConnected()) {
-                try { ftp.disconnect(); } catch (IOException ignored) {}
-            }
-        }
-    }
-
-    // ─────────────────────────────────────────────────────────────────────
-    // 내부 헬퍼
-    // ─────────────────────────────────────────────────────────────────────
-
-    private String storeFile(StorageCategory category,
-                             Long postId,
-                             String filename,
-                             StreamSupplier supplier) {
-        String remoteDir  = String.join("/", uploadRoot, category.getFolder(), postId.toString());
-        String remoteFile = remoteDir + "/" + filename;
-        FTPClient ftp = new FTPClient();
-        try (InputStream in = supplier.get()) {
-            ftp.connect(ftpHost, ftpPort);
-            if (!ftp.login(ftpUser, ftpPassword)) {
-                throw new IOException("FTP 로그인 실패: " + ftpUser);
-            }
-            ftp.enterLocalPassiveMode();
-            ftp.setFileType(FTP.BINARY_FILE_TYPE);
-
-            // 디렉토리 생성
-            createDirectoryHierarchy(ftp, remoteDir);
-
-            // 파일 업로드
-            if (!ftp.storeFile(remoteFile, in)) {
-                throw new IOException("파일 전송 실패: " + remoteFile);
-            }
-            ftp.logout();
-            return remoteFile;
-        } catch (IOException e) {
-            log.error("FTP 파일 저장 실패", e);
-            throw new UncheckedIOException("FTP 파일 저장 실패", e);
-        } finally {
-            if (ftp.isConnected()) {
-                try { ftp.disconnect(); } catch (IOException ignored) {}
-            }
+            log.debug("디렉토리 정리 중 오류 (무시됨): {}", e.getMessage());
         }
     }
 
     /**
-     * FTP 서버에 디렉토리 계층 구조 생성
+     * 디렉토리가 비어있는지 확인
      */
-    private void createDirectoryHierarchy(FTPClient ftp, String remoteDir) throws IOException {
-        String path = "";
-        for (String dir : remoteDir.split("/")) {
-            if (dir.isEmpty()) continue;
-            path += "/" + dir;
-            if (!ftp.changeWorkingDirectory(path) && !ftp.makeDirectory(path)) {
-                throw new IOException("디렉토리 생성 실패: " + path);
-            }
+    private boolean isDirEmpty(Path directory) throws IOException {
+        try (var stream = Files.list(directory)) {
+            return !stream.findAny().isPresent();
         }
     }
 
+    /**
+     * 파일 유효성 검사 (범용)
+     */
+    private void validateFile(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new APIException("파일을 선택해주세요.", ResponseStatus.FILE_EMPTY);
+        }
+
+        if (file.getSize() > MAX_FILE_SIZE) {
+            throw new APIException("파일 크기는 " + formatFileSize(MAX_FILE_SIZE) + " 이하여야 합니다.", ResponseStatus.FILE_SIZE_EXCEEDED);
+        }
+
+        String originalFilename = file.getOriginalFilename();
+        if (originalFilename == null || originalFilename.trim().isEmpty()) {
+            throw new APIException("올바르지 않은 파일명입니다.", ResponseStatus.BAD_REQUEST);
+        }
+    }
+
+    /**
+     * 이미지 파일 유효성 검사
+     */
+    private void validateImageFile(MultipartFile file) {
+        validateFile(file);
+
+        String contentType = file.getContentType();
+        if (!isSupportedImageFormat(contentType)) {
+            throw new APIException("지원하지 않는 이미지 형식입니다. 지원 형식: JPEG, PNG, WebP, GIF", ResponseStatus.INVALID_FILE_TYPE);
+        }
+
+        String ext = getFileExtension(file.getOriginalFilename());
+        if (!ALLOWED_IMAGE_EXTENSIONS.contains(ext)) {
+            throw new APIException("지원하지 않는 이미지 확장자입니다. 지원 확장자: " + String.join(", ", ALLOWED_IMAGE_EXTENSIONS), ResponseStatus.INVALID_FILE_TYPE);
+        }
+    }
+
+    /**
+     * 지원되는 이미지 형식인지 확인
+     */
+    private boolean isSupportedImageFormat(String contentType) {
+        if (contentType == null) return false;
+
+        return contentType.equals("image/jpeg") ||
+               contentType.equals("image/jpg") ||
+               contentType.equals("image/png") ||
+               contentType.equals("image/gif") ||
+               contentType.equals("image/webp") ||
+               contentType.equals("image/bmp") ||
+               contentType.equals("image/svg+xml");
+    }
+
+    /**
+     * 파일 크기 포맷팅
+     */
+    private String formatFileSize(long size) {
+        if (size <= 0) return "0 B";
+
+        final String[] units = new String[] { "B", "KB", "MB", "GB", "TB" };
+        int digitGroups = (int) (Math.log10(size) / Math.log10(1024));
+
+        return String.format("%.1f %s",
+            size / Math.pow(1024, digitGroups),
+            units[digitGroups]);
+    }
+
+    /**
+     * 함수형 인터페이스 - InputStream 공급자
+     */
     @FunctionalInterface
     private interface StreamSupplier {
         InputStream get() throws IOException;

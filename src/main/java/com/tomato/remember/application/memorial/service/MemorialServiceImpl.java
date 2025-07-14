@@ -9,32 +9,25 @@ import com.tomato.remember.application.memorial.code.MemorialFileType;
 import com.tomato.remember.application.memorial.repository.MemorialRepository;
 import com.tomato.remember.application.member.entity.Member;
 import com.tomato.remember.common.code.ResponseStatus;
+import com.tomato.remember.common.code.StorageCategory;
 import com.tomato.remember.common.dto.ListDTO;
 import com.tomato.remember.common.exception.APIException;
+import com.tomato.remember.common.util.FileStorageService;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * 메모리얼 서비스 구현체
+ * 메모리얼 서비스 구현체 - FileStorageService 사용으로 리팩토링
  */
 @Slf4j
 @Service
@@ -43,12 +36,7 @@ import java.util.stream.Collectors;
 public class MemorialServiceImpl implements MemorialService {
 
     private final MemorialRepository memorialRepository;
-
-    @Value("${app.upload.path:/uploads}")
-    private String uploadBasePath;
-
-    @Value("${app.upload.url:/uploads}")
-    private String uploadBaseUrl;
+    private final FileStorageService fileStorageService;
 
     @Override
     @Transactional
@@ -68,13 +56,13 @@ public class MemorialServiceImpl implements MemorialService {
             Memorial memorial = createMemorialEntity(memorialData, member);
 
             // 2. 프로필 이미지 파일 처리
-            uploadedFileUrls.addAll(processProfileImages(memorial, profileImages));
+            uploadedFileUrls.addAll(processProfileImages(memorial, profileImages, member.getId()));
 
             // 3. 음성 파일 처리
-            uploadedFileUrls.addAll(processVoiceFiles(memorial, voiceFiles));
+            uploadedFileUrls.addAll(processVoiceFiles(memorial, voiceFiles, member.getId()));
 
             // 4. 영상 파일 처리
-            uploadedFileUrls.add(processVideoFile(memorial, videoFile));
+            uploadedFileUrls.add(processVideoFile(memorial, videoFile, member.getId()));
 
             // 5. 메모리얼 저장
             Memorial savedMemorial = memorialRepository.save(memorial);
@@ -93,7 +81,7 @@ public class MemorialServiceImpl implements MemorialService {
             // 파일 롤백 처리
             rollbackUploadedFiles(uploadedFileUrls);
 
-            throw new APIException(ResponseStatus.MEMORIAL_CREATION_FAILED);
+            throw new APIException("메모리얼 생성에 실패했습니다.", ResponseStatus.MEMORIAL_CREATION_FAILED);
         }
     }
 
@@ -103,7 +91,9 @@ public class MemorialServiceImpl implements MemorialService {
     private void rollbackUploadedFiles(List<String> fileUrls) {
         for (String fileUrl : fileUrls) {
             try {
-                deleteFile(fileUrl);
+                // FileStorageService의 deleteFile 메서드 사용
+                fileStorageService.deleteFile(fileUrl);
+                log.info("파일 롤백 완료 - URL: {}", fileUrl);
             } catch (Exception e) {
                 log.error("파일 롤백 실패 - URL: {}, 오류: {}", fileUrl, e.getMessage());
             }
@@ -131,7 +121,7 @@ public class MemorialServiceImpl implements MemorialService {
             .orElseThrow(() -> new APIException(ResponseStatus.CANNOT_FIND_MEMORIAL));
 
         // 권한 확인
-        if (! memorial.canBeViewedBy(member)) {
+        if (!memorial.canBeViewedBy(member)) {
             throw new APIException(ResponseStatus.MEMORIAL_ACCESS_DENIED);
         }
 
@@ -147,7 +137,7 @@ public class MemorialServiceImpl implements MemorialService {
             .orElseThrow(() -> new APIException(ResponseStatus.CANNOT_FIND_MEMORIAL));
 
         // 권한 확인
-        if (! memorial.canBeViewedBy(member)) {
+        if (!memorial.canBeViewedBy(member)) {
             throw new APIException(ResponseStatus.MEMORIAL_ACCESS_DENIED);
         }
 
@@ -165,7 +155,6 @@ public class MemorialServiceImpl implements MemorialService {
     @Override
     public List<Memorial> findByOwner(Member owner) {
         log.info("사용자 소유 메모리얼 목록 조회 - 사용자: {}", owner.getId());
-
         return memorialRepository.findByOwnerOrderByCreatedAtDesc(owner);
     }
 
@@ -176,7 +165,6 @@ public class MemorialServiceImpl implements MemorialService {
     @Override
     public Memorial findById(Long memorialId) {
         log.info("메모리얼 ID로 조회 - ID: {}", memorialId);
-
         return memorialRepository.findById(memorialId)
                 .orElseThrow(() -> {
                     log.warn("메모리얼을 찾을 수 없음 - ID: {}", memorialId);
@@ -198,8 +186,6 @@ public class MemorialServiceImpl implements MemorialService {
                 .map(this::convertToListResponseDTO)
                 .collect(Collectors.toList());
     }
-
-
 
     /**
      * 메모리얼 엔티티 생성
@@ -224,11 +210,11 @@ public class MemorialServiceImpl implements MemorialService {
     }
 
     /**
-     * 프로필 이미지 파일 처리
+     * 프로필 이미지 파일 처리 - FileStorageService 사용
      */
-    private List<String> processProfileImages(Memorial memorial, List<MultipartFile> profileImages) {
+    private List<String> processProfileImages(Memorial memorial, List<MultipartFile> profileImages, Long memberId) {
         if (profileImages == null || profileImages.size() != 5) {
-            throw new APIException(ResponseStatus.PROFILE_IMAGE_LIMIT_EXCEEDED);
+            throw new APIException("프로필 이미지는 정확히 5개가 필요합니다.", ResponseStatus.PROFILE_IMAGE_LIMIT_EXCEEDED);
         }
 
         List<String> uploadedUrls = new ArrayList<>();
@@ -237,38 +223,44 @@ public class MemorialServiceImpl implements MemorialService {
             MultipartFile file = profileImages.get(i);
 
             if (file.isEmpty()) {
-                throw new APIException(ResponseStatus.FILE_EMPTY);
+                throw new APIException("빈 파일은 업로드할 수 없습니다.", ResponseStatus.FILE_EMPTY);
             }
 
-            // 파일 유효성 검사
-            validateFile(file, MemorialFileType.PROFILE_IMAGE);
+            try {
+                // FileStorageService를 사용하여 프로필 이미지 저장
+                String fileUrl = fileStorageService.saveProfileImage(file, memberId, i + 1);
+                uploadedUrls.add(fileUrl);
 
-            // 파일 업로드 및 MemorialFile 생성 (실제 구현에서는 파일 저장 로직 필요)
-            String fileUrl = uploadFile(file, MemorialFileType.PROFILE_IMAGE);
-            uploadedUrls.add(fileUrl);  // URL 추가
+                // MemorialFile 엔티티 생성
+                MemorialFile memorialFile = MemorialFile.createProfileImage(
+                    memorial,
+                    fileUrl,
+                    file.getOriginalFilename(),
+                    file.getSize(),
+                    file.getContentType(),
+                    i + 1  // 정렬 순서
+                );
 
-            MemorialFile memorialFile = MemorialFile.createProfileImage(
-                memorial,
-                fileUrl,
-                file.getOriginalFilename(),
-                file.getSize(),
-                file.getContentType(),
-                i + 1  // 정렬 순서
-            );
+                memorial.addFile(memorialFile);
 
-            memorial.addFile(memorialFile);
+                log.debug("프로필 이미지 파일 처리 완료 - 순서: {}, URL: {}", i + 1, fileUrl);
+
+            } catch (Exception e) {
+                log.error("프로필 이미지 업로드 실패 - 순서: {}, 파일: {}", i + 1, file.getOriginalFilename(), e);
+                throw new APIException("프로필 이미지 업로드에 실패했습니다.", ResponseStatus.FILE_UPLOAD_FAILED);
+            }
         }
 
         log.info("프로필 이미지 처리 완료 - 개수: {}", profileImages.size());
-        return uploadedUrls;  // URL 리스트 반환
+        return uploadedUrls;
     }
 
     /**
-     * 음성 파일 처리
+     * 음성 파일 처리 - FileStorageService 사용
      */
-    private List<String> processVoiceFiles(Memorial memorial, List<MultipartFile> voiceFiles) {
+    private List<String> processVoiceFiles(Memorial memorial, List<MultipartFile> voiceFiles, Long memberId) {
         if (voiceFiles == null || voiceFiles.size() != 3) {
-            throw new APIException(ResponseStatus.VOICE_FILE_LIMIT_EXCEEDED);
+            throw new APIException("음성 파일은 정확히 3개가 필요합니다.", ResponseStatus.VOICE_FILE_LIMIT_EXCEEDED);
         }
 
         List<String> uploadedUrls = new ArrayList<>();
@@ -277,206 +269,69 @@ public class MemorialServiceImpl implements MemorialService {
             MultipartFile file = voiceFiles.get(i);
 
             if (file.isEmpty()) {
-                throw new APIException(ResponseStatus.FILE_EMPTY);
+                throw new APIException("빈 파일은 업로드할 수 없습니다.", ResponseStatus.FILE_EMPTY);
             }
 
-            // 파일 유효성 검사
-            validateFile(file, MemorialFileType.VOICE_FILE);
+            try {
+                // FileStorageService를 사용하여 일반 파일 업로드 (StorageCategory.MEMORIAL 사용)
+                String relativePath = fileStorageService.upload(file, StorageCategory.MEMORIAL, memberId);
+                String fileUrl = fileStorageService.toAbsoluteUrl(relativePath);
+                uploadedUrls.add(fileUrl);
 
-            // 파일 업로드 및 MemorialFile 생성
-            String fileUrl = uploadFile(file, MemorialFileType.VOICE_FILE);
-            uploadedUrls.add(fileUrl);  // URL 추가
-
-            MemorialFile memorialFile = MemorialFile.createVoiceFile(
+                // MemorialFile 엔티티 생성
+                MemorialFile memorialFile = MemorialFile.createVoiceFile(
                     memorial,
                     fileUrl,
                     file.getOriginalFilename(),
                     file.getSize(),
                     file.getContentType(),
                     i + 1
-            );
+                );
 
-            memorial.addFile(memorialFile);
+                memorial.addFile(memorialFile);
+
+                log.debug("음성 파일 처리 완료 - 순서: {}, URL: {}", i + 1, fileUrl);
+
+            } catch (Exception e) {
+                log.error("음성 파일 업로드 실패 - 순서: {}, 파일: {}", i + 1, file.getOriginalFilename(), e);
+                throw new APIException("음성 파일 업로드에 실패했습니다.", ResponseStatus.FILE_UPLOAD_FAILED);
+            }
         }
 
         log.info("음성 파일 처리 완료 - 개수: {}", voiceFiles.size());
-        return uploadedUrls;  // URL 리스트 반환
+        return uploadedUrls;
     }
 
     /**
-     * 영상 파일 처리
+     * 영상 파일 처리 - FileStorageService 사용
      */
-    private String processVideoFile(Memorial memorial, MultipartFile videoFile) {
+    private String processVideoFile(Memorial memorial, MultipartFile videoFile, Long memberId) {
         if (videoFile == null || videoFile.isEmpty()) {
-            throw new APIException(ResponseStatus.FILE_EMPTY);
+            throw new APIException("영상 파일은 필수입니다.", ResponseStatus.FILE_EMPTY);
         }
 
-        // 파일 유효성 검사
-        validateFile(videoFile, MemorialFileType.VIDEO_FILE);
+        try {
+            // FileStorageService를 사용하여 비디오 파일 업로드 (자동 변환 포함)
+            String relativePath = fileStorageService.uploadVideo(videoFile, StorageCategory.MEMORIAL, memberId);
+            String fileUrl = fileStorageService.toAbsoluteUrl(relativePath);
 
-        // 파일 업로드 및 MemorialFile 생성
-        String fileUrl = uploadFile(videoFile, MemorialFileType.VIDEO_FILE);
-
-        MemorialFile memorialFile = MemorialFile.createVideoFile(
+            // MemorialFile 엔티티 생성
+            MemorialFile memorialFile = MemorialFile.createVideoFile(
                 memorial,
                 fileUrl,
                 videoFile.getOriginalFilename(),
                 videoFile.getSize(),
                 videoFile.getContentType()
-        );
+            );
 
-        memorial.addFile(memorialFile);
+            memorial.addFile(memorialFile);
 
-        log.info("영상 파일 처리 완료 - 파일명: {}", videoFile.getOriginalFilename());
-        return fileUrl;  // URL 반환
-    }
+            log.info("영상 파일 처리 완료 - 파일명: {}, URL: {}", videoFile.getOriginalFilename(), fileUrl);
+            return fileUrl;
 
-    /**
-     * 파일 유효성 검사
-     */
-    private void validateFile(MultipartFile file, MemorialFileType fileType) {
-        // 파일 크기 검사
-        if (file.getSize() > fileType.getMaxFileSize()) {
-            throw new APIException(ResponseStatus.FILE_SIZE_EXCEEDED);
-        }
-
-        // 파일 타입 검사
-        if (! fileType.isValidContentType(file.getContentType())) {
-            throw new APIException(ResponseStatus.INVALID_FILE_TYPE);
-        }
-    }
-
-    /**
-     * 파일 업로드 (실제 구현에서는 클라우드 스토리지 등을 사용)
-     * TODO: 실제 파일 저장 로직 구현 필요
-     */
-    private String uploadFile(MultipartFile file, MemorialFileType fileType) {
-        try {
-            // 1. 업로드 디렉토리 생성
-            String uploadDir = createUploadDirectory(fileType);
-
-            // 2. 고유한 파일명 생성
-            String uniqueFileName = generateUniqueFileName(file.getOriginalFilename());
-
-            // 3. 파일 저장 경로 생성
-            Path filePath = Paths.get(uploadDir, uniqueFileName);
-
-            // 4. 파일 저장
-            Files.copy(file.getInputStream(), filePath);
-
-            // 5. 웹 접근 가능한 URL 반환
-            String webUrl = String.format("%s/%s/%s/%s",
-                uploadBaseUrl,
-                fileType.name().toLowerCase(),
-                getCurrentDatePath(),
-                uniqueFileName);
-
-            log.info("파일 업로드 완료 - 원본명: {}, 저장명: {}, URL: {}",
-                file.getOriginalFilename(), uniqueFileName, webUrl);
-
-            return webUrl;
-
-        } catch (IOException e) {
-            log.error("파일 업로드 실패 - 파일명: {}, 오류: {}", file.getOriginalFilename(), e.getMessage(), e);
-            throw new APIException(ResponseStatus.FILE_UPLOAD_FAILED);
-        }
-    }
-
-    /**
-     * 업로드 디렉토리 생성
-     */
-    private String createUploadDirectory(MemorialFileType fileType) throws IOException {
-        // OS별 경로 구분자 자동 처리
-        String datePath = getCurrentDatePath();
-
-        Path basePath = Paths.get(uploadBasePath);
-        Path fullPath = basePath
-                .resolve(fileType.name().toLowerCase())
-                .resolve(datePath.replace("/", File.separator)); // 윈도우용 경로 변환
-
-        if (!Files.exists(fullPath)) {
-            Files.createDirectories(fullPath);
-            log.info("업로드 디렉토리 생성: {}", fullPath.toAbsolutePath());
-        }
-
-        return fullPath.toString();
-    }
-
-
-    private String createWebUrl(MemorialFileType fileType, String fileName) {
-        return String.format("%s/%s/%s/%s",
-                uploadBaseUrl,
-                fileType.name().toLowerCase(),
-                getCurrentDatePath(),  // 웹에서는 항상 '/'
-                fileName);
-    }
-
-    /**
-     * 현재 날짜 기반 경로 생성 (yyyy/MM/dd)
-     */
-    private String getCurrentDatePath() {
-        return LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd"));
-    }
-
-    /**
-     * 고유한 파일명 생성
-     */
-    private String generateUniqueFileName(String originalFilename) {
-        if (originalFilename == null || originalFilename.isEmpty()) {
-            throw new APIException(ResponseStatus.FILE_EMPTY);
-        }
-
-        // 확장자 추출
-        String extension = "";
-        int lastDotIndex = originalFilename.lastIndexOf('.');
-        if (lastDotIndex > 0) {
-            extension = originalFilename.substring(lastDotIndex);
-        }
-
-        // UUID + 타임스탬프 + 확장자로 고유한 파일명 생성
-        String uniqueName = String.format("%s_%d%s",
-            UUID.randomUUID().toString().replace("-", ""),
-            System.currentTimeMillis(),
-            extension);
-
-        return uniqueName;
-    }
-
-    /**
-     * 파일 삭제 (메모리얼 삭제 시 사용)
-     */
-    private void deleteFile(String fileUrl) {
-        try {
-            if (fileUrl != null && fileUrl.startsWith(uploadBaseUrl)) {
-                // URL에서 실제 파일 경로 추출
-                String relativePath = fileUrl.substring(uploadBaseUrl.length());
-                Path filePath = Paths.get(uploadBasePath + relativePath);
-
-                if (Files.exists(filePath)) {
-                    Files.delete(filePath);
-                    log.info("파일 삭제 완료: {}", filePath.toString());
-                }
-            }
-        } catch (IOException e) {
-            log.error("파일 삭제 실패 - URL: {}, 오류: {}", fileUrl, e.getMessage(), e);
-            // 파일 삭제 실패는 로그만 남기고 계속 진행
-        }
-    }
-
-    /**
-     * 디렉토리 용량 확인 (선택사항)
-     */
-    private void checkDiskSpace() {
-        try {
-            Path uploadPath = Paths.get(uploadBasePath);
-            long freeSpace = Files.getFileStore(uploadPath).getUsableSpace();
-            long freeSpaceGB = freeSpace / (1024 * 1024 * 1024);
-
-            if (freeSpaceGB < 1) { // 1GB 미만인 경우 경고
-                log.warn("디스크 용량 부족 - 남은 용량: {}GB", freeSpaceGB);
-            }
-        } catch (IOException e) {
-            log.error("디스크 용량 확인 실패: {}", e.getMessage());
+        } catch (Exception e) {
+            log.error("영상 파일 업로드 실패 - 파일: {}", videoFile.getOriginalFilename(), e);
+            throw new APIException("영상 파일 업로드에 실패했습니다.", ResponseStatus.FILE_UPLOAD_FAILED);
         }
     }
 

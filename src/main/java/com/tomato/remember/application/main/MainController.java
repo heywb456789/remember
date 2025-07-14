@@ -66,13 +66,13 @@ public class MainController {
             // 공통 설정
             setupCommonData(model);
 
-            return "/mobile/main/main";
+            return "mobile/main/main";
 
         } catch (Exception e) {
             log.error("Main page error", e);
             // 에러 발생 시 기본 설정으로 폴백
             setupFallbackData(model);
-            return "/mobile/main/main";
+            return "mobile/main/main";
         }
     }
 
@@ -214,7 +214,7 @@ public class MainController {
 
         setupCommonData(model);
 
-        return "/mobile/main/about";
+        return "mobile/main/about";
     }
 
     /**
@@ -232,7 +232,7 @@ public class MainController {
 
         setupCommonData(model);
 
-        return "/mobile/support/contact";
+        return "mobile/support/contact";
     }
 
     /**
@@ -250,7 +250,7 @@ public class MainController {
 
         setupCommonData(model);
 
-        return "/mobile/support/help";
+        return "mobile/support/help";
     }
 
     /**
@@ -268,7 +268,7 @@ public class MainController {
 
         setupCommonData(model);
 
-        return "/mobile/support/faq";
+        return "mobile/support/faq";
     }
 
     /**
@@ -286,7 +286,7 @@ public class MainController {
 
         setupCommonData(model);
 
-        return "/mobile/experience/trial";
+        return "mobile/experience/trial";
     }
 
     /**
@@ -304,7 +304,7 @@ public class MainController {
 
         setupCommonData(model);
 
-        return "/mobile/terms/privacy";
+        return "mobile/terms/privacy";
     }
 
     /**
@@ -322,7 +322,7 @@ public class MainController {
 
         setupCommonData(model);
 
-        return "/mobile/terms/service";
+        return "mobile/terms/service";
     }
 
     /**
@@ -340,7 +340,7 @@ public class MainController {
 
         setupCommonData(model);
 
-        return "/mobile/terms/service";
+        return "mobile/terms/service";
     }
 
     /**
@@ -358,7 +358,7 @@ public class MainController {
 
         setupCommonData(model);
 
-        return "/mobile/terms/privacy";
+        return "mobile/terms/privacy";
     }
 
     /**
@@ -376,7 +376,7 @@ public class MainController {
 
         setupUrlInfo(model);
 
-        return "/mobile/error/404";
+        return "mobile/error/404";
     }
 
     /**
@@ -394,6 +394,6 @@ public class MainController {
 
         setupUrlInfo(model);
 
-        return "/mobile/error/500";
+        return "mobile/error/500";
     }
 }

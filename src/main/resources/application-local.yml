@@ -59,17 +59,16 @@ spring:
   # =======================================================
   # 파일 업로드/표시 설정 (기존 FTP → 로컬 파일시스템)
   # =======================================================
-  app:
-    display: https://image.newstomato.com/newstomato/club
-    upload:
-      path: ${user.dir}/uploads/memorial  # 프로젝트 루트 기준
-      url: /uploads
-      ftp:
-        host: 1.201.174.63
-        port: 21
-        user: tomatochain
-        password: tomatochain1!
-      # FTP 설정 제거 (로컬에서는 불필요)
+app:
+  file:
+    upload-dir: ./uploads/local
+    base-url: http://localhost:8080
+#      ftp:
+#        host: 1.201.174.63
+#        port: 21
+#        user: tomatochain
+#        password: tomatochain1!
+    # FTP 설정 제거 (로컬에서는 불필요)
 
 # =======================================================
 # 토마토리멤버 로컬 보안 설정
@@ -92,3 +91,13 @@ google:
   key-path:
     console: ${GOOGLE_CONSOLE_KEY:/google/pc-api-6501066511374588335-380-1ad7a0f489f4.json}
     firebase: ${GOOGLE_FIREBASE_KEY:/firebase/dev-bread-4908a-firebase-adminsdk-cp247-2bc9dd1010.json}
+# =======================================================
+# 스웨거 환경별 설정
+# =======================================================
+springdoc:
+  swagger-ui:
+    enabled: true
+    # 로컬 개발 시 추가 설정
+    deep-linking: true
+    display-operation-id: true
+    show-extensions: true
