@@ -13,13 +13,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 /**
- * Spring MVC 설정 - 정적 리소스 핸들링
+ * Spring MVC 설정 - 정적 리소스 핸들링 (수정됨)
  */
 @Slf4j
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
-    @Value("${app.file.upload-dir:/uploads}")
+    @Value("${app.file.upload-dir:./uploads/local}")
     private String uploadDir;
 
     @PostConstruct
@@ -27,6 +27,14 @@ public class WebConfig implements WebMvcConfigurer {
         // 업로드 디렉토리 생성
         createUploadDirectoryIfNotExists();
         log.info("파일 업로드 디렉토리 초기화: {}", uploadDir);
+
+        // 절대 경로 로그 출력
+        try {
+            Path absolutePath = Paths.get(uploadDir).toAbsolutePath();
+            log.info("업로드 디렉토리 절대 경로: {}", absolutePath);
+        } catch (Exception e) {
+            log.error("절대 경로 확인 실패", e);
+        }
     }
 
     //    @Override
@@ -38,15 +46,19 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        // 절대 경로로 변환
+        String absoluteUploadDir = getAbsoluteUploadDir();
+        String resourceLocation = getResourceLocation(absoluteUploadDir);
 
-        // 업로드된 파일 정적 리소스 설정
-        String resourceLocation = getResourceLocation();
-
+        // /uploads/** → ./uploads/local/** 매핑
         registry.addResourceHandler("/uploads/**")
-                .addResourceLocations(resourceLocation);
+                .addResourceLocations(resourceLocation)
+                .setCachePeriod(0); // 캐시 비활성화 (개발용)
 
-        log.info("정적 리소스 핸들러 등록 - OS: {}, 경로: {}",
-                System.getProperty("os.name"), resourceLocation);
+        log.info("정적 리소스 핸들러 등록:");
+        log.info("  - URL 패턴: /uploads/**");
+        log.info("  - 리소스 위치: {}", resourceLocation);
+        log.info("  - OS: {}", System.getProperty("os.name"));
 
         // 기본 정적 리소스
         registry.addResourceHandler("/images/**")
@@ -57,16 +69,37 @@ public class WebConfig implements WebMvcConfigurer {
     }
 
     /**
-     * OS별 리소스 경로 생성
+     * 절대 경로로 변환
      */
-    private String getResourceLocation() {
-        if (System.getProperty("os.name").toLowerCase().contains("win")) {
-            // 윈도우: file:/// + 경로
-            return "file:///" + uploadDir.replace("\\", "/") + "/";
-        } else {
-            // 리눅스/유닉스: file:// + 경로
-            return "file://" + uploadDir + "/";
+    private String getAbsoluteUploadDir() {
+        try {
+            Path path = Paths.get(uploadDir);
+            String absolutePath = path.toAbsolutePath().normalize().toString();
+            log.info("업로드 디렉토리 절대 경로 변환: {} → {}", uploadDir, absolutePath);
+            return absolutePath;
+        } catch (Exception e) {
+            log.error("절대 경로 변환 실패: {}", uploadDir, e);
+            return uploadDir;
         }
+    }
+
+    /**
+     * OS별 리소스 경로 생성 (수정됨)
+     */
+    private String getResourceLocation(String absolutePath) {
+        String osName = System.getProperty("os.name").toLowerCase();
+        String resourceLocation;
+
+        if (osName.contains("win")) {
+            // 윈도우: file:///C:/path/to/uploads/
+            resourceLocation = "file:///" + absolutePath.replace("\\", "/") + "/";
+        } else {
+            // 리눅스/유닉스: file:///path/to/uploads/
+            resourceLocation = "file://" + absolutePath + "/";
+        }
+
+        log.info("리소스 위치 생성: OS={}, 경로={}", osName, resourceLocation);
+        return resourceLocation;
     }
 
     /**
@@ -79,6 +112,15 @@ public class WebConfig implements WebMvcConfigurer {
             if (!Files.exists(uploadPath)) {
                 Files.createDirectories(uploadPath);
                 log.info("업로드 디렉토리 생성: {}", uploadPath.toAbsolutePath());
+            } else {
+                log.info("업로드 디렉토리 존재 확인: {}", uploadPath.toAbsolutePath());
+            }
+
+            // 하위 디렉토리도 미리 생성
+            Path profilePath = uploadPath.resolve("profile");
+            if (!Files.exists(profilePath)) {
+                Files.createDirectories(profilePath);
+                log.info("프로필 디렉토리 생성: {}", profilePath.toAbsolutePath());
             }
 
         } catch (Exception e) {

@@ -56,7 +56,7 @@ spring:
   # =======================================================
 app:
   file:
-    upload-dir: ./uploads/local
+    upload-dir: ./uploads
     base-url: http://localhost:8080
 #      ftp:
 #        host: 1.201.174.63

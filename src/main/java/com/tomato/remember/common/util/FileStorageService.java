@@ -22,10 +22,9 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * 파일 저장 서비스 (로컬 파일 시스템)
+ * 파일 저장 서비스 (로컬 파일 시스템) - 단순화 버전
  * - 프로필 이미지, 동영상, Base64 이미지 등 모든 파일 타입 지원
- * - /uploads 기본 경로에서 카테고리별 자동 폴더 생성
- * - 기존 FTP 방식에서 로컬 파일 시스템으로 변경
+ * - 환경별 local/dev 경로 제거로 단순화
  */
 @Slf4j
 @Service
@@ -39,12 +38,12 @@ public class FileStorageService {
 
     // 허용된 이미지 확장자
     private static final List<String> ALLOWED_IMAGE_EXTENSIONS = Arrays.asList(
-        "jpg", "jpeg", "png", "gif", "webp", "bmp", "svg"
+            "jpg", "jpeg", "png", "gif", "webp", "bmp", "svg"
     );
 
     // 허용된 비디오 확장자
     private static final List<String> ALLOWED_VIDEO_EXTENSIONS = Arrays.asList(
-        "mp4", "mov", "avi", "wmv", "mkv", "webm", "flv", "mpg", "mpeg", "m4v"
+            "mp4", "mov", "avi", "wmv", "mkv", "webm", "flv", "mpg", "mpeg", "m4v"
     );
 
     // 최대 파일 크기 (10MB)
@@ -62,11 +61,11 @@ public class FileStorageService {
      */
     public String saveProfileImage(MultipartFile file, Long memberId, Integer sortOrder) throws IOException {
         log.info("프로필 이미지 저장 시작 - 회원 ID: {}, 순서: {}, 파일: {}",
-            memberId, sortOrder, file.getOriginalFilename());
+                memberId, sortOrder, file.getOriginalFilename());
 
         validateImageFile(file);
 
-        // 프로필 이미지 전용 경로 생성
+        // 프로필 이미지 전용 경로 생성 (단순화)
         String subDirectory = createProfileImagePath(memberId);
         Path uploadPath = Paths.get(uploadRoot, subDirectory);
         createDirectoryIfNotExists(uploadPath);
@@ -79,7 +78,7 @@ public class FileStorageService {
             // 파일 저장
             Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
-            // URL 생성
+            // URL 생성 (단순화)
             String fileUrl = generateFileUrl(subDirectory, fileName);
 
             log.info("프로필 이미지 저장 완료 - 경로: {}, URL: {}", filePath, fileUrl);
@@ -123,7 +122,7 @@ public class FileStorageService {
      */
     public String uploadVideo(MultipartFile videoFile, StorageCategory category, Long postId) {
         log.info("비디오 파일 업로드 시작 - 카테고리: {}, 게시물 ID: {}, 파일: {}",
-            category, postId, videoFile.getOriginalFilename());
+                category, postId, videoFile.getOriginalFilename());
 
         // 파일명 및 확장자 확인
         String originalFilename = videoFile.getOriginalFilename();
@@ -156,7 +155,7 @@ public class FileStorageService {
                 finalFile = convertToMp4(tempFile, ext);
                 String filename = UUID.randomUUID() + ".mp4";
                 String result = storeFile(category, postId, filename,
-                    () -> Files.newInputStream(finalFile.toPath()));
+                        () -> Files.newInputStream(finalFile.toPath()));
 
                 // 변환된 파일 정리
                 finalFile.delete();
@@ -166,7 +165,7 @@ public class FileStorageService {
                 // MP4는 바로 업로드
                 String filename = UUID.randomUUID() + ".mp4";
                 String result = storeFile(category, postId, filename,
-                    () -> Files.newInputStream(tempFile.toPath()));
+                        () -> Files.newInputStream(tempFile.toPath()));
 
                 log.info("비디오 업로드 완료 - 파일: {}", result);
                 return result;
@@ -252,7 +251,7 @@ public class FileStorageService {
         }
 
         try {
-            // URL에서 파일 경로 추출
+            // URL에서 파일 경로 추출 (단순화)
             String relativePath = extractRelativePathFromUrl(fileUrl);
             Path filePath = Paths.get(uploadRoot, relativePath);
 
@@ -346,12 +345,12 @@ public class FileStorageService {
 
         try {
             ProcessBuilder pb = new ProcessBuilder(
-                "ffmpeg", "-y",                    // 기존 파일 덮어쓰기
-                "-i", inputFile.getAbsolutePath(), // 입력 파일
-                "-c:v", "libx264",                 // 비디오 코덱: H.264
-                "-preset", "fast",                 // 인코딩 속도 설정
-                "-c:a", "aac",                     // 오디오 코덱: AAC
-                outputFile.getAbsolutePath()       // 출력 파일
+                    "ffmpeg", "-y",                    // 기존 파일 덮어쓰기
+                    "-i", inputFile.getAbsolutePath(), // 입력 파일
+                    "-c:v", "libx264",                 // 비디오 코덱: H.264
+                    "-preset", "fast",                 // 인코딩 속도 설정
+                    "-c:a", "aac",                     // 오디오 코덱: AAC
+                    outputFile.getAbsolutePath()       // 출력 파일
             );
 
             Process process = pb.redirectErrorStream(true).start();
@@ -383,7 +382,7 @@ public class FileStorageService {
     }
 
     /**
-     * 카테고리별 저장 경로 생성
+     * 카테고리별 저장 경로 생성 (단순화)
      */
     private String createDirectoryPath(StorageCategory category, Long postId) {
         LocalDateTime now = LocalDateTime.now();
@@ -393,7 +392,7 @@ public class FileStorageService {
     }
 
     /**
-     * 프로필 이미지 저장 경로 생성
+     * 프로필 이미지 저장 경로 생성 (단순화)
      */
     private String createProfileImagePath(Long memberId) {
         LocalDateTime now = LocalDateTime.now();
@@ -410,7 +409,7 @@ public class FileStorageService {
         String uuid = UUID.randomUUID().toString().substring(0, 8);
 
         return String.format("profile_%d_%d_%s_%s.%s",
-            memberId, sortOrder, timestamp, uuid, extension);
+                memberId, sortOrder, timestamp, uuid, extension);
     }
 
     /**
@@ -434,14 +433,14 @@ public class FileStorageService {
     }
 
     /**
-     * 파일 URL 생성 (절대 URL)
+     * 파일 URL 생성 (단순화)
      */
     private String generateFileUrl(String subDirectory, String fileName) {
         return String.format("%s/uploads/%s/%s", baseUrl, subDirectory, fileName);
     }
 
     /**
-     * 상대 경로를 절대 URL로 변환
+     * 상대 경로를 절대 URL로 변환 (단순화)
      */
     public String toAbsoluteUrl(String relativePath) {
         if (relativePath == null || relativePath.trim().isEmpty()) {
@@ -452,7 +451,7 @@ public class FileStorageService {
     }
 
     /**
-     * URL에서 상대 경로 추출
+     * URL에서 상대 경로 추출 (단순화)
      */
     private String extractRelativePathFromUrl(String fileUrl) {
         String uploadsPrefix = "/uploads/";
@@ -477,8 +476,8 @@ public class FileStorageService {
             // 디렉토리가 비어있고, 업로드 루트가 아닌 경우 삭제
             Path uploadRootPath = Paths.get(uploadRoot);
             if (Files.isDirectory(directory) &&
-                isDirEmpty(directory) &&
-                !directory.equals(uploadRootPath)) {
+                    isDirEmpty(directory) &&
+                    !directory.equals(uploadRootPath)) {
 
                 Files.delete(directory);
                 log.debug("빈 디렉토리 삭제: {}", directory);
@@ -542,12 +541,12 @@ public class FileStorageService {
         if (contentType == null) return false;
 
         return contentType.equals("image/jpeg") ||
-               contentType.equals("image/jpg") ||
-               contentType.equals("image/png") ||
-               contentType.equals("image/gif") ||
-               contentType.equals("image/webp") ||
-               contentType.equals("image/bmp") ||
-               contentType.equals("image/svg+xml");
+                contentType.equals("image/jpg") ||
+                contentType.equals("image/png") ||
+                contentType.equals("image/gif") ||
+                contentType.equals("image/webp") ||
+                contentType.equals("image/bmp") ||
+                contentType.equals("image/svg+xml");
     }
 
     /**
@@ -560,8 +559,8 @@ public class FileStorageService {
         int digitGroups = (int) (Math.log10(size) / Math.log10(1024));
 
         return String.format("%.1f %s",
-            size / Math.pow(1024, digitGroups),
-            units[digitGroups]);
+                size / Math.pow(1024, digitGroups),
+                units[digitGroups]);
     }
 
     /**

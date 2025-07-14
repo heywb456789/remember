@@ -42,16 +42,6 @@ public class ProfileUpdateRequest {
 
     private Boolean marketingAgreed;
 
-    // ===== 알림 설정 =====
-
-    private Boolean pushNotification;
-
-    private Boolean memorialNotification;
-
-    private Boolean paymentNotification;
-
-    private Boolean familyNotification;
-
     // ===== 이미지 관련 =====
 
     private MultipartFile[] images;
@@ -69,13 +59,6 @@ public class ProfileUpdateRequest {
         return name != null || email != null || phoneNumber != null || birthDate != null;
     }
 
-    /**
-     * 알림 설정 변경 여부 확인
-     */
-    public boolean hasNotificationChanges() {
-        return pushNotification != null || memorialNotification != null ||
-               paymentNotification != null || familyNotification != null;
-    }
 
     /**
      * 이미지 변경 여부 확인
@@ -132,10 +115,6 @@ public class ProfileUpdateRequest {
                 ", birthDate=" + birthDate +
                 ", preferredLanguage='" + preferredLanguage + '\'' +
                 ", marketingAgreed=" + marketingAgreed +
-                ", pushNotification=" + pushNotification +
-                ", memorialNotification=" + memorialNotification +
-                ", paymentNotification=" + paymentNotification +
-                ", familyNotification=" + familyNotification +
                 ", newImageCount=" + getNewImageCount() +
                 ", deleteImageCount=" + getDeleteImageCount() +
                 '}';

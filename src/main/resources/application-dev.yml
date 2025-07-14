@@ -65,7 +65,7 @@ spring:
   # =======================================================
 app:
   file:
-    upload-dir: /home/nara/uploads/dev
+    upload-dir: /home/nara/uploads
     base-url: http://114.31.52.64:8096
 
 # =======================================================

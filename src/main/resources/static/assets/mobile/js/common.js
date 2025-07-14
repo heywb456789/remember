@@ -189,12 +189,14 @@ export function showLoading(message = '로딩 중...') {
     loading.classList.add('show');
   }, 100);
 
-  return {
+  // ✅ 이 부분이 핵심 - currentLoading 설정
+  currentLoading = {
     hide: () => {
       if (loading.parentElement) {
         loading.classList.remove('show');
         setTimeout(() => {
           loading.remove();
+          currentLoading = null;  // ✅ 정리
         }, 300);
       }
     },
@@ -205,6 +207,8 @@ export function showLoading(message = '로딩 중...') {
       }
     }
   };
+
+  return currentLoading;  // ✅ currentLoading 반환
 }
 
 /**

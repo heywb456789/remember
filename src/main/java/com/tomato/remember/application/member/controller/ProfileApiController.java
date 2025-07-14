@@ -200,12 +200,6 @@ public class ProfileApiController {
 
         builder.marketingAgreed(marketingAgreed);
 
-        // 알림 설정
-        builder.pushNotification(pushNotification)
-               .memorialNotification(memorialNotification)
-               .paymentNotification(paymentNotification)
-               .familyNotification(familyNotification);
-
         // 이미지 관련
         builder.images(images)
                .imagesToDelete(imagesToDelete)

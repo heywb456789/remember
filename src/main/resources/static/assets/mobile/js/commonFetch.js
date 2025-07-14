@@ -18,7 +18,12 @@ export class FetchError extends Error {
  */
 async function processResponse(res) {
   if (res.ok) {
-    return res;
+    // Content-Type 확인 후 적절히 파싱
+    const contentType = res.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      return await res.json();  // ← JSON 파싱해서 리턴
+    }
+    return await res.text();
   }
 
   let body = null;

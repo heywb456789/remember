@@ -70,8 +70,6 @@ public class MemberProfileServiceImpl implements MemberProfileService {
             .preferredLanguage(updatedMember.getPreferredLanguage())
             .totalImages(imageResult.getFinalImageCount())
             .imageUrls(imageResult.getImageUrls())
-//            .notificationSettings(buildNotificationSettings(updatedMember))
-//            .profileCompletion(buildProfileCompletion(updatedMember, imageResult))
             .updatedAt(updatedMember.getUpdatedAt())
             .build();
     }
@@ -120,20 +118,6 @@ public class MemberProfileServiceImpl implements MemberProfileService {
         if (request.getMarketingAgreed() != null) {
             member.setMarketingAgreed(request.getMarketingAgreed());
             log.debug("마케팅 동의 업데이트: {}", request.getMarketingAgreed());
-        }
-
-        // 알림 설정 업데이트
-        if (request.getPushNotification() != null) {
-            member.setPushNotification(request.getPushNotification());
-        }
-        if (request.getMemorialNotification() != null) {
-            member.setMemorialNotification(request.getMemorialNotification());
-        }
-        if (request.getPaymentNotification() != null) {
-            member.setPaymentNotification(request.getPaymentNotification());
-        }
-        if (request.getFamilyNotification() != null) {
-            member.setFamilyNotification(request.getFamilyNotification());
         }
 
         log.debug("기본 정보 업데이트 완료");

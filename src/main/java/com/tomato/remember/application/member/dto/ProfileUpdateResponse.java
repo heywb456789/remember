@@ -41,49 +41,12 @@ public class ProfileUpdateResponse {
 
     private List<String> imageUrls;
 
-    // ===== 알림 설정 =====
-
-    private Map<String, Object> notificationSettings;
-
-    // ===== 프로필 완성도 =====
-
-    private Map<String, Object> profileCompletion;
-
     // ===== 시스템 정보 =====
 
     private LocalDateTime updatedAt;
 
     // ===== 헬퍼 메서드 =====
 
-    /**
-     * 영상통화 가능 여부 확인
-     */
-    public boolean canStartVideoCall() {
-        if (profileCompletion == null) return false;
-
-        Object canStart = profileCompletion.get("canStartVideoCall");
-        return canStart instanceof Boolean && (Boolean) canStart;
-    }
-
-    /**
-     * 프로필 완성도 퍼센트 반환
-     */
-    public int getCompletionPercentage() {
-        if (profileCompletion == null) return 0;
-
-        Object percentage = profileCompletion.get("completionPercentage");
-        return percentage instanceof Integer ? (Integer) percentage : 0;
-    }
-
-    /**
-     * 알림 설정 조회
-     */
-    public boolean getNotificationSetting(String settingName) {
-        if (notificationSettings == null) return true;
-
-        Object setting = notificationSettings.get(settingName);
-        return setting instanceof Boolean ? (Boolean) setting : true;
-    }
 
     /**
      * 생년월일 포맷팅
@@ -99,13 +62,6 @@ public class ProfileUpdateResponse {
     public int getAge() {
         if (birthDate == null) return 0;
         return LocalDate.now().getYear() - birthDate.getYear();
-    }
-
-    /**
-     * 프로필 완성 여부 확인
-     */
-    public boolean isProfileComplete() {
-        return getCompletionPercentage() >= 100;
     }
 
     /**
@@ -126,8 +82,6 @@ public class ProfileUpdateResponse {
                 ", preferredLanguage='" + preferredLanguage + '\'' +
                 ", totalImages=" + totalImages +
                 ", imageUrlCount=" + (imageUrls != null ? imageUrls.size() : 0) +
-                ", completionPercentage=" + getCompletionPercentage() +
-                ", canStartVideoCall=" + canStartVideoCall() +
                 ", updatedAt=" + updatedAt +
                 '}';
     }
