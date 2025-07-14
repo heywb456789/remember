@@ -29,16 +29,11 @@ spring:
       refresh-token-expiration: 86400000  # 1일 (개발용)
       auto-login-expiration: 604800000    # 1주 (개발용)
 
-      # 로컬 개발용 쿠키 설정
+      # 🍪 로컬 개발용 쿠키 설정 (HTTP 허용)
       cookie:
-        member:
-          domain: localhost  # 로컬 도메인
-          secure: false      # HTTP 허용
-          same-site: Lax     # 개발용으로 Lax 사용
-        admin:
-          domain: localhost
-          secure: false
-          same-site: Lax
+        secure: false      # HTTP 허용 (로컬에서는 HTTPS 없음)
+        same-site: Lax     # 개발용으로 완화 (Strict → Lax)
+        # domain은 설정하지 않음 (localhost는 기본값 사용)
 
   # =======================================================
   # 데이터소스 설정 (기존 설정 기반)

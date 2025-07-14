@@ -4,7 +4,7 @@
 
 spring:
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE:local}
+    active: ${SPRING_PROFILES_ACTIVE:dev}
 
   application:
     name: remember
@@ -74,39 +74,17 @@ spring:
       member-secret: ${JWT_MEMBER_SECRET:bWVtYmVyU2VjcmV0S2V5Rm9yVG9tYXRvUmVtZW1iZXJNZW1iZXJUb2tlbkdlbmVy}
 
       # 토큰 만료 시간 설정
-      access-token-expiration: ${JWT_ACCESS_EXPIRATION:3600000}        # 1시간 (기존 설정 유지)
-      refresh-token-expiration: ${JWT_REFRESH_EXPIRATION:1209600000}   # 2주 (기존 설정 유지)
-      auto-login-expiration: ${JWT_AUTO_LOGIN_EXPIRATION:31536000000}  # 1년 (기존 설정 유지)
+      access-token-expiration: ${JWT_ACCESS_EXPIRATION:3600000}        # 1시간
+      refresh-token-expiration: ${JWT_REFRESH_EXPIRATION:1209600000}   # 2주
+      auto-login-expiration: ${JWT_AUTO_LOGIN_EXPIRATION:31536000000}  # 1년
 
-      # JWT 쿠키 설정 (모바일 뷰용)
+      # 🍪 JWT 쿠키 설정 (CookieUtil과 일치하도록 단순화)
       cookie:
-        # 회원용 쿠키 설정
-        member:
-          access-token-name: MEMBER_ACCESS_TOKEN
-          refresh-token-name: MEMBER_REFRESH_TOKEN
-          domain: ${JWT_COOKIE_DOMAIN:}  # 환경별 설정
-          path: /
-          secure: ${JWT_COOKIE_SECURE:false}  # 환경별 설정
-          http-only: true
-          same-site: Strict
-          max-age: ${JWT_COOKIE_MAX_AGE:31536000}  # 1년
-
-        # 관리자용 쿠키 설정 (필요시)
-        admin:
-          access-token-name: ADMIN_ACCESS_TOKEN
-          refresh-token-name: ADMIN_REFRESH_TOKEN
-          domain: ${JWT_ADMIN_COOKIE_DOMAIN:}
-          path: /admin
-          secure: ${JWT_COOKIE_SECURE:false}
-          http-only: true
-          same-site: Strict
-          max-age: ${JWT_COOKIE_MAX_AGE:31536000}
-
-      # 토큰 동기화 설정 (쿠키 ↔ localStorage)
-      sync:
-        enabled: true
-        header-name: X-Token-Sync
-        localStorage-prefix: tomato_remember_
+        secure: ${JWT_COOKIE_SECURE:true}          # 기본값: HTTPS 필요
+        http-only: ${JWT_COOKIE_HTTP_ONLY:true}    # 기본값: JavaScript 접근 차단
+        same-site: ${JWT_COOKIE_SAME_SITE:Strict}  # 기본값: CSRF 방지 강화
+        path: ${JWT_COOKIE_PATH:/}                 # 기본값: 전체 경로
+        domain: ${JWT_COOKIE_DOMAIN:}              # 기본값: 현재 도메인 (빈 값)
 
   # =======================================================
   # 개발툴 설정

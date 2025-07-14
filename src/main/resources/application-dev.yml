@@ -23,25 +23,22 @@ spring:
   # =======================================================
   security:
     jwt:
-      # 개발서버용 시크릿 키 (운영과 다른 키 사용)
+      # 개발서버용 시크릿 키
       admin-secret: ZGV2QWRtaW5TZWNyZXRLZXlGb3JUb21hdG9SZW1lbWJlckFkbWluVG9rZW5HZW5lcmF0aW9uRGV2
       member-secret: ZGV2TWVtYmVyU2VjcmV0S2V5Rm9yVG9tYXRvUmVtZW1iZXJNZW1iZXJUb2tlbkdlbmVyYXRpb25EZXY=
 
       # 개발서버용 토큰 만료 시간
-      access-token-expiration: 7200000     # 2시간 (개발서버용)
-      refresh-token-expiration: 604800000  # 1주 (개발서버용)
-      auto-login-expiration: 2592000000    # 1개월 (개발서버용)
+      access-token-expiration: 7200000     # 2시간
+      refresh-token-expiration: 604800000  # 1주
+      auto-login-expiration: 2592000000    # 1개월
 
-      # 🍪 개발서버용 쿠키 설정
+      # 🍪 IP 주소 환경 최적화 쿠키 설정
       cookie:
-        member:
-          domain: null
-          secure: false            # 개발서버는 HTTP 사용
-          same-site: Lax
-        admin:
-          domain: null
-          secure: false
-          same-site: Lax
+        secure: false           # HTTP 사용
+        same-site: None         # IP 주소에서는 None이 더 안전 (Lax 대신)
+        domain: ""              # IP 주소에서는 domain 설정하지 않음 (중요!)
+        path: /                 # 전체 경로
+        http-only: true         # JavaScript 접근 차단 유지
 
   # =======================================================
   # 데이터소스 설정 (기존 설정 유지)
@@ -65,7 +62,7 @@ spring:
   # =======================================================
 app:
   file:
-    upload-dir: /app/uploads/dev
+    upload-dir: /home/nara/uploads/dev
     base-url: http://114.31.52.64:8096
 
 # =======================================================
