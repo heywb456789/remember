@@ -9,7 +9,7 @@ import lombok.Data;
 public class ProfileSettingsDTO {
     private int uploadedImageCount;
     private int validImageCount; 
-    private List<String> imageUrls;  // 현재 업로드된 이미지 URL들
+    private List<ProfileImageDTO> imageUrls;  // 현재 업로드된 이미지 URL들
     private boolean canStartVideoCall;
     private int completionPercentage;
     private boolean hasAnyImages;

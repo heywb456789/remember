@@ -1,5 +1,6 @@
 package com.tomato.remember.application.member.service;
 
+import com.tomato.remember.application.member.dto.ProfileImageDTO;
 import com.tomato.remember.application.member.dto.ProfileSettingsDTO;
 import com.tomato.remember.application.member.dto.ProfileUpdateRequest;
 import com.tomato.remember.application.member.dto.ProfileUpdateResponse;
@@ -53,7 +54,7 @@ public class MemberProfileServiceImpl implements MemberProfileService {
         updateBasicInfo(member, request);
 
         // 2. 이미지 처리
-        ProfileImageResult imageResult = processImages(member, request);
+        ProfileImageResult imageResult = processImagesWithSortOrder(member, request);
 
         // 3. 저장
         Member updatedMember = memberRepository.save(member);
@@ -69,9 +70,216 @@ public class MemberProfileServiceImpl implements MemberProfileService {
             .birthDate(updatedMember.getBirthDate())
             .preferredLanguage(updatedMember.getPreferredLanguage())
             .totalImages(imageResult.getFinalImageCount())
-            .imageUrls(imageResult.getImageUrls())
+            .imageUrls(imageResult.getImages())
             .updatedAt(updatedMember.getUpdatedAt())
             .build();
+    }
+
+    /**
+     * 이미지 처리 메인 로직 (sortOrder 포함)
+     */
+    private ProfileImageResult processImagesWithSortOrder(Member member, ProfileUpdateRequest request) {
+        List<MemberAiProfileImage> currentImages =
+            profileImageRepository.findByMemberOrderBySortOrderAsc(member);
+
+        log.debug("현재 이미지 개수: {}", currentImages.size());
+
+        MultipartFile[] images = request.getImages();
+        Integer[] imagesToDelete = request.getImagesToDelete();
+
+        if (images == null || images.length == 0) {
+            // 시나리오 1: 기본 정보만 수정
+            return handleBasicInfoOnlyWithSortOrder(currentImages);
+        } else if (currentImages.isEmpty()) {
+            // 시나리오 2: 처음 사진 업로드
+            return handleFirstTimeUploadWithSortOrder(member, images);
+        } else {
+            // 시나리오 3: 기존 사진 수정
+            return handleExistingImageUpdateWithSortOrder(member, currentImages, images, imagesToDelete);
+        }
+    }
+
+    /**
+     * 시나리오 1: 기본 정보만 수정 (sortOrder 포함)
+     */
+    private ProfileImageResult handleBasicInfoOnlyWithSortOrder(List<MemberAiProfileImage> currentImages) {
+        log.debug("시나리오 1: 기본 정보만 수정 - sortOrder 포함");
+
+        List<ProfileImageDTO> images = currentImages.stream()
+            .map(img -> ProfileImageDTO.builder()
+                .sortOrder(img.getSortOrder())
+                .imageUrl(img.getImageUrl())
+                .originalFilename(img.getOriginalFilename())
+                .build())
+            .collect(Collectors.toList());
+
+        return new ProfileImageResult(currentImages.size(), images);
+    }
+
+    /**
+     * 시나리오 2: 처음 사진 업로드 (sortOrder 포함)
+     */
+    private ProfileImageResult handleFirstTimeUploadWithSortOrder(Member member, MultipartFile[] images) {
+        log.debug("시나리오 2: 처음 사진 업로드 - sortOrder 포함");
+
+        if (images.length != 5) {
+            throw new IllegalArgumentException("프로필 사진은 반드시 5장을 모두 업로드해야 합니다.");
+        }
+
+        List<ProfileImageDTO> uploadedImages = new ArrayList<>();
+
+        for (int i = 0; i < images.length; i++) {
+            MultipartFile image = images[i];
+            validateImageFile(image);
+
+            try {
+                int sortOrder = i + 1;
+                String imageUrl = fileStorageService.saveProfileImage(image, member.getId(), sortOrder);
+
+                MemberAiProfileImage profileImage = MemberAiProfileImage.create(
+                    member, imageUrl, sortOrder, image.getOriginalFilename(),
+                    image.getSize(), image.getContentType()
+                );
+
+                profileImageRepository.save(profileImage);
+                member.addProfileImage(profileImage);
+
+                // 🔧 개선: sortOrder 포함 DTO 생성
+                ProfileImageDTO imageDTO = ProfileImageDTO.builder()
+                    .sortOrder(sortOrder)
+                    .imageUrl(imageUrl)
+                    .originalFilename(image.getOriginalFilename())
+                    .build();
+
+                uploadedImages.add(imageDTO);
+
+                log.debug("이미지 업로드 완료 - 순서: {}, URL: {}", sortOrder, imageUrl);
+
+            } catch (Exception e) {
+                log.error("이미지 업로드 실패 - 순서: {}", i + 1, e);
+                cleanupUploadedFiles(uploadedImages.stream()
+                    .map(ProfileImageDTO::getImageUrl)
+                    .collect(Collectors.toList()));
+                throw new RuntimeException("이미지 업로드에 실패했습니다.", e);
+            }
+        }
+
+        return new ProfileImageResult(5, uploadedImages);
+    }
+
+    /**
+     * 시나리오 3: 기존 사진 수정 (sortOrder 포함)
+     */
+    private ProfileImageResult handleExistingImageUpdateWithSortOrder(Member member,
+        List<MemberAiProfileImage> currentImages, MultipartFile[] newImages,
+        Integer[] imagesToDelete) {
+
+        log.debug("시나리오 3: 기존 사진 수정 - sortOrder 포함");
+
+        Set<Integer> deleteSet = imagesToDelete != null ?
+            new HashSet<>(Arrays.asList(imagesToDelete)) : new HashSet<>();
+
+        // 삭제 후 남을 이미지 계산
+        int remainingCount = currentImages.size() - deleteSet.size();
+        int newImageCount = newImages != null ? newImages.length : 0;
+        int finalCount = remainingCount + newImageCount;
+
+        // 최종 5장 검증
+        if (finalCount != 5) {
+            throw new IllegalArgumentException(
+                String.format("최종 이미지는 반드시 5장이어야 합니다. (현재: %d장 - 삭제: %d장 + 신규: %d장 = %d장)",
+                    currentImages.size(), deleteSet.size(), newImageCount, finalCount));
+        }
+
+        // 삭제 처리
+        for (MemberAiProfileImage image : currentImages) {
+            if (deleteSet.contains(image.getSortOrder())) {
+                deleteExistingImage(image);
+                log.debug("이미지 삭제 완료 - 순서: {}", image.getSortOrder());
+            }
+        }
+
+        // 새 이미지 업로드 (개선된 중복 방지)
+        List<ProfileImageDTO> newUploadedImages = new ArrayList<>();
+        if (newImages != null && newImages.length > 0) {
+            newUploadedImages = uploadNewImagesWithSortOrder(member, newImages);
+        }
+
+        // 최종 이미지 목록 생성
+        List<MemberAiProfileImage> finalImages =
+            profileImageRepository.findByMemberOrderBySortOrderAsc(member);
+
+        List<ProfileImageDTO> finalImageDTOs = finalImages.stream()
+            .map(img -> ProfileImageDTO.builder()
+                .sortOrder(img.getSortOrder())
+                .imageUrl(img.getImageUrl())
+                .originalFilename(img.getOriginalFilename())
+                .build())
+            .collect(Collectors.toList());
+
+        return new ProfileImageResult(5, finalImageDTOs);
+    }
+
+    /**
+     * 새 이미지 업로드 (sortOrder 포함, 중복 방지)
+     */
+    private List<ProfileImageDTO> uploadNewImagesWithSortOrder(Member member, MultipartFile[] newImages) {
+        List<ProfileImageDTO> uploadedImages = new ArrayList<>();
+
+        // 기존 sortOrder 목록 확보
+        List<MemberAiProfileImage> existingImages =
+            profileImageRepository.findByMemberOrderBySortOrderAsc(member);
+
+        Set<Integer> existingSortOrders = existingImages.stream()
+            .map(MemberAiProfileImage::getSortOrder)
+            .collect(Collectors.toSet());
+
+        int currentSortOrder = 1;
+
+        for (MultipartFile image : newImages) {
+            validateImageFile(image);
+
+            try {
+                // 사용 가능한 다음 sortOrder 찾기
+                while (existingSortOrders.contains(currentSortOrder)) {
+                    currentSortOrder++;
+                }
+
+                int sortOrder = currentSortOrder;
+                existingSortOrders.add(sortOrder); // 사용한 번호 추가
+                currentSortOrder++; // 다음 번호로 증가
+
+                String imageUrl = fileStorageService.saveProfileImage(image, member.getId(), sortOrder);
+
+                MemberAiProfileImage profileImage = MemberAiProfileImage.create(
+                    member, imageUrl, sortOrder, image.getOriginalFilename(),
+                    image.getSize(), image.getContentType()
+                );
+
+                profileImageRepository.save(profileImage);
+                member.addProfileImage(profileImage);
+
+                // 🔧 개선: sortOrder 포함 DTO 생성
+                ProfileImageDTO imageDTO = ProfileImageDTO.builder()
+                    .sortOrder(sortOrder)
+                    .imageUrl(imageUrl)
+                    .originalFilename(image.getOriginalFilename())
+                    .build();
+
+                uploadedImages.add(imageDTO);
+
+                log.debug("신규 이미지 업로드 완료 - 순서: {}, URL: {}", sortOrder, imageUrl);
+
+            } catch (Exception e) {
+                log.error("신규 이미지 업로드 실패 - sortOrder: {}", currentSortOrder, e);
+                cleanupUploadedFiles(uploadedImages.stream()
+                    .map(ProfileImageDTO::getImageUrl)
+                    .collect(Collectors.toList()));
+                throw new RuntimeException("이미지 업로드에 실패했습니다.", e);
+            }
+        }
+
+        return uploadedImages;
     }
 
     /**
@@ -124,141 +332,129 @@ public class MemberProfileServiceImpl implements MemberProfileService {
     }
 
     /**
-     * 이미지 처리 메인 로직
+     * 이미지 처리 결과 클래스 (수정된 버전)
      */
-    private ProfileImageResult processImages(Member member, ProfileUpdateRequest request) {
-        // 현재 이미지 상태 조회
-        List<MemberAiProfileImage> currentImages =
-            profileImageRepository.findByMemberOrderBySortOrderAsc(member);
+    private static class ProfileImageResult {
+        private final int finalImageCount;
+        private final List<ProfileImageDTO> images;
 
-        log.debug("현재 이미지 개수: {}", currentImages.size());
-
-        MultipartFile[] images = request.getImages();
-        Integer[] imagesToDelete = request.getImagesToDelete();
-
-        // 시나리오 판단 및 처리
-        if (images == null || images.length == 0) {
-            // 시나리오 1: 기본 정보만 수정
-            return handleBasicInfoOnly(currentImages);
-
-        } else if (currentImages.isEmpty()) {
-            // 시나리오 2: 처음 사진 업로드 (5장 필수)
-            return handleFirstTimeUpload(member, images);
-
-        } else {
-            // 시나리오 3: 기존 사진 수정 (최종 5장 보장)
-            return handleExistingImageUpdate(member, currentImages, images, imagesToDelete);
+        public ProfileImageResult(int finalImageCount, List<ProfileImageDTO> images) {
+            this.finalImageCount = finalImageCount;
+            this.images = images;
         }
+
+        public int getFinalImageCount() { return finalImageCount; }
+        public List<ProfileImageDTO> getImages() { return images; }
     }
 
-    /**
-     * 시나리오 1: 기본 정보만 수정
-     */
-    private ProfileImageResult handleBasicInfoOnly(List<MemberAiProfileImage> currentImages) {
-        log.debug("시나리오 1: 기본 정보만 수정");
+//    /**
+//     * 시나리오 1: 기본 정보만 수정
+//     */
+//    private ProfileImageResult handleBasicInfoOnly(List<MemberAiProfileImage> currentImages) {
+//        log.debug("시나리오 1: 기본 정보만 수정");
+//
+//        List<String> imageUrls = currentImages.stream()
+//            .map(MemberAiProfileImage::getImageUrl)
+//            .collect(Collectors.toList());
+//
+//        return new ProfileImageResult(currentImages.size(), imageUrls);
+//    }
 
-        List<String> imageUrls = currentImages.stream()
-            .map(MemberAiProfileImage::getImageUrl)
-            .collect(Collectors.toList());
+//    /**
+//     * 시나리오 2: 처음 사진 업로드 (5장 필수)
+//     */
+//    private ProfileImageResult handleFirstTimeUpload(Member member, MultipartFile[] images) {
+//        log.debug("시나리오 2: 처음 사진 업로드");
+//
+//        if (images.length != 5) {
+//            throw new IllegalArgumentException("프로필 사진은 반드시 5장을 모두 업로드해야 합니다.");
+//        }
+//
+//        List<String> uploadedUrls = new ArrayList<>();
+//
+//        for (int i = 0; i < images.length; i++) {
+//            MultipartFile image = images[i];
+//            validateImageFile(image);
+//
+//            try {
+//                // 파일 업로드
+//                String imageUrl = fileStorageService.saveProfileImage(image, member.getId(), i + 1);
+//
+//                // DB 저장
+//                MemberAiProfileImage profileImage = MemberAiProfileImage.create(
+//                    member, imageUrl, i + 1, image.getOriginalFilename(),
+//                    image.getSize(), image.getContentType()
+//                );
+//
+//                profileImageRepository.save(profileImage);
+//                member.addProfileImage(profileImage);
+//                uploadedUrls.add(imageUrl);
+//
+//                log.debug("이미지 업로드 완료 - 순서: {}, URL: {}", i + 1, imageUrl);
+//
+//            } catch (Exception e) {
+//                log.error("이미지 업로드 실패 - 순서: {}", i + 1, e);
+//                // 이미 업로드된 파일들 정리
+//                cleanupUploadedFiles(uploadedUrls);
+//                throw new RuntimeException("이미지 업로드에 실패했습니다.", e);
+//            }
+//        }
+//
+//        return new ProfileImageResult(5, uploadedUrls);
+//    }
 
-        return new ProfileImageResult(currentImages.size(), imageUrls);
-    }
-
-    /**
-     * 시나리오 2: 처음 사진 업로드 (5장 필수)
-     */
-    private ProfileImageResult handleFirstTimeUpload(Member member, MultipartFile[] images) {
-        log.debug("시나리오 2: 처음 사진 업로드");
-
-        if (images.length != 5) {
-            throw new IllegalArgumentException("프로필 사진은 반드시 5장을 모두 업로드해야 합니다.");
-        }
-
-        List<String> uploadedUrls = new ArrayList<>();
-
-        for (int i = 0; i < images.length; i++) {
-            MultipartFile image = images[i];
-            validateImageFile(image);
-
-            try {
-                // 파일 업로드
-                String imageUrl = fileStorageService.saveProfileImage(image, member.getId(), i + 1);
-
-                // DB 저장
-                MemberAiProfileImage profileImage = MemberAiProfileImage.create(
-                    member, imageUrl, i + 1, image.getOriginalFilename(),
-                    image.getSize(), image.getContentType()
-                );
-
-                profileImageRepository.save(profileImage);
-                member.addProfileImage(profileImage);
-                uploadedUrls.add(imageUrl);
-
-                log.debug("이미지 업로드 완료 - 순서: {}, URL: {}", i + 1, imageUrl);
-
-            } catch (Exception e) {
-                log.error("이미지 업로드 실패 - 순서: {}", i + 1, e);
-                // 이미 업로드된 파일들 정리
-                cleanupUploadedFiles(uploadedUrls);
-                throw new RuntimeException("이미지 업로드에 실패했습니다.", e);
-            }
-        }
-
-        return new ProfileImageResult(5, uploadedUrls);
-    }
-
-    /**
-     * 시나리오 3: 기존 사진 수정 (최종 5장 보장)
-     */
-    private ProfileImageResult handleExistingImageUpdate(Member member,
-        List<MemberAiProfileImage> currentImages, MultipartFile[] newImages,
-        Integer[] imagesToDelete) {
-
-        log.debug("시나리오 3: 기존 사진 수정");
-
-        // 삭제할 이미지 처리
-        Set<Integer> deleteSet = imagesToDelete != null ?
-            new HashSet<>(Arrays.asList(imagesToDelete)) : new HashSet<>();
-
-        // 삭제 후 남을 이미지 계산
-        int remainingCount = currentImages.size() - deleteSet.size();
-        int newImageCount = newImages != null ? newImages.length : 0;
-        int finalCount = remainingCount + newImageCount;
-
-        // 최종 5장 검증
-        if (finalCount != 5) {
-            throw new IllegalArgumentException(
-                String.format("최종 이미지는 반드시 5장이어야 합니다. (현재: %d장 - 삭제: %d장 + 신규: %d장 = %d장)",
-                    currentImages.size(), deleteSet.size(), newImageCount, finalCount));
-        }
-
-        // 삭제 처리
-        for (MemberAiProfileImage image : currentImages) {
-            if (deleteSet.contains(image.getSortOrder())) {
-                deleteExistingImage(image);
-                log.debug("이미지 삭제 완료 - 순서: {}", image.getSortOrder());
-            }
-        }
-
-        // 남은 이미지들 조회
-        List<MemberAiProfileImage> remainingImages =
-            profileImageRepository.findByMemberOrderBySortOrderAsc(member);
-
-        // 새 이미지 업로드
-        List<String> newUploadUrls = new ArrayList<>();
-        if (newImages != null && newImages.length > 0) {
-            newUploadUrls = uploadNewImages(member, newImages, remainingImages.size());
-        }
-
-        // 최종 URL 목록 생성
-        List<String> finalUrls = new ArrayList<>();
-        finalUrls.addAll(remainingImages.stream()
-            .map(MemberAiProfileImage::getImageUrl)
-            .collect(Collectors.toList()));
-        finalUrls.addAll(newUploadUrls);
-
-        return new ProfileImageResult(5, finalUrls);
-    }
+//    /**
+//     * 시나리오 3: 기존 사진 수정 (최종 5장 보장)
+//     */
+//    private ProfileImageResult handleExistingImageUpdate(Member member,
+//        List<MemberAiProfileImage> currentImages, MultipartFile[] newImages,
+//        Integer[] imagesToDelete) {
+//
+//        log.debug("시나리오 3: 기존 사진 수정");
+//
+//        // 삭제할 이미지 처리
+//        Set<Integer> deleteSet = imagesToDelete != null ?
+//            new HashSet<>(Arrays.asList(imagesToDelete)) : new HashSet<>();
+//
+//        // 삭제 후 남을 이미지 계산
+//        int remainingCount = currentImages.size() - deleteSet.size();
+//        int newImageCount = newImages != null ? newImages.length : 0;
+//        int finalCount = remainingCount + newImageCount;
+//
+//        // 최종 5장 검증
+//        if (finalCount != 5) {
+//            throw new IllegalArgumentException(
+//                String.format("최종 이미지는 반드시 5장이어야 합니다. (현재: %d장 - 삭제: %d장 + 신규: %d장 = %d장)",
+//                    currentImages.size(), deleteSet.size(), newImageCount, finalCount));
+//        }
+//
+//        // 삭제 처리
+//        for (MemberAiProfileImage image : currentImages) {
+//            if (deleteSet.contains(image.getSortOrder())) {
+//                deleteExistingImage(image);
+//                log.debug("이미지 삭제 완료 - 순서: {}", image.getSortOrder());
+//            }
+//        }
+//
+//        // 남은 이미지들 조회
+//        List<MemberAiProfileImage> remainingImages =
+//            profileImageRepository.findByMemberOrderBySortOrderAsc(member);
+//
+//        // 새 이미지 업로드
+//        List<String> newUploadUrls = new ArrayList<>();
+//        if (newImages != null && newImages.length > 0) {
+//            newUploadUrls = uploadNewImages(member, newImages, remainingImages.size());
+//        }
+//
+//        // 최종 URL 목록 생성
+//        List<String> finalUrls = new ArrayList<>();
+//        finalUrls.addAll(remainingImages.stream()
+//            .map(MemberAiProfileImage::getImageUrl)
+//            .collect(Collectors.toList()));
+//        finalUrls.addAll(newUploadUrls);
+//
+//        return new ProfileImageResult(5, finalUrls);
+//    }
 
     /**
      * 새 이미지들 업로드
@@ -371,22 +567,6 @@ public class MemberProfileServiceImpl implements MemberProfileService {
         return completion;
     }
 
-    /**
-     * 이미지 처리 결과 클래스
-     */
-    private static class ProfileImageResult {
-        private final int finalImageCount;
-        private final List<String> imageUrls;
-
-        public ProfileImageResult(int finalImageCount, List<String> imageUrls) {
-            this.finalImageCount = finalImageCount;
-            this.imageUrls = imageUrls;
-        }
-
-        public int getFinalImageCount() { return finalImageCount; }
-        public List<String> getImageUrls() { return imageUrls; }
-    }
-
     // 기존 메서드들 유지
     @Override
     public void deleteAccount(Long memberId) {
@@ -408,10 +588,18 @@ public class MemberProfileServiceImpl implements MemberProfileService {
         List<MemberAiProfileImage> images = profileImageRepository
             .findByMemberOrderBySortOrderAsc(memberRepository.findById(memberId).orElseThrow());
 
+        List<ProfileImageDTO> imageDTOs = images.stream()
+            .map(img -> ProfileImageDTO.builder()
+                .sortOrder(img.getSortOrder())
+                .imageUrl(img.getImageUrl())
+                .originalFilename(img.getOriginalFilename())
+                .build())
+            .collect(Collectors.toList());
+
         return ProfileSettingsDTO.builder()
             .uploadedImageCount(images.size())
             .validImageCount((int) images.stream().filter(MemberAiProfileImage::isValid).count())
-            .imageUrls(images.stream().map(MemberAiProfileImage::getImageUrl).collect(Collectors.toList()))
+            .imageUrls(imageDTOs) // 🔧 개선: sortOrder 포함
             .hasAnyImages(!images.isEmpty())
             .needsCompleteUpload(images.size() > 0 && images.size() < 5)
             .canStartVideoCall(images.size() == 5 && images.stream().allMatch(MemberAiProfileImage::isValid))

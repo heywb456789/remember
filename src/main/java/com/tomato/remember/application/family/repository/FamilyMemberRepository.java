@@ -1,8 +1,11 @@
 package com.tomato.remember.application.family.repository;
 
 import com.tomato.remember.application.family.code.InviteStatus;
+import com.tomato.remember.application.family.dto.FamilySearchCondition;
 import com.tomato.remember.application.family.entity.FamilyMember;
+import com.tomato.remember.application.family.repository.custom.FamilyMemberRepositoryCustom;
 import com.tomato.remember.application.member.entity.Member;
+import com.tomato.remember.application.memorial.code.MemorialStatus;
 import com.tomato.remember.application.memorial.entity.Memorial;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -19,7 +22,7 @@ import java.util.Optional;
  * 가족 구성원 레포지토리
  */
 @Repository
-public interface FamilyMemberRepository extends JpaRepository<FamilyMember, Long> {
+public interface FamilyMemberRepository extends JpaRepository<FamilyMember, Long>, FamilyMemberRepositoryCustom {
 
     // ===== 기본 조회 메서드 =====
 
@@ -29,9 +32,19 @@ public interface FamilyMemberRepository extends JpaRepository<FamilyMember, Long
     List<FamilyMember> findByMemorialOrderByCreatedAtDesc(Memorial memorial);
 
     /**
+     * 메모리얼의 가족 구성원 페이징 조회
+     */
+    Page<FamilyMember> findByMemorialOrderByCreatedAtDesc(Memorial memorial, Pageable pageable);
+
+    /**
      * 메모리얼의 특정 상태 가족 구성원 조회
      */
     List<FamilyMember> findByMemorialAndInviteStatusOrderByCreatedAtDesc(Memorial memorial, InviteStatus inviteStatus);
+
+    /**
+     * 특정 메모리얼의 활성 가족 구성원 조회 (페이징)
+     */
+    Page<FamilyMember> findByMemorialAndInviteStatusOrderByCreatedAtDesc(Memorial memorial, InviteStatus inviteStatus, Pageable pageable);
 
     /**
      * 메모리얼의 활성 가족 구성원 조회
@@ -43,6 +56,11 @@ public interface FamilyMemberRepository extends JpaRepository<FamilyMember, Long
      * 회원이 속한 모든 가족 그룹 조회
      */
     List<FamilyMember> findByMemberOrderByCreatedAtDesc(Member member);
+
+    /**
+     * 특정 멤버의 가족 구성원 관계 조회 (페이징)
+     */
+    Page<FamilyMember> findByMemberOrderByCreatedAtDesc(Member member, Pageable pageable);
 
     /**
      * 회원이 접근 가능한 메모리얼 조회
@@ -113,7 +131,40 @@ public interface FamilyMemberRepository extends JpaRepository<FamilyMember, Long
     @Query("SELECT fm FROM FamilyMember fm WHERE fm.inviteStatus = 'PENDING' AND fm.createdAt < :expireTime")
     List<FamilyMember> findExpiredInvitations(@Param("expireTime") LocalDateTime expireTime);
 
+
+
+    /**
+     * 특정 소유자의 메모리얼 수 조회
+     */
+//    long countByOwner(Member owner);
+
+    /**
+     * 특정 소유자의 활성 메모리얼 조회
+     */
+//    List<Memorial> findByOwnerAndStatusOrderByCreatedAtDesc(Member owner, MemorialStatus status);
+
     // ===== 통계 메서드 =====
+
+    /**
+     * 특정 메모리얼의 가족 구성원 수 조회
+     */
+    long countByMemorial(Memorial memorial);
+
+    /**
+     * 특정 메모리얼의 활성 가족 구성원 수 조회
+     */
+    long countByMemorialAndInviteStatus(Memorial memorial, InviteStatus inviteStatus);
+
+    /**
+     * 연락처로 가족 구성원 조회 (중복 초대 확인용)
+     */
+    @Query("SELECT fm FROM FamilyMember fm JOIN fm.member m WHERE m.email = :email OR m.phoneNumber = :phoneNumber")
+    List<FamilyMember> findByContact(@Param("email") String email, @Param("phoneNumber") String phoneNumber);
+
+    /**
+     * 가족 구성원 검색 (복합 조건)
+     */
+    Page<FamilyMember> searchFamilyMembers(Member owner, FamilySearchCondition condition, Pageable pageable);
 
     /**
      * 메모리얼의 가족 구성원 수 조회
@@ -134,11 +185,6 @@ public interface FamilyMemberRepository extends JpaRepository<FamilyMember, Long
     long countPendingInvitations(@Param("member") Member member);
 
     // ===== 페이징 조회 =====
-
-    /**
-     * 메모리얼의 가족 구성원 페이징 조회
-     */
-    Page<FamilyMember> findByMemorialOrderByCreatedAtDesc(Memorial memorial, Pageable pageable);
 
     /**
      * 회원의 가족 그룹 페이징 조회

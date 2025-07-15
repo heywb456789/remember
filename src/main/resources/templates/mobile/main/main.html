@@ -14,6 +14,120 @@
   <!-- Custom CSS -->
   <customCSS>
     <link th:href="@{/assets/mobile/css/main.css}" rel="stylesheet">
+    <style>
+      /* 메모리얼 선택 관련 스타일 - 기존 스타일 유지하면서 추가 */
+      .memorial-item.selected {
+        border: 2px solid #ff6b6b !important;
+        background: #fff5f5 !important;
+        box-shadow: 0 4px 16px rgba(255, 107, 107, 0.3) !important;
+      }
+
+      .memorial-item.selected::before {
+        content: '';
+        position: absolute;
+        top: -2px;
+        left: -2px;
+        right: -2px;
+        bottom: -2px;
+        background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+        border-radius: var(--radius-md);
+        z-index: -1;
+      }
+
+      /* 화살표 영역에 선택 아이콘 추가 */
+      .memorial-arrow {
+        position: relative;
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+      }
+
+      .selection-icon {
+        color: #ff6b6b;
+        font-size: 20px;
+        display: none;
+      }
+
+      .memorial-item.selected .selection-icon {
+        display: block !important;
+      }
+
+      .memorial-item.selected .memorial-arrow i.fas.fa-chevron-right {
+        display: none;
+      }
+
+      /* 메모리얼 선택 안내 */
+      .memorial-selection-guide {
+        text-align: center;
+        margin-bottom: 16px;
+        padding: 12px;
+        background: #e3f2fd;
+        border-radius: 8px;
+        color: #1976d2;
+        font-size: 14px;
+        display: none;
+      }
+
+      .memorial-selection-guide.show {
+        display: block;
+      }
+
+      .memorial-selection-guide i {
+        margin-right: 8px;
+      }
+
+      /* 상태 표시 아이콘 */
+      .memorial-status {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .status-indicators {
+        display: flex;
+        gap: 4px;
+      }
+
+      .status-icon {
+        font-size: 12px;
+        opacity: 0.7;
+      }
+
+      .status-icon.status-ok {
+        color: #28a745;
+      }
+
+      .status-icon.status-warning {
+        color: #ffc107;
+      }
+
+      /* 메모리얼 메타 정보 */
+      .memorial-meta {
+        font-size: 12px;
+        color: var(--text-light);
+        margin-top: 4px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .memorial-meta .separator {
+        opacity: 0.5;
+      }
+
+      /* 반응형 개선 */
+      @media (max-width: 768px) {
+        .status-icon {
+          font-size: 11px;
+        }
+
+        .selection-icon {
+          font-size: 18px;
+        }
+      }
+    </style>
   </customCSS>
 </head>
 <body>
@@ -139,6 +253,12 @@
 
       <!-- 등록된 메모리얼이 있는 경우 -->
       <div class="memorial-list-section" th:if="${memorialCount > 0}">
+        <!-- 메모리얼 선택 안내 (복수 메모리얼인 경우만) -->
+        <div class="memorial-selection-guide" th:if="${memorialCount > 1}">
+          <i class="fas fa-info-circle"></i>
+          영상통화할 메모리얼을 선택해주세요.
+        </div>
+
         <!-- 메모리얼 리스트 컨테이너 -->
         <div class="memorial-list-container">
           <div id="memorialList" class="memorial-list">
@@ -146,19 +266,10 @@
             <div class="memorial-item" th:each="memorial, iterStat : ${memorialList}"
                  th:data-memorial-id="${memorial.memorialId}">
 
-              <!-- 메모리얼 아바타 이모지 -->
+              <!-- 메모리얼 아바타 -->
               <div class="memorial-avatar">
-                <!-- 프로필 이미지가 있으면 이미지 우선 -->
-<!--                <img th:if="${memorial.mainProfileImageUrl != null and memorial.mainProfileImageUrl != ''}"-->
-<!--                     th:src="${memorial.mainProfileImageUrl}"-->
-<!--                     th:alt="${memorial.name}"-->
-<!--                     class="avatar-img">-->
-
                 <!-- 프로필 이미지가 없는 경우 관계별 이모지 -->
-<!--                <span th:unless="${memorial.mainProfileImageUrl != null and memorial.mainProfileImageUrl != ''}"-->
-                <span
-                      class="memorial-emoji"
-                      th:switch="${memorial.relationshipDescription}">
+                <span class="memorial-emoji" th:switch="${memorial.relationshipDescription}">
 
                   <!-- 부모님 관계 -->
                   <span th:case="'부'" class="emoji">👨</span>
@@ -207,6 +318,7 @@
               <!-- 화살표 아이콘 -->
               <div class="memorial-arrow">
                 <i class="fas fa-chevron-right"></i>
+                <i class="fas fa-check-circle selection-icon" style="display: none;"></i>
               </div>
             </div>
           </div>
@@ -214,7 +326,7 @@
           <!-- 더보기 안내 텍스트 (5개 초과 시) -->
           <div class="more-info" th:if="${hasMoreMemorials}">
             <i class="fas fa-info-circle"></i>
-            메모리얼을 탭하시면 더 자세한 정보를 보실 수 있습니다.
+            메모리얼을 탭하여 선택하고 영상통화를 시작하세요.
           </div>
         </div>
       </div>
@@ -232,7 +344,7 @@
         </button>
       </div>
 
-      <!-- 하단 영상통화 버튼 (단일 버튼으로 변경) -->
+      <!-- 하단 영상통화 버튼 -->
       <div class="bottom-actions">
         <button class="video-call-btn" type="button" th:disabled="${memorialCount == 0}">
           <i class="fas fa-video"></i>
@@ -300,9 +412,20 @@
         login: /*[[${loginUrl}]]*/ '/mobile/login',
         register: /*[[${registerUrl}]]*/ '/mobile/register',
         memorialCreate: /*[[${memorialCreateUrl}]]*/ '/mobile/memorial/create',
-        payment: /*[[${paymentUrl}]]*/ '/mobile/payment'
+        payment: /*[[${paymentUrl}]]*/ '/mobile/payment',
+        videocall: /*[[${videocallUrl}]]*/ '/mobile/videocall'
       }
     };
+
+    // 메모리얼이 여러개인 경우 선택 안내 표시
+    if (window.serverData.memorialCount > 1) {
+      document.addEventListener('DOMContentLoaded', function() {
+        const guide = document.querySelector('.memorial-selection-guide');
+        if (guide) {
+          guide.classList.add('show');
+        }
+      });
+    }
 
     // 개발 모드 활성화
     if (window.location.search.includes('debug=true')) {

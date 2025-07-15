@@ -28,7 +28,8 @@ spring:
       member-secret: ZGV2TWVtYmVyU2VjcmV0S2V5Rm9yVG9tYXRvUmVtZW1iZXJNZW1iZXJUb2tlbkdlbmVyYXRpb25EZXY=
 
       # 개발서버용 토큰 만료 시간
-      access-token-expiration: 7200000     # 2시간
+#      access-token-expiration: 7200000     # 2시간
+      access-token-expiration: 604800000     # 1wn
       refresh-token-expiration: 604800000  # 1주
       auto-login-expiration: 2592000000    # 1개월
 
@@ -44,14 +45,11 @@ spring:
   # 데이터소스 설정 (기존 설정 유지)
   # =======================================================
   datasource:
-#    url: ${DB_URL:jdbc:log4jdbc:mariadb://127.0.0.1:3306/tomato_remember}  # DB명만 변경
-    url: ${DB_URL:jdbc:log4jdbc:mariadb://localhost:3307/remember}  # DB명 변경
+    url: ${DB_URL:jdbc:log4jdbc:mariadb://127.0.0.1:3306/tomato_remember}  # DB명만 변경
 #    url: ${DB_URL:jdbc:log4jdbc:mariadb://114.31.52.64:3306/tomato_remember}
     driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
-#    username: ${DB_ID:aml60}
-    username: ${DB_ID:root}
-    password: ${DB_PW:root}
-#    password: ${DB_PW:aml60}
+    username: ${DB_ID:aml60}
+    password: ${DB_PW:aml60}
     hikari:
       connection-timeout: 30000
       maximum-pool-size: 10

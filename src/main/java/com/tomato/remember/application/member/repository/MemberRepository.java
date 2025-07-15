@@ -186,4 +186,7 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
 
     @Query("SELECT CASE WHEN COUNT(m) > 0 THEN true ELSE false END FROM Member m WHERE m.email = :email AND m.id != :excludeId")
     boolean existsByEmailAndIdNot(@Param("email") String email, @Param("excludeId") Long excludeId);
+
+    @Query("SELECT m FROM Member m LEFT JOIN FETCH m.profileImages WHERE m.id = :memberId")
+    Member findByIdWithProfileImages(@Param("memberId") Long id);
 }

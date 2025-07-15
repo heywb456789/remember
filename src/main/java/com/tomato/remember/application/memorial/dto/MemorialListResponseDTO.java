@@ -25,6 +25,7 @@ public class MemorialListResponseDTO {
     
     // 영상통화 가능 여부
     private Boolean canStartVideoCall;
+    private Boolean hasRequiredProfileImages;
     
     // 파일 업로드 상태
     private Boolean hasRequiredFiles;

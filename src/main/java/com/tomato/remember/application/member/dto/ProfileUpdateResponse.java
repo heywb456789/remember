@@ -39,7 +39,7 @@ public class ProfileUpdateResponse {
 
     private Integer totalImages;
 
-    private List<String> imageUrls;
+    private List<ProfileImageDTO> imageUrls;
 
     // ===== 시스템 정보 =====
 

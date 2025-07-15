@@ -756,30 +756,40 @@ async function handleFormSubmit(event) {
       formData.append('videoFile', memorialData.videoFile.file);
     }
 
-    // API 호출
-    const response = await authFetch('/api/memorials', {
+    // API 호출 - 수정된 부분
+    const result = await authFetch('/api/memorials', {
       method: 'POST',
       body: formData
     });
 
-    if (response.ok) {
-      const result = await response.json();
-      console.log('메모리얼 등록 성공:', result);
+    console.log('API 응답:', result);
+
+    // 응답 구조에 따른 성공/실패 판단
+    if (result.status?.code === 'OK_0000' && result.response?.success) {
+      console.log('메모리얼 등록 성공:', result.response);
 
       // 성공 메시지 표시
-      alert('메모리얼이 성공적으로 등록되었습니다!');
+      alert(result.response.message || '메모리얼이 성공적으로 등록되었습니다!');
 
       // 메모리얼 목록 페이지로 이동
       window.location.href = '/mobile/home';
+
     } else {
-      const errorData = await response.json();
-      console.error('서버 응답 오류:', errorData);
-      throw new Error(errorData.message || '서버 응답 오류');
+      // 서버에서 실패 응답을 보낸 경우
+      const errorMessage = result.status?.message || result.response?.message || '등록 중 오류가 발생했습니다.';
+      console.error('서버 응답 오류:', result);
+      throw new Error(errorMessage);
     }
 
   } catch (error) {
     console.error('폼 제출 실패:', error);
-    alert('등록 중 오류가 발생했습니다. 다시 시도해주세요.');
+
+    // FetchError인 경우 적절한 메시지 표시
+    if (error.name === 'FetchError') {
+      alert(error.statusMessage || '서버 오류가 발생했습니다. 다시 시도해주세요.');
+    } else {
+      alert(error.message || '등록 중 오류가 발생했습니다. 다시 시도해주세요.');
+    }
   } finally {
     // 로딩 해제
     const submitBtn = document.getElementById('submitBtn');

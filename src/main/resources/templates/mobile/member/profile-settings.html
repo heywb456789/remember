@@ -190,24 +190,19 @@
     <script th:inline="javascript">
         window.serverData = {
             currentUser: {
-                id: /*[[ ${currentUser?.id} ]]*/ null,
-                name: /*[[ ${currentUser?.name} ]]*/ null,
-                email: /*[[ ${currentUser?.email} ]]*/ null,
-                phoneNumber: /*[[ ${currentUser?.phoneNumber} ]]*/ null,
-                birthDate: /*[[ ${currentUser?.birthDate} ]]*/ null,
-                profileImages: /*[[ ${profileData?.imageUrls} ]]*/ []  // ✅ 기존 스크립트가 사용하는 필드
+                // 기본 정보만
             },
-            redirectFromVideoCall: /*[[ ${redirectFromVideoCall ?: false} ]]*/ false,
-            maxProfileImages: 5,
-            // ✅ 추가 프로필 정보
-            profileStats: {
-                uploadedCount: /*[[ ${profileData?.uploadedImageCount} ]]*/ 0,
-                validCount: /*[[ ${profileData?.validImageCount} ]]*/ 0,
+            profileData: {
+                imageUrls: /*[[ ${profileData?.imageUrls} ]]*/ [],
+                uploadedImageCount: /*[[ ${profileData?.uploadedImageCount} ]]*/ 0,
+                validImageCount: /*[[ ${profileData?.validImageCount} ]]*/ 0,
                 canStartVideoCall: /*[[ ${profileData?.canStartVideoCall} ]]*/ false,
                 completionPercentage: /*[[ ${profileData?.completionPercentage} ]]*/ 0,
                 hasAnyImages: /*[[ ${profileData?.hasAnyImages} ]]*/ false,
                 needsCompleteUpload: /*[[ ${profileData?.needsCompleteUpload} ]]*/ false
-            }
+            },
+            redirectFromVideoCall: /*[[ ${redirectFromVideoCall ?: false} ]]*/ false,
+            maxProfileImages: 5
         };
     </script>
 

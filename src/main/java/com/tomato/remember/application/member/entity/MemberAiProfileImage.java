@@ -127,7 +127,7 @@ public class MemberAiProfileImage extends Audit {
             .originalFilename(originalFilename)
             .fileSize(fileSize)
             .contentType(contentType)
-            .aiProcessed(false)  // 기본값: AI 처리 안됨
+            .aiProcessed(true)  // 기본값: AI 처리 안됨 TODO: 임시로 true
             .build();
     }
 

@@ -1,5 +1,6 @@
 package com.tomato.remember.application.memorial.service;
 
+import com.tomato.remember.application.member.repository.MemberRepository;
 import com.tomato.remember.application.memorial.dto.MemorialCreateRequestDTO;
 import com.tomato.remember.application.memorial.dto.MemorialCreateResponseDTO;
 import com.tomato.remember.application.memorial.dto.MemorialListResponseDTO;
@@ -37,6 +38,7 @@ public class MemorialServiceImpl implements MemorialService {
 
     private final MemorialRepository memorialRepository;
     private final FileStorageService fileStorageService;
+    private final MemberRepository memberRepository;
 
     @Override
     @Transactional
@@ -106,8 +108,14 @@ public class MemorialServiceImpl implements MemorialService {
 
         Page<Memorial> memorialPage = memorialRepository.findByOwnerOrderByCreatedAtDesc(member, pageable);
 
+        Member memberWithImages = memberRepository.findByIdWithProfileImages(member.getId());
+
+        boolean hasRequiredProfileImages = memberWithImages.hasRequiredProfileImages();
+
         // Page의 content를 DTO로 변환
-        Page<MemorialListResponseDTO> dtoPage = memorialPage.map(this::convertToListResponseDTO);
+        Page<MemorialListResponseDTO> dtoPage = memorialPage.map(memorial ->
+            convertToListResponseDTO(memorial, hasRequiredProfileImages)
+        );
 
         // ListDTO.of 사용
         return ListDTO.of(dtoPage);
@@ -125,7 +133,11 @@ public class MemorialServiceImpl implements MemorialService {
             throw new APIException(ResponseStatus.MEMORIAL_ACCESS_DENIED);
         }
 
-        return convertToListResponseDTO(memorial);
+        Member memberWithImages = memberRepository.findByIdWithProfileImages(member.getId());
+
+        boolean hasRequiredProfileImages = memberWithImages.hasRequiredProfileImages();
+
+        return convertToListResponseDTO(memorial, hasRequiredProfileImages);
     }
 
     @Override
@@ -182,8 +194,12 @@ public class MemorialServiceImpl implements MemorialService {
 
         List<Memorial> memorials = memorialRepository.findByOwnerOrderByCreatedAtDesc(member);
 
+        Member memberWithImages = memberRepository.findByIdWithProfileImages(member.getId());
+
+        boolean hasRequiredProfileImages = memberWithImages.hasRequiredProfileImages();
+
         return memorials.stream()
-                .map(this::convertToListResponseDTO)
+                .map(memorial -> convertToListResponseDTO(memorial, hasRequiredProfileImages))
                 .collect(Collectors.toList());
     }
 
@@ -338,7 +354,7 @@ public class MemorialServiceImpl implements MemorialService {
     /**
      * Memorial 엔티티를 MemorialListResponseDTO로 변환
      */
-    private MemorialListResponseDTO convertToListResponseDTO(Memorial memorial) {
+    private MemorialListResponseDTO convertToListResponseDTO(Memorial memorial, boolean hasRequiredProfileImages) {
         return MemorialListResponseDTO.builder()
             .memorialId(memorial.getId())
             .name(memorial.getName())
@@ -352,6 +368,7 @@ public class MemorialServiceImpl implements MemorialService {
             .relationshipDescription(memorial.getRelationship().getDisplayName())
             .canStartVideoCall(memorial.canStartVideoCall())
             .hasRequiredFiles(memorial.hasRequiredFiles())
+            .hasRequiredProfileImages(hasRequiredProfileImages)
             .profileImageCount(memorial.getFileCount(MemorialFileType.PROFILE_IMAGE))
             .voiceFileCount(memorial.getFileCount(MemorialFileType.VOICE_FILE))
             .videoFileCount(memorial.getFileCount(MemorialFileType.VIDEO_FILE))

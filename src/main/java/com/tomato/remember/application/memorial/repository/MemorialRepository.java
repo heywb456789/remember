@@ -1,5 +1,6 @@
 package com.tomato.remember.application.memorial.repository;
 
+import com.tomato.remember.application.memorial.code.MemorialStatus;
 import com.tomato.remember.application.memorial.entity.Memorial;
 import com.tomato.remember.application.member.entity.Member;
 import org.springframework.data.domain.Page;
@@ -43,6 +44,18 @@ public interface MemorialRepository extends JpaRepository<Memorial, Long> {
     long countByOwner(Member owner);
 
     /**
+     * 특정 소유자의 활성 메모리얼 조회
+     */
+    List<Memorial> findByOwnerAndStatusOrderByCreatedAtDesc(Member owner, MemorialStatus status);
+
+    /**
+     * 특정 소유자의 활성 메모리얼 조회 (페이징)
+     */
+    Page<Memorial> findByOwnerAndStatusOrderByCreatedAtDesc(Member owner, MemorialStatus status, Pageable pageable);
+
+
+
+    /**
      * 소유자별 활성 메모리얼 개수 조회
      */
     @Query("SELECT COUNT(m) FROM Memorial m WHERE m.owner = :owner AND m.status = 'ACTIVE'")
@@ -65,4 +78,9 @@ public interface MemorialRepository extends JpaRepository<Memorial, Long> {
      */
     @Query("SELECT m FROM Memorial m WHERE m.owner = :owner AND m.aiTrainingCompleted = true ORDER BY m.createdAt DESC")
     List<Memorial> findAiTrainingCompletedByOwner(@Param("owner") Member owner);
+
+        /**
+     * 메모리얼 ID와 소유자로 검증
+     */
+    Optional<Memorial> findByIdAndOwner(Long id, Member owner);
 }

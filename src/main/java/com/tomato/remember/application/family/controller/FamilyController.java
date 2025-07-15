@@ -1,6 +1,7 @@
 package com.tomato.remember.application.family.controller;
 
 import com.tomato.remember.application.family.dto.FamilyMemberResponse;
+import com.tomato.remember.application.family.dto.FamilyPageData;
 import com.tomato.remember.application.family.service.FamilyService;
 import com.tomato.remember.application.member.code.Relationship;
 import com.tomato.remember.application.member.entity.Member;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.springframework.web.bind.annotation.RequestParam;
 
 /**
  * 가족 관리 SSR 컨트롤러 (간단 버전)
@@ -36,31 +38,27 @@ public class FamilyController {
      * GET /mobile/family
      */
     @GetMapping
-    public String familyListPage(@AuthenticationPrincipal MemberUserDetails currentUser, Model model) {
-        log.info("가족 목록 페이지 요청 - 사용자: {}", currentUser.getMember().getId());
+    public String familyListPage(
+            @AuthenticationPrincipal MemberUserDetails currentUser,
+            @RequestParam(required = false) Long memorialId,
+            Model model) {
+
+        log.info("가족 목록 페이지 요청 - 사용자: {}, 메모리얼ID: {}",
+                currentUser.getMember().getId(), memorialId);
 
         try {
             Member member = currentUser.getMember();
 
-            // 1. 내가 소유한 메모리얼만 조회
-            List<Memorial> myMemorials = memorialService.findByOwner(member);
-            log.info("소유한 메모리얼 수: {} (사용자: {})", myMemorials.size(), member.getId());
+            // 서비스에서 모든 비즈니스 로직 처리
+            FamilyPageData pageData = familyService.getFamilyPageData(member, memorialId);
 
-            // 2. 전체 가족 구성원 조회 (내가 소유한 모든 메모리얼 기준)
-            List<FamilyMemberResponse> allFamilyMembers = getAllFamilyMembersWithOwner(myMemorials, member);
-
-            // 3. 기본 선택은 "전체" (selectedMemorial = null)
-            Memorial selectedMemorial = null;
-
-            // 4. 모델에 데이터 추가
+            // 모델에 데이터만 설정
             model.addAttribute("currentUser", member);
-            model.addAttribute("memorials", myMemorials);
-            model.addAttribute("familyMembers", allFamilyMembers); // 전체 가족 구성원
-            model.addAttribute("selectedMemorial", selectedMemorial); // null = 전체 선택
-            model.addAttribute("totalMemorials", myMemorials.size());
-            model.addAttribute("totalMembers", allFamilyMembers.size());
-
-            log.info("가족 목록 데이터 준비 완료 - 메모리얼: {}, 전체 구성원: {}", myMemorials.size(), allFamilyMembers.size());
+            model.addAttribute("memorials", pageData.getMemorials());
+            model.addAttribute("selectedMemorial", pageData.getSelectedMemorial());
+            model.addAttribute("familyMembers", pageData.getFamilyMembers());
+            model.addAttribute("totalMemorials", pageData.getTotalMemorials());
+            model.addAttribute("totalMembers", pageData.getTotalMembers());
 
             return "mobile/family/family-list";
 

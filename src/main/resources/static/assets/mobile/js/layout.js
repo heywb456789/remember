@@ -63,7 +63,7 @@ function initializeLayoutComponents() {
     updateViewportHeight();
 
     // 네비게이션 배지 업데이트
-    updateNavigationBadges();
+    // updateNavigationBadges();
 
     layoutState.isInitialized = true;
     console.log('✅ 레이아웃 컴포넌트 초기화 완료');
@@ -455,7 +455,7 @@ function handleWindowResize() {
   }
 
   // 네비게이션 배지 업데이트
-  updateNavigationBadges();
+  // updateNavigationBadges();
 }
 
 /**
@@ -776,7 +776,7 @@ function handleConnectionChange() {
     showToast('인터넷 연결이 복원되었습니다.', 'success', 3000);
 
     // 네비게이션 배지 업데이트
-    updateNavigationBadges();
+    // updateNavigationBadges();
   });
 
   window.addEventListener('offline', () => {
@@ -798,7 +798,7 @@ function handleVisibilityChange() {
 
       // 배지 업데이트
       if (window.APP_CONFIG?.isLoggedIn) {
-        updateNavigationBadges();
+        // updateNavigationBadges();
       }
     }
   });
@@ -855,7 +855,7 @@ export {
   openMenu,
   closeMenu,
   toggleMenu,
-  updateNavigationBadges,
+  // updateNavigationBadges,
   showPageLoading,
   hidePageLoading,
   checkMenuState

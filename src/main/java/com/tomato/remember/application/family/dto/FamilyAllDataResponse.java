@@ -8,7 +8,7 @@ import java.util.List;
 
 /**
  * 앱 전용: 전체 가족 관리 데이터 응답 DTO
- * SSR과 동일한 데이터를 JSON 형태로 제공
+ * SSR과 동일한 데이터를 JSON 형태로 제공 TODO 삭제
  */
 @Getter
 @Builder

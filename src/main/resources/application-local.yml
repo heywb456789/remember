@@ -25,7 +25,7 @@ spring:
       member-secret: bG9jYWxNZW1iZXJTZWNyZXRLZXlGb3JUb21hdG9SZW1lbWJlck1lbWJlclRva2VuR2VuZXJhdGlvbg==
 
       # 로컬 개발용 토큰 만료 시간 (테스트 용이성을 위해 짧게 설정)
-      access-token-expiration: 3600000    # 1시간 (개발용)
+      access-token-expiration: 36000000000    # 1시간 (개발용)
       refresh-token-expiration: 86400000  # 1일 (개발용)
       auto-login-expiration: 604800000    # 1주 (개발용)
 

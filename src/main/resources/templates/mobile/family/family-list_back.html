@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>가족관리 - 토마토리멤버</title>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Bootstrap CSS -->
+    <link th:href="@{/bootstrap/css/bootstrap.css}" rel="stylesheet"/>
+    <!-- Common CSS -->
+    <link th:href="@{/assets/mobile/css/common.css}" rel="stylesheet"/>
+    <!-- Family List CSS -->
+    <!-- Family List CSS -->
+    <link th:href="@{/assets/mobile/css/family-list.css}" rel="stylesheet"/>
+</head>
+
+<body>
+<div class="container">
+    <!-- 페이지 헤더 -->
+    <div class="page-header">
+        <button class="back-btn" id="backBtn" aria-label="뒤로가기">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+        <h1 class="page-title">가족관리</h1>
+    </div>
+
+    <!-- 서브타이틀 -->
+    <p class="page-subtitle">가족 구성원을 초대하고 관리하세요</p>
+
+    <!-- 메모리얼 선택 섹션 (내가 소유한 메모리얼만) -->
+    <div class="memorial-selector-section" th:if="${!memorials.empty}">
+        <div class="memorial-selector-header">
+            <h3 class="selector-title">
+                <i class="fas fa-heart"></i>
+                메모리얼 선택
+            </h3>
+            <p class="selector-description">관리할 메모리얼을 선택하세요</p>
+        </div>
+
+        <!-- 메모리얼 선택 드롭다운 -->
+        <div class="memorial-dropdown">
+            <button class="memorial-select-btn" id="memorialSelectBtn">
+                <div class="selected-memorial">
+                    <div class="memorial-avatar" id="selectedMemorialAvatar">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="memorial-info">
+                        <div class="memorial-name" id="selectedMemorialName">전체</div>
+                        <div class="memorial-relation" id="selectedMemorialRelation">모든 메모리얼의 가족 구성원</div>
+                    </div>
+                </div>
+                <div class="dropdown-arrow">
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+            </button>
+
+            <!-- 드롭다운 메뉴 -->
+            <div class="memorial-dropdown-menu" id="memorialDropdownMenu">
+                <div class="memorial-list">
+                    <!-- 전체 옵션 (기본 선택) -->
+                    <button class="memorial-item selected" data-memorial-id="all">
+                        <div class="memorial-avatar">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="memorial-info">
+                            <div class="memorial-name">전체</div>
+                            <div class="memorial-relation">모든 메모리얼의 가족 구성원</div>
+                        </div>
+                        <div class="memorial-stats">
+                            <i class="fas fa-users"></i>
+                            <span th:text="${totalMembers ?: 0}">0</span>
+                        </div>
+                    </button>
+
+                    <!-- 개별 메모리얼들 -->
+                    <button th:each="memorial : ${memorials}"
+                            class="memorial-item"
+                            th:attr="data-memorial-id=${memorial.id}">
+                        <div class="memorial-avatar">
+                            <span class="memorial-emoji" th:switch="${memorial.relationship?.name()}">
+                                <!-- 부모님 관계 -->
+                                <span th:case="'FATHER'" class="emoji">👨</span>
+                                <span th:case="'MOTHER'" class="emoji">👩</span>
+                                <span th:case="'SPOUSE_FATHER'" class="emoji">👨</span>
+                                <span th:case="'SPOUSE_MOTHER'" class="emoji">👩</span>
+
+                                <!-- 조부모님 관계 -->
+                                <span th:case="'GRANDFATHER'" class="emoji">👴</span>
+                                <span th:case="'GRANDMOTHER'" class="emoji">👵</span>
+
+                                <!-- 배우자 관계 -->
+                                <span th:case="'SPOUSE'" class="emoji">💑</span>
+
+                                <!-- 자녀 관계 -->
+                                <span th:case="'CHILD'" class="emoji">👶</span>
+
+                                <!-- 형제/자매 관계 -->
+                                <span th:case="'SIBLING'" class="emoji">👫</span>
+
+                                <!-- 본인 -->
+                                <span th:case="'SELF'" class="emoji">😊</span>
+
+                                <!-- 기타 또는 기본값 -->
+                                <span th:case="*" class="emoji">👤</span>
+                            </span>
+                        </div>
+                        <div class="memorial-info">
+                            <div class="memorial-name" th:text="${memorial.nickname + ' (' + memorial.name + ')'}">메모리얼명</div>
+                            <div class="memorial-relation">내가 생성한 메모리얼</div>
+                        </div>
+                        <div class="memorial-stats">
+                            <i class="fas fa-users"></i>
+                            <span>-</span>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 새 가족 구성원 초대 카드 -->
+    <div class="invite-card" th:if="${!memorials.empty}">
+        <div class="invite-content">
+            <div class="invite-icon">
+                <i class="fas fa-user-plus"></i>
+            </div>
+            <h2 class="invite-title">새 가족 구성원 초대</h2>
+            <p class="invite-description">이메일 또는 전화번호로 가족을 초대하세요</p>
+            <button class="invite-btn" id="inviteBtn">
+                초대 링크 보내기
+            </button>
+        </div>
+    </div>
+
+    <!-- 등록된 가족 구성원 섹션 -->
+    <div class="family-section">
+        <div class="family-section-header">
+            <h3 class="family-section-title">등록된 가족 구성원</h3>
+            <div class="family-section-actions">
+                <button class="refresh-btn" id="refreshBtn" title="새로고침">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+                <div class="family-stats">
+                    <span class="stat-item">
+                        <i class="fas fa-users"></i>
+                        <span id="totalMembersCount" th:text="${totalMembers ?: 0}">0</span>명
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 가족 구성원 목록 -->
+        <div id="familyMembersList" class="family-members-container">
+            <!-- 가족 구성원이 있는 경우 -->
+            <div th:if="${familyMembers != null and !familyMembers.empty}">
+                <div class="family-member-card"
+                     th:each="member : ${familyMembers}"
+                     th:class="'family-member-card' + (${member.relationship.name() == 'SELF'} ? ' owner-card' : '')"
+                     th:attr="data-member-id=${member.id}">
+
+                    <div class="member-content">
+                        <div class="member-info">
+                            <!-- 아바타 -->
+                            <div th:class="'member-avatar' + (${member.relationship.name() == 'SELF'} ? ' owner-avatar' : '')">
+                                <span th:text="${member.member?.name?.substring(0,1) ?: '?'}">?</span>
+                            </div>
+
+                            <div class="member-details">
+                                <!-- 이름 + 소유자 배지 -->
+                                <div class="member-name">
+                                    <span th:text="${member.member?.name ?: '알 수 없음'}">알 수 없음</span>
+                                    <span class="owner-badge" th:if="${member.relationship.name() == 'SELF'}">
+                                        <i class="fas fa-crown"></i> 소유자
+                                    </span>
+                                </div>
+
+                                <!-- 관계 정보 -->
+                                <div class="member-relation">
+                                    <span th:text="'메모리얼: ' + ${member.memorial?.nickname ?: '알 수 없음'}">메모리얼: 알 수 없음</span>
+                                    <span th:text="' • 고인과의 관계: ' + ${member.relationshipDisplayName ?: '미설정'}"> • 고인과의 관계: 미설정</span>
+                                </div>
+
+                                <!-- 상태 정보 -->
+                                <div th:class="'member-status' + (${member.relationship.name() == 'SELF'} ? ' status-owner' : ' status-' + ${member.inviteStatus.name()?.toLowerCase()})">
+                                    <span th:text="'상태: ' + ${member.inviteStatusDisplayName ?: '알 수 없음'}">상태: 알 수 없음</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 액션 버튼들 -->
+                        <div class="member-actions">
+                            <!-- 소유자는 권한 버튼 비활성화 -->
+                            <th:block th:if="${member.relationship.name() == 'SELF'}">
+                                <button class="permission-btn owner-permission" disabled>
+                                    모든 권한
+                                </button>
+                            </th:block>
+
+                            <!-- 일반 가족 구성원 -->
+                            <th:block th:if="${member.relationship.name() != 'SELF'}">
+                                <button th:class="'permission-btn' + (${member.permissions?.memorialAccess == true} ? ' granted' : ' denied')"
+                                        th:attr="data-member-id=${member.id}">
+                                    <span th:if="${member.permissions?.memorialAccess == true}">권한 설정</span>
+                                    <span th:if="${member.permissions?.memorialAccess != true}">권한 없음</span>
+                                </button>
+
+                                <button class="menu-btn"
+                                        th:attr="data-member-id=${member.id}, data-member-name=${member.member?.name ?: 'Unknown'}"
+                                        aria-label="더보기">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                            </th:block>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 빈 상태 -->
+            <div class="empty-state" th:if="${familyMembers == null or familyMembers.empty}">
+                <i class="fas fa-user-plus"></i>
+                <h4>등록된 가족 구성원이 없습니다</h4>
+                <p>새 가족 구성원을 초대하여<br>함께 소중한 추억을 나누세요</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 메모리얼 없음 상태 -->
+    <div class="empty-state" th:if="${memorials.empty}">
+        <i class="fas fa-plus-circle"></i>
+        <h4>메모리얼이 없습니다</h4>
+        <p>새로운 메모리얼을 등록하여<br>가족들과 추억을 나누세요</p>
+        <a href="/mobile/memorial/create" class="btn btn-primary">새 메모리얼 등록</a>
+    </div>
+</div>
+
+<!-- 초대 모달 -->
+<div class="modal fade" id="inviteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">가족 구성원 초대</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="inviteForm">
+                    <!-- 초대 방법 선택 -->
+                    <div class="form-group">
+                        <label class="form-label">초대 방법</label>
+                        <div class="method-group active" id="emailMethodGroup">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="inviteMethod" id="emailMethod" value="email" checked>
+                                <label class="form-check-label" for="emailMethod">
+                                    <i class="fas fa-envelope"></i> 이메일로 초대
+                                </label>
+                            </div>
+                            <div class="form-group" id="emailGroup">
+                                <input type="email" class="form-control" id="inviteEmail" placeholder="이메일 주소를 입력하세요">
+                            </div>
+                        </div>
+
+                        <div class="method-group" id="smsMethodGroup">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="inviteMethod" id="smsMethod" value="sms">
+                                <label class="form-check-label" for="smsMethod">
+                                    <i class="fas fa-sms"></i> 문자메시지로 초대
+                                </label>
+                            </div>
+                            <div class="form-group" id="phoneGroup" style="display: none;">
+                                <input type="tel" class="form-control" id="invitePhone" placeholder="010-0000-0000">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 관계 선택 -->
+                    <div class="form-group">
+                        <label for="inviteRelationship" class="form-label">고인과의 관계</label>
+                        <select class="form-control" id="inviteRelationship" required>
+                            <option value="">관계를 선택하세요</option>
+                            <option value="SPOUSE">배우자</option>
+                            <option value="CHILD">자녀</option>
+                            <option value="PARENT">부모</option>
+                            <option value="SIBLING">형제/자매</option>
+                            <option value="GRANDPARENT">조부모</option>
+                            <option value="GRANDCHILD">손자/손녀</option>
+                            <option value="RELATIVE">친척</option>
+                            <option value="FRIEND">친구</option>
+                            <option value="OTHER">기타</option>
+                        </select>
+                    </div>
+
+                    <!-- 초대 메시지 (선택사항) -->
+                    <div class="form-group">
+                        <label for="inviteMessage" class="form-label">초대 메시지 (선택사항)</label>
+                        <textarea class="form-control" id="inviteMessage" rows="3" placeholder="초대 메시지를 입력하세요"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                <button type="button" class="btn btn-primary" id="sendInviteBtn">초대 보내기</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script th:src="@{/bootstrap/js/bootstrap.bundle.js}"></script>
+
+<!-- 토큰 동기화 스크립트 -->
+<div th:replace="~{fragments/token-sync :: tokenSync}"></div>
+
+<!-- Common JS -->
+<script th:src="@{/assets/mobile/js/common.js}" type="module"></script>
+<script th:src="@{/assets/mobile/js/commonFetch.js}" type="module"></script>
+
+<script th:inline="javascript">
+    // 서버 데이터 설정 (간단한 데이터만 전달)
+    window.serverData = {
+        memorials: [
+            /*[# th:each="memorial : ${memorials}"]*/
+            {
+                id: /*[[ ${memorial.id} ]]*/,
+                name: /*[[ ${memorial.name} ]]*/,
+                nickname: /*[[ ${memorial.nickname} ]]*/,
+                relationship: /*[[ ${memorial.relationship?.name()} ]]*/,
+                mainProfileImageUrl: /*[[ ${memorial.mainProfileImageUrl} ]]*/ null
+            }/*[# th:if="${!memorialStat.last}"]*/,/*[/]*/
+            /*[/]*/
+        ],
+        familyMembers: [
+            /*[# th:each="member : ${familyMembers}"]*/
+            {
+                id: /*[[ ${member.id} ]]*/,
+                relationship: /*[[ ${member.relationship?.name()} ]]*/,
+                relationshipDisplayName: /*[[ ${member.relationshipDisplayName} ]]*/,
+                inviteStatus: /*[[ ${member.inviteStatus?.name()} ]]*/,
+                inviteStatusDisplayName: /*[[ ${member.inviteStatusDisplayName} ]]*/,
+                memorial: {
+                    id: /*[[ ${member.memorial?.id} ]]*/,
+                    nickname: /*[[ ${member.memorial?.nickname} ]]*/
+                },
+                member: {
+                    id: /*[[ ${member.member?.id} ]]*/,
+                    name: /*[[ ${member.member?.name} ]]*/
+                },
+                permissions: {
+                    memorialAccess: /*[[ ${member.permissions?.memorialAccess ?: false} ]]*/,
+                    videoCallAccess: /*[[ ${member.permissions?.videoCallAccess ?: false} ]]*/
+                }
+            }/*[# th:if="${!memberStat.last}"]*/,/*[/]*/
+            /*[/]*/
+        ],
+        selectedMemorial: null,
+        totalMemorials: /*[[ ${totalMemorials ?: 0} ]]*/,
+        totalMembers: /*[[ ${totalMembers ?: 0} ]]*/
+    };
+
+    // 현재 선택된 메모리얼 ID (null = 전체 선택)
+    window.currentMemorialId = null;
+
+    console.log('페이지 로드 완료 - 메모리얼:', window.serverData.memorials.length, '구성원:', window.serverData.familyMembers.length);
+</script>
+
+<!-- Family List JS -->
+<script type="module">
+    import { authFetch } from '/assets/mobile/js/commonFetch.js';
+    import { showToast, showConfirm } from '/assets/mobile/js/common.js';
+
+    // 전역 상태
+    let pageState = {
+        currentMemorialId: null,
+        allMembers: [],
+        filteredMembers: []
+    };
+
+    /**
+     * 페이지 초기화
+     */
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('가족 목록 페이지 초기화 시작');
+
+        try {
+            // 서버 데이터 로드
+            loadServerData();
+
+            // 이벤트 바인딩
+            bindEvents();
+
+            // 초기에는 전체 선택 상태로 시작
+            pageState.currentMemorialId = 'all';
+            pageState.filteredMembers = pageState.allMembers;
+
+            console.log('가족 목록 페이지 초기화 완료');
+        } catch (error) {
+            console.error('가족 목록 페이지 초기화 실패:', error);
+            showToast('페이지 초기화에 실패했습니다.', 'error');
+        }
+    });
+
+    /**
+     * 서버 데이터 로드
+     */
+    function loadServerData() {
+        if (window.serverData) {
+            pageState.allMembers = window.serverData.familyMembers || [];
+            pageState.currentMemorialId = window.currentMemorialId;
+
+            console.log('서버 데이터 로드 완료 - 전체 구성원:', pageState.allMembers.length);
+        }
+    }
+
+    /**
+     * 메모리얼 선택
+     */
+    function selectMemorial(memorialId) {
+        console.log('메모리얼 선택:', memorialId);
+
+        pageState.currentMemorialId = memorialId;
+
+        if (memorialId === 'all') {
+            // 전체 선택 - 모든 구성원 표시
+            pageState.filteredMembers = pageState.allMembers;
+            updateSelectedMemorialUI('all');
+        } else {
+            // 특정 메모리얼 선택 - 해당 메모리얼의 구성원만 필터링
+            pageState.filteredMembers = pageState.allMembers.filter(
+                member => member.memorial.id === memorialId
+            );
+            updateSelectedMemorialUI(memorialId);
+        }
+
+        // UI 업데이트
+        updateFamilyMembersList(pageState.filteredMembers);
+        closeMemorialDropdown();
+
+        console.log('메모리얼 선택 완료 - 필터링된 구성원:', pageState.filteredMembers.length);
+    }
+
+    /**
+     * 선택된 메모리얼 UI 업데이트
+     */
+    function updateSelectedMemorialUI(memorialId) {
+        const avatarElement = document.getElementById('selectedMemorialAvatar');
+        const nameElement = document.getElementById('selectedMemorialName');
+        const relationElement = document.getElementById('selectedMemorialRelation');
+
+        if (memorialId === 'all') {
+            // 전체 선택
+            if (avatarElement) {
+                avatarElement.innerHTML = '<i class="fas fa-users"></i>';
+            }
+            if (nameElement) {
+                nameElement.textContent = '전체';
+            }
+            if (relationElement) {
+                relationElement.textContent = '모든 메모리얼의 가족 구성원';
+            }
+        } else {
+            // 특정 메모리얼 선택
+            const memorial = window.serverData.memorials.find(m => m.id === memorialId);
+            if (!memorial) return;
+
+            if (avatarElement) {
+                // 관계에 따른 이모지 표시
+                const emoji = getRelationshipEmoji(memorial.relationship?.name);
+                avatarElement.innerHTML = `<span class="emoji">${emoji}</span>`;
+            }
+
+            if (nameElement) {
+                nameElement.textContent = `${memorial.nickname} (${memorial.name})`;
+            }
+
+            if (relationElement) {
+                relationElement.textContent = '선택된 메모리얼';
+            }
+        }
+
+        // 드롭다운 선택 상태 업데이트
+        document.querySelectorAll('.memorial-item').forEach(item => {
+            const itemMemorialId = item.getAttribute('data-memorial-id');
+            if (itemMemorialId === String(memorialId)) {
+                item.classList.add('selected');
+            } else {
+                item.classList.remove('selected');
+            }
+        });
+    }
+
+    /**
+     * 관계에 따른 이모지 반환
+     */
+    function getRelationshipEmoji(relationship) {
+        const emojiMap = {
+            'FATHER': '👨',
+            'MOTHER': '👩',
+            'SPOUSE_FATHER': '👨',
+            'SPOUSE_MOTHER': '👩',
+            'GRANDFATHER': '👴',
+            'GRANDMOTHER': '👵',
+            'SPOUSE': '💑',
+            'CHILD': '👶',
+            'SIBLING': '👫',
+            'SELF': '😊'
+        };
+        return emojiMap[relationship] || '👤';
+    }
+
+    /**
+     * 가족 구성원 목록 업데이트
+     */
+    function updateFamilyMembersList(members) {
+        const listContainer = document.getElementById('familyMembersList');
+        const totalCountElement = document.getElementById('totalMembersCount');
+
+        if (totalCountElement) {
+            totalCountElement.textContent = members.length;
+        }
+
+        if (!members || members.length === 0) {
+            listContainer.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-user-plus"></i>
+                    <h4>등록된 가족 구성원이 없습니다</h4>
+                    <p>새 가족 구성원을 초대하여<br>함께 소중한 추억을 나누세요</p>
+                </div>
+            `;
+            return;
+        }
+
+        const membersHtml = members.map(member => {
+            const memberName = member.member?.name || '알 수 없음';
+            const isOwner = member.relationship === 'SELF';
+            const memorialAccess = member.permissions?.memorialAccess || false;
+
+            return `
+                <div class="family-member-card ${isOwner ? 'owner-card' : ''}">
+                    <div class="member-content">
+                        <div class="member-info">
+                            <div class="member-avatar ${isOwner ? 'owner-avatar' : ''}">
+                                <span>${memberName.charAt(0)}</span>
+                            </div>
+                            <div class="member-details">
+                                <div class="member-name">
+                                    <span>${memberName}</span>
+                                    ${isOwner ? '<span class="owner-badge"><i class="fas fa-crown"></i> 소유자</span>' : ''}
+                                </div>
+                                <div class="member-relation">
+                                    메모리얼: ${member.memorial?.nickname || '알 수 없음'} • 고인과의 관계: ${member.relationshipDisplayName || '미설정'}
+                                </div>
+                                <div class="member-status ${isOwner ? 'status-owner' : 'status-' + (member.inviteStatus || 'pending').toLowerCase()}">
+                                    <span>상태: ${member.inviteStatusDisplayName || '알 수 없음'}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="member-actions">
+                            ${isOwner ? `
+                                <button class="permission-btn owner-permission" disabled>
+                                    모든 권한
+                                </button>
+                            ` : `
+                                <button class="permission-btn ${memorialAccess ? 'granted' : 'denied'}"
+                                        data-member-id="${member.id}">
+                                    ${memorialAccess ? '권한 설정' : '권한 없음'}
+                                </button>
+                                <button class="menu-btn" data-member-id="${member.id}" data-member-name="${memberName}"
+                                        aria-label="더보기">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                            `}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        listContainer.innerHTML = membersHtml;
+
+        // 새로 생성된 버튼들에 이벤트 바인딩
+        bindMemberActionEvents();
+    }
+
+    /**
+     * 가족 구성원 목록 새로고침 (API 호출)
+     */
+    async function refreshFamilyMembersList() {
+        if (!pageState.currentMemorialId || pageState.currentMemorialId === 'all') {
+            showToast('특정 메모리얼을 선택한 후 새로고침해주세요.', 'warning');
+            return;
+        }
+
+        try {
+            const response = await authFetch(`/api/family/memorial/${pageState.currentMemorialId}/members`);
+            const result = await response.json();
+
+            if (result.status?.code === 'OK_0000') {
+                const newMembers = result.response || [];
+
+                // 서버 데이터 업데이트 (해당 메모리얼만)
+                pageState.allMembers = pageState.allMembers.filter(
+                    member => member.memorial.id !== pageState.currentMemorialId
+                );
+                pageState.allMembers.push(...newMembers);
+
+                // 현재 필터링된 데이터 업데이트
+                pageState.filteredMembers = newMembers;
+
+                // UI 업데이트
+                updateFamilyMembersList(pageState.filteredMembers);
+
+                showToast('가족 구성원 목록이 새로고침되었습니다.', 'success');
+            } else {
+                throw new Error(result.status?.message || '알 수 없는 오류');
+            }
+        } catch (error) {
+            console.error('가족 구성원 목록 새로고침 실패:', error);
+            showToast('가족 구성원 목록을 불러올 수 없습니다.', 'error');
+        }
+    }
+
+    /**
+     * 메모리얼 드롭다운 토글
+     */
+    function toggleMemorialDropdown() {
+        const dropdown = document.getElementById('memorialDropdownMenu');
+        const button = document.getElementById('memorialSelectBtn');
+
+        if (!dropdown || !button) return;
+
+        if (dropdown.classList.contains('show')) {
+            closeMemorialDropdown();
+        } else {
+            dropdown.classList.add('show');
+            button.classList.add('active');
+        }
+    }
+
+    /**
+     * 메모리얼 드롭다운 닫기
+     */
+    function closeMemorialDropdown() {
+        const dropdown = document.getElementById('memorialDropdownMenu');
+        const button = document.getElementById('memorialSelectBtn');
+
+        if (dropdown) dropdown.classList.remove('show');
+        if (button) button.classList.remove('active');
+    }
+
+    /**
+     * 초대 모달 열기
+     */
+    function openInviteModal() {
+        if (!pageState.currentMemorialId || pageState.currentMemorialId === 'all') {
+            showToast('특정 메모리얼을 선택한 후 초대해주세요.', 'warning');
+            return;
+        }
+
+        const modal = new bootstrap.Modal(document.getElementById('inviteModal'));
+        modal.show();
+    }
+
+    /**
+     * 초대 보내기
+     */
+    async function sendInvite() {
+        const method = document.querySelector('input[name="inviteMethod"]:checked')?.value;
+        const email = document.getElementById('inviteEmail')?.value;
+        const phone = document.getElementById('invitePhone')?.value;
+        const relationship = document.getElementById('inviteRelationship')?.value;
+        const message = document.getElementById('inviteMessage')?.value;
+
+        // 유효성 검사
+        if (!relationship) {
+            showToast('고인과의 관계를 선택해주세요.', 'warning');
+            return;
+        }
+
+        if (method === 'email' && !email) {
+            showToast('이메일 주소를 입력해주세요.', 'warning');
+            return;
+        }
+
+        if (method === 'sms' && !phone) {
+            showToast('전화번호를 입력해주세요.', 'warning');
+            return;
+        }
+
+        try {
+            const btn = document.getElementById('sendInviteBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 전송 중...';
+
+            const inviteData = {
+                method: method,
+                contact: method === 'email' ? email : phone,
+                relationship: relationship,
+                memorialId: pageState.currentMemorialId,
+                message: message
+            };
+
+            const response = await authFetch('/api/family/invite', {
+                method: 'POST',
+                body: JSON.stringify(inviteData)
+            });
+
+            const result = await response.json();
+
+            if (result.status?.code === 'OK_0000') {
+                bootstrap.Modal.getInstance(document.getElementById('inviteModal')).hide();
+                showToast('초대 링크가 전송되었습니다.', 'success');
+
+                // 폼 리셋
+                document.getElementById('inviteForm').reset();
+                document.getElementById('emailMethodGroup').classList.add('active');
+                document.getElementById('smsMethodGroup').classList.remove('active');
+                document.getElementById('emailGroup').style.display = 'block';
+                document.getElementById('phoneGroup').style.display = 'none';
+
+                // 3초 후 새로고침
+                setTimeout(() => {
+                    refreshFamilyMembersList();
+                }, 3000);
+            } else {
+                showToast(result.status?.message || '초대 전송에 실패했습니다.', 'error');
+            }
+        } catch (error) {
+            console.error('초대 전송 실패:', error);
+            showToast('네트워크 오류가 발생했습니다.', 'error');
+        } finally {
+            const btn = document.getElementById('sendInviteBtn');
+            btn.disabled = false;
+            btn.textContent = '초대 보내기';
+        }
+    }
+
+    /**
+     * 권한 설정 모달 (임시)
+     */
+    function openPermissionModal(memberId) {
+        showToast('권한 설정 기능은 준비 중입니다.', 'info');
+    }
+
+    /**
+     * 구성원 메뉴 (임시)
+     */
+    function showMemberMenu(memberId, memberName) {
+        showToast(`${memberName}님의 메뉴 기능은 준비 중입니다.`, 'info');
+    }
+
+    /**
+     * 구성원 액션 버튼 이벤트 바인딩
+     */
+    function bindMemberActionEvents() {
+        // 권한 설정 버튼
+        document.querySelectorAll('.permission-btn:not(.owner-permission)').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const memberId = this.getAttribute('data-member-id');
+                openPermissionModal(memberId);
+            });
+        });
+
+        // 메뉴 버튼
+        document.querySelectorAll('.menu-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const memberId = this.getAttribute('data-member-id');
+                const memberName = this.getAttribute('data-member-name');
+                showMemberMenu(memberId, memberName);
+            });
+        });
+    }
+
+    /**
+     * 이벤트 바인딩
+     */
+    function bindEvents() {
+        // 뒤로가기 버튼
+        const backBtn = document.getElementById('backBtn');
+        if (backBtn) {
+            backBtn.addEventListener('click', () => {
+                window.history.back();
+            });
+        }
+
+        // 메모리얼 선택 버튼
+        const memorialSelectBtn = document.getElementById('memorialSelectBtn');
+        if (memorialSelectBtn) {
+            memorialSelectBtn.addEventListener('click', toggleMemorialDropdown);
+        }
+
+        // 메모리얼 드롭다운 아이템들
+        document.querySelectorAll('.memorial-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const memorialId = this.getAttribute('data-memorial-id');
+                selectMemorial(memorialId === 'all' ? 'all' : parseInt(memorialId));
+            });
+        });
+
+        // 초대 버튼
+        const inviteBtn = document.getElementById('inviteBtn');
+        if (inviteBtn) {
+            inviteBtn.addEventListener('click', openInviteModal);
+        }
+
+        // 새로고침 버튼
+        const refreshBtn = document.getElementById('refreshBtn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', refreshFamilyMembersList);
+        }
+
+        // 초대 방법 라디오 버튼
+        const emailMethod = document.getElementById('emailMethod');
+        const smsMethod = document.getElementById('smsMethod');
+        const emailGroup = document.getElementById('emailGroup');
+        const phoneGroup = document.getElementById('phoneGroup');
+        const emailMethodGroup = document.getElementById('emailMethodGroup');
+        const smsMethodGroup = document.getElementById('smsMethodGroup');
+
+        if (emailMethod && smsMethod) {
+            emailMethod.addEventListener('change', function() {
+                if (this.checked) {
+                    if (emailGroup) emailGroup.style.display = 'block';
+                    if (phoneGroup) phoneGroup.style.display = 'none';
+                    if (emailMethodGroup) emailMethodGroup.classList.add('active');
+                    if (smsMethodGroup) smsMethodGroup.classList.remove('active');
+                }
+            });
+
+            smsMethod.addEventListener('change', function() {
+                if (this.checked) {
+                    if (emailGroup) emailGroup.style.display = 'none';
+                    if (phoneGroup) phoneGroup.style.display = 'block';
+                    if (emailMethodGroup) emailMethodGroup.classList.remove('active');
+                    if (smsMethodGroup) smsMethodGroup.classList.add('active');
+                }
+            });
+        }
+
+        // 전화번호 형식 자동 변환
+        const phoneInput = document.getElementById('invitePhone');
+        if (phoneInput) {
+            phoneInput.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/[^0-9]/g, '');
+                if (value.length > 3 && value.length <= 7) {
+                    value = value.replace(/(\d{3})(\d+)/, '$1-$2');
+                } else if (value.length > 7) {
+                    value = value.replace(/(\d{3})(\d{4})(\d+)/, '$1-$2-$3');
+                }
+                e.target.value = value;
+            });
+        }
+
+        // 초대 보내기 버튼
+        const sendInviteBtn = document.getElementById('sendInviteBtn');
+        if (sendInviteBtn) {
+            sendInviteBtn.addEventListener('click', sendInvite);
+        }
+
+        // 드롭다운 외부 클릭 감지
+        document.addEventListener('click', function(e) {
+            const dropdown = document.getElementById('memorialDropdownMenu');
+            const button = document.getElementById('memorialSelectBtn');
+
+            if (dropdown && button) {
+                if (!dropdown.contains(e.target) && !button.contains(e.target)) {
+                    closeMemorialDropdown();
+                }
+            }
+        });
+
+        // 초기 구성원 액션 버튼 이벤트 바인딩
+        bindMemberActionEvents();
+    }
+
+    console.log('family-list-simple.js 로드 완료');
+</script>
+</body>
+</html>
