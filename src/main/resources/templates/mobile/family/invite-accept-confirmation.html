@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>초대 수락 완료 - 토마토리멤버</title>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Common CSS -->
+    <link th:href="@{/assets/mobile/css/common.css}" rel="stylesheet"/>
+
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .confirmation-container {
+            max-width: 400px;
+            width: 100%;
+            background: white;
+            border-radius: 20px;
+            padding: 40px 30px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            animation: successAnimation 0.8s ease-out;
+        }
+
+        @keyframes successAnimation {
+            0% {
+                opacity: 0;
+                transform: translateY(30px) scale(0.9);
+            }
+            50% {
+                opacity: 1;
+                transform: translateY(0) scale(1.05);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .success-icon {
+            font-size: 80px;
+            color: #28a745;
+            margin-bottom: 20px;
+            display: block;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-10px);
+            }
+            60% {
+                transform: translateY(-5px);
+            }
+        }
+
+        .success-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+
+        .success-message {
+            font-size: 16px;
+            color: #7f8c8d;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+
+        .confirmation-details {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-left: 4px solid #28a745;
+        }
+
+        .detail-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+
+        .detail-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .detail-icon {
+            width: 20px;
+            color: #28a745;
+            margin-right: 12px;
+            text-align: center;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #495057;
+            margin-right: 8px;
+        }
+
+        .detail-value {
+            color: #6c757d;
+        }
+
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 15px 25px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(40, 167, 69, 0.4);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #6c757d;
+            border: 1px solid #dee2e6;
+        }
+
+        .btn-secondary:hover {
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        .welcome-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+            border-radius: 15px;
+        }
+
+        .welcome-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+
+        .welcome-text {
+            font-size: 14px;
+            color: #424242;
+            line-height: 1.5;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .feature-item {
+            text-align: center;
+            padding: 15px 10px;
+            background: white;
+            border-radius: 10px;
+            transition: transform 0.3s ease;
+        }
+
+        .feature-item:hover {
+            transform: translateY(-3px);
+        }
+
+        .feature-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .feature-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #28a745;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 480px) {
+            .confirmation-container {
+                padding: 30px 20px;
+                margin: 0 10px;
+            }
+
+            .success-icon {
+                font-size: 60px;
+            }
+
+            .success-title {
+                font-size: 20px;
+            }
+
+            .success-message {
+                font-size: 14px;
+            }
+
+            .features-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="confirmation-container">
+    <!-- 성공 아이콘 -->
+    <div class="success-icon">
+        <i class="fas fa-check-circle"></i>
+    </div>
+
+    <!-- 성공 제목 -->
+    <h1 class="success-title">초대 수락 완료!</h1>
+
+    <!-- 성공 메시지 -->
+    <p class="success-message">
+        가족 메모리얼에 성공적으로 등록되었습니다.<br>
+        이제 소중한 추억을 함께 나눌 수 있습니다.
+    </p>
+
+    <!-- 확인 상세 정보 -->
+    <div class="confirmation-details" th:if="${showConfirmation}">
+        <div class="detail-item">
+            <i class="fas fa-user detail-icon"></i>
+            <span class="detail-label">초대자:</span>
+            <span class="detail-value" th:text="${inviterName ?: '초대자'}">초대자</span>
+        </div>
+        <div class="detail-item">
+            <i class="fas fa-heart detail-icon"></i>
+            <span class="detail-label">메모리얼:</span>
+            <span class="detail-value" th:text="${memorialName ?: '메모리얼'}">메모리얼</span>
+        </div>
+        <div class="detail-item">
+            <i class="fas fa-users detail-icon"></i>
+            <span class="detail-label">관계:</span>
+            <span class="detail-value" th:text="${relationshipDisplayName ?: '가족'}">가족</span>
+        </div>
+        <div class="detail-item">
+            <i class="fas fa-calendar detail-icon"></i>
+            <span class="detail-label">등록일:</span>
+            <span class="detail-value" id="currentDate">2024년 1월 1일</span>
+        </div>
+    </div>
+
+    <!-- 버튼 그룹 -->
+    <div class="btn-group">
+        <a href="/mobile/main" class="btn btn-primary" onclick="showLoading()">
+            <i class="fas fa-home"></i>
+            메인 페이지로 이동
+        </a>
+        <a href="/mobile/family" class="btn btn-secondary">
+            <i class="fas fa-users"></i>
+            가족 관리 페이지
+        </a>
+    </div>
+
+    <!-- 환영 섹션 -->
+    <div class="welcome-section">
+        <div class="welcome-title">🎉 토마토리멤버에 오신 것을 환영합니다!</div>
+        <div class="welcome-text">
+            이제 다양한 기능을 통해 고인과의 소중한 추억을 간직하고 가족들과 함께 나눌 수 있습니다.
+        </div>
+
+        <!-- 주요 기능 안내 -->
+        <div class="features-grid">
+            <div class="feature-item">
+                <div class="feature-icon">💕</div>
+                <div class="feature-title">추억 공유</div>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon">🎥</div>
+                <div class="feature-title">영상 통화</div>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon">📱</div>
+                <div class="feature-title">모바일 앱</div>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon">🔒</div>
+                <div class="feature-title">안전한 보관</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 로딩 오버레이 -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+</div>
+
+<script>
+    // 현재 날짜 설정
+    document.addEventListener('DOMContentLoaded', function() {
+        const currentDate = new Date();
+        const formattedDate = currentDate.toLocaleDateString('ko-KR', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+
+        const dateElement = document.getElementById('currentDate');
+        if (dateElement) {
+            dateElement.textContent = formattedDate;
+        }
+    });
+
+    // 로딩 표시
+    function showLoading() {
+        document.getElementById('loadingOverlay').style.display = 'flex';
+    }
+
+    // 3초 후 자동으로 메인 페이지로 이동 (선택사항)
+    setTimeout(function() {
+        // 자동 이동을 원하지 않는 경우 이 부분을 제거하세요
+        // window.location.href = '/mobile/main';
+    }, 5000);
+</script>
+</body>
+</html>

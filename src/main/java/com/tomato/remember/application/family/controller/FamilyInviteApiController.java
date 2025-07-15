@@ -18,6 +18,7 @@ import java.util.Map;
  * 가족 초대 API 컨트롤러
  * - 초대 발송 처리
  * - SMS 앱 연동 데이터 제공
+ * - sessionStorage 기반 초대 토큰 처리
  */
 @Slf4j
 @RestController
@@ -37,14 +38,14 @@ public class FamilyInviteApiController {
             @AuthenticationPrincipal MemberUserDetails currentUser) {
 
         log.info("가족 구성원 초대 발송 API 요청 - 사용자: {}, 메모리얼: {}, 방법: {}, 연락처: {}",
-                currentUser.getMember().getId(), 
-                request.getMemorialId(), 
+                currentUser.getMember().getId(),
+                request.getMemorialId(),
                 request.getMethod(),
                 maskContact(request.getContact()));
 
         try {
             String result = familyInviteService.sendFamilyInvite(currentUser.getMember(), request);
-            
+
             // 응답 데이터 구성
             Map<String, Object> responseData = Map.of(
                     "message", result,
@@ -55,8 +56,8 @@ public class FamilyInviteApiController {
             );
 
             log.info("가족 구성원 초대 발송 API 완료 - 사용자: {}, 메모리얼: {}, 방법: {}",
-                    currentUser.getMember().getId(), 
-                    request.getMemorialId(), 
+                    currentUser.getMember().getId(),
+                    request.getMemorialId(),
                     request.getMethod());
 
             return ResponseDTO.ok(responseData);
@@ -65,9 +66,56 @@ public class FamilyInviteApiController {
             log.warn("가족 구성원 초대 발송 실패 - 잘못된 요청: {}", e.getMessage());
             throw new APIException(e.getMessage(),ResponseStatus.BAD_REQUEST);
         } catch (Exception e) {
-            log.error("가족 구성원 초대 발송 실패 - 사용자: {}, 메모리얼: {}", 
+            log.error("가족 구성원 초대 발송 실패 - 사용자: {}, 메모리얼: {}",
                     currentUser.getMember().getId(), request.getMemorialId(), e);
             throw new APIException("초대 발송 중 오류가 발생했습니다.", ResponseStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * 초대 토큰 처리 API (sessionStorage 기반)
+     * POST /api/family/invite/process
+     */
+    @PostMapping("/process")
+    public ResponseDTO<Map<String, Object>> processInviteToken(
+            @RequestBody Map<String, String> request,
+            @AuthenticationPrincipal MemberUserDetails currentUser) {
+
+        String token = request.get("token");
+
+        log.info("초대 토큰 처리 API 요청 - 사용자: {}, 토큰: {}",
+                currentUser.getMember().getId(),
+                token != null ? token.substring(0, 8) + "..." : "null");
+
+        try {
+            if (token == null || token.trim().isEmpty()) {
+                throw new IllegalArgumentException("초대 토큰이 필요합니다.");
+            }
+
+            // 초대 토큰 처리
+            String result = familyInviteService.processInviteByToken(token, currentUser.getMember());
+
+            // 성공 응답
+            Map<String, Object> responseData = Map.of(
+                    "success", true,
+                    "message", result,
+                    "timestamp", System.currentTimeMillis()
+            );
+
+            log.info("초대 토큰 처리 API 완료 - 사용자: {}, 토큰: {}",
+                    currentUser.getMember().getId(),
+                    token.substring(0, 8) + "...");
+
+            return ResponseDTO.ok(responseData);
+
+        } catch (IllegalArgumentException e) {
+            log.warn("초대 토큰 처리 실패 - 잘못된 요청: {}", e.getMessage());
+            throw new APIException(e.getMessage(), ResponseStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            log.error("초대 토큰 처리 실패 - 사용자: {}, 토큰: {}",
+                    currentUser.getMember().getId(),
+                    token != null ? token.substring(0, 8) + "..." : "null", e);
+            throw new APIException("초대 처리 중 오류가 발생했습니다.", ResponseStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -82,9 +130,9 @@ public class FamilyInviteApiController {
 
         try {
             Map<String, Object> smsData = familyInviteService.getSmsAppData(token);
-            
+
             if (smsData.containsKey("error")) {
-                log.warn("SMS 앱 데이터 조회 실패 - 토큰: {}, 오류: {}", 
+                log.warn("SMS 앱 데이터 조회 실패 - 토큰: {}, 오류: {}",
                         token.substring(0, 8) + "...", smsData.get("error"));
                 throw new APIException(ResponseStatus.BAD_REQUEST);
             }
@@ -113,7 +161,7 @@ public class FamilyInviteApiController {
 
         try {
             boolean isValid = familyInviteService.isTokenValid(token);
-            
+
             Map<String, Object> responseData = Map.of(
                     "valid", isValid,
                     "message", isValid ? "유효한 토큰입니다." : "유효하지 않거나 만료된 토큰입니다."
@@ -145,7 +193,7 @@ public class FamilyInviteApiController {
 
         try {
             Map<String, Object> responseData;
-            
+
             if ("email".equals(method)) {
                 // 이메일 발송 테스트
                 responseData = Map.of(
@@ -176,7 +224,7 @@ public class FamilyInviteApiController {
             log.warn("초대 발송 테스트 실패 - 잘못된 요청: {}", e.getMessage());
             throw new APIException(ResponseStatus.BAD_REQUEST);
         } catch (Exception e) {
-            log.error("초대 발송 테스트 실패 - 사용자: {}, 방법: {}", 
+            log.error("초대 발송 테스트 실패 - 사용자: {}, 방법: {}",
                     currentUser.getMember().getId(), method, e);
             throw new APIException(ResponseStatus.INTERNAL_SERVER_ERROR);
         }
@@ -191,7 +239,7 @@ public class FamilyInviteApiController {
         if (contact == null || contact.length() < 4) {
             return "****";
         }
-        
+
         if (contact.contains("@")) {
             // 이메일 마스킹
             int atIndex = contact.indexOf('@');

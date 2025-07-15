@@ -154,24 +154,40 @@ async function sendInvite() {
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 전송 중...';
 
+        // 🔧 기존 코드 수정: contact 값 올바르게 설정
         const inviteData = {
+            memorialId: pageState.selectedMemorialId,  // 🔧 순서 변경
             method: method,
-            contact: method === 'email' ? email : phone,
+            contact: method === 'email' ? email : phone,  // 🔧 sms → phone 수정
             relationship: relationship,
-            memorialId: pageState.selectedMemorialId,
             message: message
         };
 
+        console.log('초대 발송 요청:', inviteData);
+
+        // 🎯 핵심 API 호출
         const response = await authFetch('/api/family/invite', {
             method: 'POST',
             body: JSON.stringify(inviteData)
         });
 
-        const result = await response.json();
+        console.log('초대 발송 응답:', response);
 
-        if (result.status?.code === 'OK_0000') {
+        if (response.status?.code === 'OK_0000') {
+            // 성공 처리
+            const responseData = response.response;
+
+            if (method === 'email') {
+                // 이메일 발송 완료
+                showToast('이메일이 발송되었습니다.', 'success');
+
+            } else if (method === 'sms') {
+                // SMS 앱 연동 처리
+                await handleSmsAppIntegration(responseData);
+            }
+
+            // 모달 닫기
             bootstrap.Modal.getInstance(document.getElementById('inviteModal')).hide();
-            showToast('초대 링크가 전송되었습니다.', 'success');
 
             // 폼 리셋
             resetInviteForm();
@@ -180,18 +196,141 @@ async function sendInvite() {
             setTimeout(() => {
                 window.location.href = `/mobile/family?memorialId=${pageState.selectedMemorialId}`;
             }, 3000);
+
         } else {
-            showToast(result.status?.message || '초대 전송에 실패했습니다.', 'error');
+            // 오류 처리
+            const errorMessage = response.status?.message || '초대 발송에 실패했습니다.';
+            showToast(errorMessage, 'error');
         }
+
     } catch (error) {
-        console.error('초대 전송 실패:', error);
-        showToast('네트워크 오류가 발생했습니다.', 'error');
+        console.error('초대 발송 실패:', error);
+
+        // 네트워크 오류 vs API 오류 구분
+        if (error.message && error.message.includes('Network')) {
+            showToast('네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.', 'error');
+        } else {
+            showToast('초대 발송 중 오류가 발생했습니다. 다시 시도해주세요.', 'error');
+        }
     } finally {
         const btn = document.getElementById('sendInviteBtn');
         btn.disabled = false;
-        btn.textContent = '초대 보내기';
+        btn.innerHTML = '<i class="fas fa-paper-plane"></i> 초대 보내기';
     }
 }
+
+/**
+ * SMS 앱 연동 처리
+ */
+async function handleSmsAppIntegration(responseData) {
+    try {
+        console.log('SMS 앱 연동 시작:', responseData);
+
+        // responseData에서 토큰 추출 (응답 구조에 따라 조정 필요)
+        const token = responseData.token || responseData.smsToken || responseData.inviteToken;
+
+        if (token) {
+            // SMS 앱 데이터 조회
+            const smsData = await getSmsAppData(token);
+
+            if (smsData.smsUrl) {
+                // SMS 앱 실행 시도
+                console.log('SMS 앱 실행:', smsData.smsUrl);
+
+                // iOS/Android SMS 앱 실행
+                window.location.href = smsData.smsUrl;
+
+                // 사용자 안내
+                showToast('문자 앱이 실행됩니다. 메시지를 확인 후 전송해주세요.', 'info');
+
+            } else if (smsData.message) {
+                // 폴백: 클립보드 복사
+                if (await copyToClipboard(smsData.message)) {
+                    showToast('메시지가 클립보드에 복사되었습니다. 직접 문자를 보내주세요.', 'success');
+                } else {
+                    showToast('SMS 메시지가 준비되었습니다. 직접 문자를 보내주세요.', 'info');
+                }
+            }
+        } else {
+            // 토큰 없이 SMS 처리 완료
+            showToast('SMS 초대가 준비되었습니다.', 'success');
+        }
+
+    } catch (error) {
+        console.error('SMS 앱 연동 실패:', error);
+        showToast('SMS 앱 연동에 실패했습니다. 수동으로 문자를 보내주세요.', 'warning');
+    }
+}
+
+async function copyToClipboard(text) {
+    try {
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(text);
+            return true;
+        } else {
+            // 폴백 방법 (HTTP 환경용)
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+
+            const result = document.execCommand('copy');
+            textArea.remove();
+            return result;
+        }
+    } catch (error) {
+        console.error('클립보드 복사 실패:', error);
+        return false;
+    }
+}
+
+/**
+ * 초대 토큰 유효성 확인
+ * 용도: 초대 링크 클릭 시 토큰이 유효한지 확인
+ * 사용 시점: 초대 수락 페이지 진입 시
+ */
+async function validateInviteToken(token) {
+    try {
+        const response = await authFetch(`/api/family/invite/validate/${token}`);
+
+        if (response.status?.code === 'OK_0000') {
+            return response.response.valid;
+        } else {
+            return false;
+        }
+
+    } catch (error) {
+        console.error('토큰 유효성 확인 실패:', error);
+        return false;
+    }
+}
+
+/**
+ * SMS 앱 데이터 조회
+ */
+async function getSmsAppData(token) {
+    try {
+        console.log('SMS 데이터 조회 시작:', token);
+
+        const response = await authFetch(`/api/family/invite/sms/${token}`);
+
+        if (response.status?.code === 'OK_0000') {
+            console.log('SMS 데이터 조회 성공:', response.response);
+            return response.response;
+        } else {
+            throw new Error(response.status?.message || 'SMS 데이터 조회 실패');
+        }
+
+    } catch (error) {
+        console.error('SMS 데이터 조회 실패:', error);
+        throw error;
+    }
+}
+
 
 /**
  * 초대 폼 리셋
@@ -337,5 +476,9 @@ function bindEvents() {
 // 전역 함수 등록 (HTML에서 사용)
 window.openPermissionModal = openPermissionModal;
 window.showMemberMenu = showMemberMenu;
+window.handleSmsAppIntegration = handleSmsAppIntegration;
+window.getSmsAppData = getSmsAppData;
+window.copyToClipboard = copyToClipboard;
+window.validateInviteToken = validateInviteToken;
 
 console.log('family-list.js 로드 완료');

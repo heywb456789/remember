@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>가족 초대 - 토마토리멤버</title>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Common CSS -->
+    <link th:href="@{/assets/mobile/css/common.css}" rel="stylesheet"/>
+
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .invite-container {
+            max-width: 400px;
+            width: 100%;
+            background: white;
+            border-radius: 20px;
+            padding: 40px 30px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            animation: inviteAnimation 0.8s ease-out;
+        }
+
+        @keyframes inviteAnimation {
+            0% {
+                opacity: 0;
+                transform: translateY(30px) scale(0.9);
+            }
+            50% {
+                opacity: 1;
+                transform: translateY(0) scale(1.05);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .invite-icon {
+            font-size: 80px;
+            color: #28a745;
+            margin-bottom: 20px;
+            display: block;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+        }
+
+        .invite-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+
+        .invite-subtitle {
+            font-size: 16px;
+            color: #7f8c8d;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+
+        .invite-details {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-left: 4px solid #28a745;
+        }
+
+        .detail-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+
+        .detail-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .detail-icon {
+            width: 20px;
+            color: #28a745;
+            margin-right: 12px;
+            text-align: center;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #495057;
+            margin-right: 8px;
+        }
+
+        .detail-value {
+            color: #6c757d;
+            flex: 1;
+        }
+
+        .invite-message {
+            background: #e8f5e8;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-style: italic;
+            color: #2d5a2d;
+        }
+
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 15px 25px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(40, 167, 69, 0.4);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #6c757d;
+            border: 1px solid #dee2e6;
+        }
+
+        .btn-secondary:hover {
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        .processing-indicator {
+            display: none;
+            margin-top: 20px;
+            padding: 15px;
+            background: #fff3cd;
+            border-radius: 10px;
+            color: #856404;
+            font-size: 14px;
+        }
+
+        .processing-indicator.show {
+            display: block;
+        }
+
+        .loading-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #28a745;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 480px) {
+            .invite-container {
+                padding: 30px 20px;
+                margin: 0 10px;
+            }
+
+            .invite-icon {
+                font-size: 60px;
+            }
+
+            .invite-title {
+                font-size: 20px;
+            }
+
+            .invite-subtitle {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="invite-container">
+    <!-- 초대 아이콘 -->
+    <div class="invite-icon">
+        <i class="fas fa-users"></i>
+    </div>
+
+    <!-- 초대 제목 -->
+    <h1 class="invite-title">가족 초대</h1>
+
+    <!-- 초대 서브타이틀 -->
+    <p class="invite-subtitle">
+        토마토리멤버 가족 메모리얼에<br>
+        초대되셨습니다.
+    </p>
+
+    <!-- 초대 상세 정보 -->
+    <div class="invite-details">
+        <div class="detail-item">
+            <i class="fas fa-user detail-icon"></i>
+            <span class="detail-label">초대자:</span>
+            <span class="detail-value" th:text="${inviterName ?: '초대자'}">초대자</span>
+        </div>
+        <div class="detail-item">
+            <i class="fas fa-heart detail-icon"></i>
+            <span class="detail-label">메모리얼:</span>
+            <span class="detail-value" th:text="${memorialName ?: '메모리얼'}">메모리얼</span>
+        </div>
+        <div class="detail-item">
+            <i class="fas fa-users detail-icon"></i>
+            <span class="detail-label">관계:</span>
+            <span class="detail-value" th:text="${relationshipDisplayName ?: '가족'}">가족</span>
+        </div>
+        <div class="detail-item">
+            <i class="fas fa-envelope detail-icon"></i>
+            <span class="detail-label">방법:</span>
+            <span class="detail-value" th:text="${method == 'email' ? '이메일' : 'SMS'}">이메일</span>
+        </div>
+    </div>
+
+    <!-- 초대 메시지 -->
+    <div class="invite-message" th:if="${inviteMessage}" th:text="${inviteMessage}">
+        함께 소중한 추억을 나누어요.
+    </div>
+
+    <!-- 버튼 그룹 -->
+    <div class="btn-group">
+        <button class="btn btn-primary" id="acceptBtn">
+            <i class="fas fa-check"></i>
+            초대 수락하기
+        </button>
+        <a href="/mobile/main" class="btn btn-secondary">
+            <i class="fas fa-home"></i>
+            메인 페이지로 이동
+        </a>
+    </div>
+
+    <!-- 처리 중 표시 -->
+    <div class="processing-indicator" id="processingIndicator">
+        <div class="loading-spinner"></div>
+        초대 처리 중입니다...
+    </div>
+</div>
+
+<script th:inline="javascript">
+    // 서버에서 전달받은 초대 정보
+    const inviteToken = /*[[${inviteToken}]]*/ null;
+    const inviterName = /*[[${inviterName}]]*/ null;
+    const memorialName = /*[[${memorialName}]]*/ null;
+    const isLoggedIn = /*[[${isLoggedIn}]]*/ false;
+    const currentUserName = /*[[${currentUserName}]]*/ null;
+
+    // 페이지 로드 시 sessionStorage에 토큰 저장
+    if (inviteToken) {
+        sessionStorage.setItem('inviteToken', inviteToken);
+        console.log('초대 토큰이 sessionStorage에 저장되었습니다:', inviteToken.substring(0, 8) + '...');
+    }
+
+    // 초대 수락 버튼 클릭 처리
+    document.getElementById('acceptBtn').addEventListener('click', function() {
+        if (!inviteToken) {
+            alert('초대 토큰이 없습니다.');
+            return;
+        }
+
+        // 처리 중 표시
+        const processingIndicator = document.getElementById('processingIndicator');
+        const acceptBtn = document.getElementById('acceptBtn');
+
+        processingIndicator.classList.add('show');
+        acceptBtn.disabled = true;
+
+        console.log('초대 수락 처리 시작...');
+
+        // 로그인 상태에 따른 처리
+        if (isLoggedIn) {
+            // 로그인된 사용자 → 메인 페이지로 이동 (토큰 처리는 main.js에서)
+            console.log('로그인된 사용자 - 메인 페이지로 이동');
+            setTimeout(() => {
+                window.location.href = '/mobile/main';
+            }, 1000);
+        } else {
+            // 익명 사용자 → 로그인 페이지로 이동
+            console.log('익명 사용자 - 로그인 페이지로 이동');
+            setTimeout(() => {
+                window.location.href = '/mobile/login?from=invite';
+            }, 1000);
+        }
+    });
+
+    // 로그인 상태 안내 메시지
+    if (isLoggedIn && currentUserName) {
+        console.log('현재 로그인된 사용자:', currentUserName);
+
+        // 로그인된 사용자 안내
+        const subtitle = document.querySelector('.invite-subtitle');
+        if (subtitle) {
+            subtitle.innerHTML = `안녕하세요, ${currentUserName}님!<br>가족 메모리얼에 초대되셨습니다.`;
+        }
+    }
+
+    // 디버그 정보 출력
+    console.log('초대 랜딩 페이지 정보:', {
+        token: inviteToken ? inviteToken.substring(0, 8) + '...' : null,
+        inviter: inviterName,
+        memorial: memorialName,
+        isLoggedIn: isLoggedIn,
+        currentUser: currentUserName
+    });
+
+    // 자동 진행 옵션 (선택사항 - 개발 시 편의용)
+    const autoAccept = new URLSearchParams(window.location.search).get('auto');
+    if (autoAccept === 'true') {
+        console.log('자동 수락 모드 활성화');
+        setTimeout(() => {
+            document.getElementById('acceptBtn').click();
+        }, 2000);
+    }
+</script>
+</body>
+</html>

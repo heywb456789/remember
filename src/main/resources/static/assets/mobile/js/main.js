@@ -1,19 +1,20 @@
-// main.js - 토마토리멤버 메인 페이지 (수정된 버전)
+// main.js - 토마토리멤버 메인 페이지 (초대 토큰 처리 추가)
 
 import { authFetch, checkLoginStatus, handleFetchError } from './commonFetch.js';
-import { showToast, showConfirm, showLoading } from './common.js';
+import { showToast, showConfirm, showLoading, hideLoading } from './common.js';
 
 // 메인 페이지 상태 관리
 let mainPageState = {
   isLoading: false,
   isInitialized: false,
   memorialItems: [],
-  selectedMemorialId: null, // 선택된 메모리얼 ID 추가
+  selectedMemorialId: null,
   isLoggedIn: false,
   currentUser: null,
   retryCount: 0,
   maxRetries: 3,
-  refreshInterval: null
+  refreshInterval: null,
+  inviteProcessing: false // 초대 처리 중 플래그 추가
 };
 
 // 관계별 이모지 매핑
@@ -53,24 +54,142 @@ function initializeMainPage() {
     // 1. 서버 데이터 로드
     loadServerData();
 
-    // 2. 이벤트 바인딩
+    // 2. 초대 토큰 처리 (최우선)
+    if (mainPageState.isLoggedIn) {
+      checkAndProcessInviteToken();
+    }
+
+    // 3. 이벤트 바인딩
     bindAllEvents();
 
-    // 3. 로그인 상태 UI 업데이트
+    // 4. 로그인 상태 UI 업데이트
     updateLoginUI();
 
-    // 4. 로그인한 경우 추가 초기화
+    // 5. 로그인한 경우 추가 초기화
     if (mainPageState.isLoggedIn) {
       initializeLoggedInFeatures();
     }
 
-    // 5. 초기화 완료 플래그 설정
+    // 6. 초기화 완료 플래그 설정
     mainPageState.isInitialized = true;
     console.log('메인 페이지 초기화 완료');
 
   } catch (error) {
     console.error('메인 페이지 초기화 실패:', error);
     showToast('페이지 초기화 중 오류가 발생했습니다.', 'error');
+  }
+}
+
+/**
+ * 초대 토큰 확인 및 처리 (sessionStorage 기반)
+ */
+async function checkAndProcessInviteToken() {
+  console.log('초대 토큰 확인 시작');
+
+  if (mainPageState.inviteProcessing) {
+    console.log('초대 처리가 이미 진행 중입니다.');
+    return;
+  }
+
+  try {
+    // sessionStorage에서 초대 토큰 조회
+    const inviteToken = sessionStorage.getItem('inviteToken');
+
+    if (!inviteToken) {
+      console.log('초대 토큰이 없습니다.');
+      return;
+    }
+
+    console.log('초대 토큰 발견:', inviteToken.substring(0, 8) + '...');
+
+    // 초대 처리 시작
+    mainPageState.inviteProcessing = true;
+
+    // 로딩 표시
+    const loading = showLoading('초대 처리 중...');
+
+    // 초대 토큰 처리 API 호출
+    const response = await authFetch('/api/family/invite/process', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        token: inviteToken
+      })
+    });
+
+    console.log('초대 처리 API 응답:', response);
+
+    // 성공 처리
+    if (response.status?.code === 'OK_0000') {
+      const result = response.response;
+
+      // 성공 토스트 표시
+      showToast(result.message || '초대 처리가 완료되었습니다.', 'success');
+
+      // sessionStorage에서 토큰 제거
+      sessionStorage.removeItem('inviteToken');
+
+      // 가족 목록 새로고침 (필요한 경우)
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+
+      console.log('초대 처리 완료');
+
+    } else {
+      // 실패 처리
+      const errorMessage = response.status?.message || '초대 처리에 실패했습니다.';
+      console.error('초대 처리 실패:', errorMessage);
+
+      showToast(errorMessage, 'error');
+
+      // 실패 시에도 토큰 제거 (보안상 이유)
+      sessionStorage.removeItem('inviteToken');
+    }
+
+  } catch (error) {
+    console.error('초대 토큰 처리 중 오류:', error);
+
+    // 에러 메시지 표시
+    const errorMessage = error.name === 'FetchError' ?
+        error.statusMessage :
+        '초대 처리 중 오류가 발생했습니다.';
+
+    showToast(errorMessage, 'error');
+
+    // 에러 시에도 토큰 제거
+    sessionStorage.removeItem('inviteToken');
+
+  } finally {
+    // 로딩 숨김
+    hideLoading();
+
+    // 초대 처리 플래그 해제
+    mainPageState.inviteProcessing = false;
+  }
+}
+
+/**
+ * 초대 토큰 유효성 검증 (선택적 사용)
+ */
+async function validateInviteToken(token) {
+  console.log('초대 토큰 유효성 검증:', token.substring(0, 8) + '...');
+
+  try {
+    const response = await authFetch(`/api/family/invite/validate/${token}`);
+
+    if (response.status?.code === 'OK_0000') {
+      return response.response;
+    } else {
+      console.warn('토큰 유효성 검증 실패:', response.status?.message);
+      return { valid: false, message: response.status?.message };
+    }
+
+  } catch (error) {
+    console.error('토큰 유효성 검증 오류:', error);
+    return { valid: false, message: '토큰 검증 중 오류가 발생했습니다.' };
   }
 }
 
@@ -324,7 +443,7 @@ async function handleVideoCallClick(e) {
       return;
     }
     selectedMemorial = mainPageState.memorialItems.find(
-      item => item.memorialId === mainPageState.selectedMemorialId
+        item => item.memorialId === mainPageState.selectedMemorialId
     );
   }
 
@@ -389,7 +508,7 @@ async function handleRetryClick(e) {
 }
 
 /**
- * 영상통화 가능 여부 확인 (새로운 함수)
+ * 영상통화 가능 여부 확인
  */
 async function checkVideoCallAvailability(memorial) {
   console.log('영상통화 가능 여부 확인:', memorial);
@@ -398,7 +517,7 @@ async function checkVideoCallAvailability(memorial) {
     // 1. 프로필 이미지 확인
     if (!memorial.hasRequiredProfileImages) {
       const confirmed = confirm(
-        '영상통화 시작을 위해서는 프로필 사진을 등록해주세요.\n\n내정보 수정 페이지로 이동하시겠습니까?'
+          '영상통화 시작을 위해서는 프로필 사진을 등록해주세요.\n\n내정보 수정 페이지로 이동하시겠습니까?'
       );
 
       if (confirmed) {
@@ -534,8 +653,8 @@ async function loadMemorialList() {
     } else {
       // 최대 재시도 초과 시 에러 상태 표시
       const errorMessage = error.name === 'FetchError' ?
-        error.statusMessage :
-        (error.message || '메모리얼 목록을 불러올 수 없습니다.');
+          error.statusMessage :
+          (error.message || '메모리얼 목록을 불러올 수 없습니다.');
 
       showErrorState(errorMessage);
     }
@@ -583,14 +702,14 @@ function createMemorialItem(memorial) {
     </div>
     <div class="memorial-status">
       <div class="status-indicators">
-        ${memorial.hasRequiredProfileImages ? 
-          '<i class="fas fa-image status-icon status-ok" title="프로필 사진 등록 완료"></i>' : 
-          '<i class="fas fa-image status-icon status-warning" title="프로필 사진 필요"></i>'
-        }
-        ${memorial.aiTrainingCompleted ? 
-          '<i class="fas fa-brain status-icon status-ok" title="AI 학습 완료"></i>' : 
-          '<i class="fas fa-brain status-icon status-warning" title="AI 학습 중"></i>'
-        }
+        ${memorial.hasRequiredProfileImages ?
+      '<i class="fas fa-image status-icon status-ok" title="프로필 사진 등록 완료"></i>' :
+      '<i class="fas fa-image status-icon status-warning" title="프로필 사진 필요"></i>'
+  }
+        ${memorial.aiTrainingCompleted ?
+      '<i class="fas fa-brain status-icon status-ok" title="AI 학습 완료"></i>' :
+      '<i class="fas fa-brain status-icon status-warning" title="AI 학습 중"></i>'
+  }
       </div>
       <div class="memorial-arrow">
         <i class="fas fa-check-circle selection-icon" style="display: none;"></i>
@@ -716,18 +835,22 @@ window.mainPageManager = {
     mainPageState.selectedMemorialId = memorialId;
     updateMemorialSelection();
     updateVideoCallButtonState();
-  }
+  },
+  // 초대 토큰 처리 함수 추가
+  processInviteToken: checkAndProcessInviteToken,
+  validateInviteToken: validateInviteToken
 };
 
 // 전역 함수들 (HTML에서 호출 가능)
 window.handleCreateMemorial = handleCreateMemorialClick;
 window.showVideoCall = handleVideoCallClick;
 window.showLoginModal = showLoginModal;
+window.processInviteToken = checkAndProcessInviteToken; // 초대 토큰 처리 함수 전역 등록
 
 /**
  * 자동 초기화
  */
-console.log('수정된 main.js 로드 완료');
+console.log('초대 토큰 처리 기능이 추가된 main.js 로드 완료');
 
 // DOM이 준비되면 즉시 초기화
 if (document.readyState === 'loading') {
@@ -746,5 +869,7 @@ export {
   handleCreateMemorialClick,
   handleVideoCallClick,
   updateMemorialSelection,
-  updateVideoCallButtonState
+  updateVideoCallButtonState,
+  checkAndProcessInviteToken,
+  validateInviteToken
 };

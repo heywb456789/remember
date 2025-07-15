@@ -43,6 +43,8 @@ public class InviteTemporaryInfo {
      * 초대자 이름
      */
     private String inviterName;
+
+    private String inviteePhoneNumber;
     
     /**
      * 고인과의 관계
