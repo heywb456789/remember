@@ -187,177 +187,177 @@ public class FamilyRestController {
 
     // ===== 공통 액션 API (웹/앱 공용) =====
 
-    /**
-     * 가족 구성원 초대
-     * POST /api/family/invite
-     */
-    @PostMapping("/invite")
-    public ResponseDTO<String> inviteFamilyMember(
-            @Valid @RequestBody FamilyInviteRequest request,
-            @AuthenticationPrincipal MemberUserDetails currentUser) {
+//    /**
+//     * 가족 구성원 초대
+//     * POST /api/family/invite
+//     */
+//    @PostMapping("/invite")
+//    public ResponseDTO<String> inviteFamilyMember(
+//            @Valid @RequestBody FamilyInviteRequest request,
+//            @AuthenticationPrincipal MemberUserDetails currentUser) {
+//
+//        log.info("가족 구성원 초대 API 요청 - 사용자: {}, 메모리얼: {}, 방법: {}",
+//                currentUser.getMember().getId(), request.getMemorialId(), request.getMethod());
+//
+//        try {
+//            Member member = currentUser.getMember();
+//
+//            // 초대 처리
+//            String result = familyService.inviteFamilyMember(member, request);
+//
+//            log.info("가족 구성원 초대 완료 - 메모리얼: {}, 연락처: {}",
+//                    request.getMemorialId(), request.getContact());
+//
+//            return ResponseDTO.ok(result);
+//
+//        } catch (IllegalArgumentException e) {
+//            log.warn("가족 구성원 초대 실패 - 잘못된 요청: {}", e.getMessage());
+//            throw new APIException(ResponseStatus.BAD_REQUEST);
+//        } catch (SecurityException e) {
+//            log.warn("가족 구성원 초대 실패 - 권한 없음: {}", e.getMessage());
+//            throw new APIException(ResponseStatus.MEMORIAL_OWNER_ONLY);
+//        } catch (Exception e) {
+//            log.error("가족 구성원 초대 실패 - 메모리얼: {}", request.getMemorialId(), e);
+//            throw new APIException(ResponseStatus.INTERNAL_SERVER_ERROR);
+//        }
+//    }
 
-        log.info("가족 구성원 초대 API 요청 - 사용자: {}, 메모리얼: {}, 방법: {}",
-                currentUser.getMember().getId(), request.getMemorialId(), request.getMethod());
+//    /**
+//     * 초대 수락
+//     * POST /api/family/invite/{inviteToken}/accept
+//     */
+//    @PostMapping("/invite/{inviteToken}/accept")
+//    public ResponseDTO<String> acceptInvite(
+//            @PathVariable String inviteToken,
+//            @AuthenticationPrincipal MemberUserDetails currentUser) {
+//
+//        log.info("초대 수락 API - 토큰: {}, 사용자: {}",
+//                inviteToken.substring(0, 8) + "...", currentUser.getMember().getId());
+//
+//        try {
+//            familyService.acceptInvite(inviteToken, currentUser.getMember());
+//
+//            log.info("초대 수락 완료 - 토큰: {}, 사용자: {}",
+//                    inviteToken.substring(0, 8) + "...", currentUser.getMember().getId());
+//
+//            return ResponseDTO.ok("가족 구성원으로 등록되었습니다.");
+//
+//        } catch (IllegalArgumentException e) {
+//            log.warn("초대 수락 실패 - 잘못된 요청: {}", e.getMessage());
+//            throw new APIException(ResponseStatus.BAD_REQUEST);
+//        } catch (Exception e) {
+//            log.error("초대 수락 실패 - 토큰: {}", inviteToken.substring(0, 8) + "...", e);
+//            throw new APIException(ResponseStatus.INTERNAL_SERVER_ERROR);
+//        }
+//    }
 
-        try {
-            Member member = currentUser.getMember();
-
-            // 초대 처리
-            String result = familyService.inviteFamilyMember(member, request);
-
-            log.info("가족 구성원 초대 완료 - 메모리얼: {}, 연락처: {}",
-                    request.getMemorialId(), request.getContact());
-
-            return ResponseDTO.ok(result);
-
-        } catch (IllegalArgumentException e) {
-            log.warn("가족 구성원 초대 실패 - 잘못된 요청: {}", e.getMessage());
-            throw new APIException(ResponseStatus.BAD_REQUEST);
-        } catch (SecurityException e) {
-            log.warn("가족 구성원 초대 실패 - 권한 없음: {}", e.getMessage());
-            throw new APIException(ResponseStatus.MEMORIAL_OWNER_ONLY);
-        } catch (Exception e) {
-            log.error("가족 구성원 초대 실패 - 메모리얼: {}", request.getMemorialId(), e);
-            throw new APIException(ResponseStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    /**
-     * 초대 수락
-     * POST /api/family/invite/{inviteToken}/accept
-     */
-    @PostMapping("/invite/{inviteToken}/accept")
-    public ResponseDTO<String> acceptInvite(
-            @PathVariable String inviteToken,
-            @AuthenticationPrincipal MemberUserDetails currentUser) {
-
-        log.info("초대 수락 API - 토큰: {}, 사용자: {}",
-                inviteToken.substring(0, 8) + "...", currentUser.getMember().getId());
-
-        try {
-            familyService.acceptInvite(inviteToken, currentUser.getMember());
-
-            log.info("초대 수락 완료 - 토큰: {}, 사용자: {}",
-                    inviteToken.substring(0, 8) + "...", currentUser.getMember().getId());
-
-            return ResponseDTO.ok("가족 구성원으로 등록되었습니다.");
-
-        } catch (IllegalArgumentException e) {
-            log.warn("초대 수락 실패 - 잘못된 요청: {}", e.getMessage());
-            throw new APIException(ResponseStatus.BAD_REQUEST);
-        } catch (Exception e) {
-            log.error("초대 수락 실패 - 토큰: {}", inviteToken.substring(0, 8) + "...", e);
-            throw new APIException(ResponseStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    /**
-     * 초대 거절
-     * POST /api/family/invite/{inviteToken}/reject
-     */
-    @PostMapping("/invite/{inviteToken}/reject")
-    public ResponseDTO<String> rejectInvite(
-            @PathVariable String inviteToken,
-            @AuthenticationPrincipal MemberUserDetails currentUser) {
-
-        log.info("초대 거절 API - 토큰: {}, 사용자: {}",
-                inviteToken.substring(0, 8) + "...", currentUser.getMember().getId());
-
-        try {
-            familyService.rejectInvite(inviteToken, currentUser.getMember());
-
-            log.info("초대 거절 완료 - 토큰: {}, 사용자: {}",
-                    inviteToken.substring(0, 8) + "...", currentUser.getMember().getId());
-
-            return ResponseDTO.ok("초대를 거절했습니다.");
-
-        } catch (IllegalArgumentException e) {
-            log.warn("초대 거절 실패 - 잘못된 요청: {}", e.getMessage());
-            throw new APIException(ResponseStatus.BAD_REQUEST);
-        } catch (Exception e) {
-            log.error("초대 거절 실패 - 토큰: {}", inviteToken.substring(0, 8) + "...", e);
-            throw new APIException(ResponseStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    /**
-     * 초대 취소
-     * DELETE /api/family/invitations/{familyMemberId}
-     */
-    @DeleteMapping("/invitations/{familyMemberId}")
-    public ResponseDTO<String> cancelInvitation(
-            @PathVariable Long familyMemberId,
-            @AuthenticationPrincipal MemberUserDetails currentUser) {
-
-        log.info("초대 취소 API - 구성원: {}, 사용자: {}", familyMemberId, currentUser.getMember().getId());
-
-        try {
-            familyService.cancelInvitation(familyMemberId, currentUser.getMember());
-
-            log.info("초대 취소 완료 - 구성원: {}", familyMemberId);
-
-            return ResponseDTO.ok("초대가 취소되었습니다.");
-
-        } catch (IllegalArgumentException e) {
-            log.warn("초대 취소 실패 - 잘못된 요청: {}", e.getMessage());
-            throw new APIException(ResponseStatus.BAD_REQUEST);
-        } catch (SecurityException e) {
-            log.warn("초대 취소 실패 - 권한 없음: {}", e.getMessage());
-            throw new APIException(ResponseStatus.MEMORIAL_OWNER_ONLY);
-        } catch (Exception e) {
-            log.error("초대 취소 실패 - 구성원: {}", familyMemberId, e);
-            throw new APIException(ResponseStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-
-    /**
-     * 내가 받은 초대 목록 조회
-     * GET /api/family/invitations/received
-     */
-    @GetMapping("/invitations/received")
-    public ResponseDTO<List<FamilyMemberResponse>> getReceivedInvitations(
-            @AuthenticationPrincipal MemberUserDetails currentUser) {
-
-        log.info("받은 초대 목록 조회 API - 사용자: {}", currentUser.getMember().getId());
-
-        try {
-            List<FamilyMemberResponse> result = familyService.getReceivedInvitationsForApp(currentUser.getMember());
-
-            log.info("받은 초대 목록 조회 완료 - 사용자: {}, 초대 수: {}",
-                    currentUser.getMember().getId(), result.size());
-
-            return ResponseDTO.ok(result);
-
-        } catch (Exception e) {
-            log.error("받은 초대 목록 조회 실패 - 사용자: {}", currentUser.getMember().getId(), e);
-            throw new APIException(ResponseStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    /**
-     * 내가 보낸 초대 목록 조회
-     * GET /api/family/invitations/sent
-     */
-    @GetMapping("/invitations/sent")
-    public ResponseDTO<List<FamilyMemberResponse>> getSentInvitations(
-            @AuthenticationPrincipal MemberUserDetails currentUser) {
-
-        log.info("보낸 초대 목록 조회 API - 사용자: {}", currentUser.getMember().getId());
-
-        try {
-            List<FamilyMemberResponse> result = familyService.getSentInvitationsForApp(currentUser.getMember());
-
-            log.info("보낸 초대 목록 조회 완료 - 사용자: {}, 초대 수: {}",
-                    currentUser.getMember().getId(), result.size());
-
-            return ResponseDTO.ok(result);
-
-        } catch (Exception e) {
-            log.error("보낸 초대 목록 조회 실패 - 사용자: {}", currentUser.getMember().getId(), e);
-            throw new APIException(ResponseStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
+//    /**
+//     * 초대 거절
+//     * POST /api/family/invite/{inviteToken}/reject
+//     */
+//    @PostMapping("/invite/{inviteToken}/reject")
+//    public ResponseDTO<String> rejectInvite(
+//            @PathVariable String inviteToken,
+//            @AuthenticationPrincipal MemberUserDetails currentUser) {
+//
+//        log.info("초대 거절 API - 토큰: {}, 사용자: {}",
+//                inviteToken.substring(0, 8) + "...", currentUser.getMember().getId());
+//
+//        try {
+//            familyService.rejectInvite(inviteToken, currentUser.getMember());
+//
+//            log.info("초대 거절 완료 - 토큰: {}, 사용자: {}",
+//                    inviteToken.substring(0, 8) + "...", currentUser.getMember().getId());
+//
+//            return ResponseDTO.ok("초대를 거절했습니다.");
+//
+//        } catch (IllegalArgumentException e) {
+//            log.warn("초대 거절 실패 - 잘못된 요청: {}", e.getMessage());
+//            throw new APIException(ResponseStatus.BAD_REQUEST);
+//        } catch (Exception e) {
+//            log.error("초대 거절 실패 - 토큰: {}", inviteToken.substring(0, 8) + "...", e);
+//            throw new APIException(ResponseStatus.INTERNAL_SERVER_ERROR);
+//        }
+//    }
+//
+//    /**
+//     * 초대 취소
+//     * DELETE /api/family/invitations/{familyMemberId}
+//     */
+//    @DeleteMapping("/invitations/{familyMemberId}")
+//    public ResponseDTO<String> cancelInvitation(
+//            @PathVariable Long familyMemberId,
+//            @AuthenticationPrincipal MemberUserDetails currentUser) {
+//
+//        log.info("초대 취소 API - 구성원: {}, 사용자: {}", familyMemberId, currentUser.getMember().getId());
+//
+//        try {
+//            familyService.cancelInvitation(familyMemberId, currentUser.getMember());
+//
+//            log.info("초대 취소 완료 - 구성원: {}", familyMemberId);
+//
+//            return ResponseDTO.ok("초대가 취소되었습니다.");
+//
+//        } catch (IllegalArgumentException e) {
+//            log.warn("초대 취소 실패 - 잘못된 요청: {}", e.getMessage());
+//            throw new APIException(ResponseStatus.BAD_REQUEST);
+//        } catch (SecurityException e) {
+//            log.warn("초대 취소 실패 - 권한 없음: {}", e.getMessage());
+//            throw new APIException(ResponseStatus.MEMORIAL_OWNER_ONLY);
+//        } catch (Exception e) {
+//            log.error("초대 취소 실패 - 구성원: {}", familyMemberId, e);
+//            throw new APIException(ResponseStatus.INTERNAL_SERVER_ERROR);
+//        }
+//    }
+//
+//
+//    /**
+//     * 내가 받은 초대 목록 조회
+//     * GET /api/family/invitations/received
+//     */
+//    @GetMapping("/invitations/received")
+//    public ResponseDTO<List<FamilyMemberResponse>> getReceivedInvitations(
+//            @AuthenticationPrincipal MemberUserDetails currentUser) {
+//
+//        log.info("받은 초대 목록 조회 API - 사용자: {}", currentUser.getMember().getId());
+//
+//        try {
+//            List<FamilyMemberResponse> result = familyService.getReceivedInvitationsForApp(currentUser.getMember());
+//
+//            log.info("받은 초대 목록 조회 완료 - 사용자: {}, 초대 수: {}",
+//                    currentUser.getMember().getId(), result.size());
+//
+//            return ResponseDTO.ok(result);
+//
+//        } catch (Exception e) {
+//            log.error("받은 초대 목록 조회 실패 - 사용자: {}", currentUser.getMember().getId(), e);
+//            throw new APIException(ResponseStatus.INTERNAL_SERVER_ERROR);
+//        }
+//    }
+//
+//    /**
+//     * 내가 보낸 초대 목록 조회
+//     * GET /api/family/invitations/sent
+//     */
+//    @GetMapping("/invitations/sent")
+//    public ResponseDTO<List<FamilyMemberResponse>> getSentInvitations(
+//            @AuthenticationPrincipal MemberUserDetails currentUser) {
+//
+//        log.info("보낸 초대 목록 조회 API - 사용자: {}", currentUser.getMember().getId());
+//
+//        try {
+//            List<FamilyMemberResponse> result = familyService.getSentInvitationsForApp(currentUser.getMember());
+//
+//            log.info("보낸 초대 목록 조회 완료 - 사용자: {}, 초대 수: {}",
+//                    currentUser.getMember().getId(), result.size());
+//
+//            return ResponseDTO.ok(result);
+//
+//        } catch (Exception e) {
+//            log.error("보낸 초대 목록 조회 실패 - 사용자: {}", currentUser.getMember().getId(), e);
+//            throw new APIException(ResponseStatus.INTERNAL_SERVER_ERROR);
+//        }
+//    }
 
     /**
      * 가족 구성원 상세 조회
