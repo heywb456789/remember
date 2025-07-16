@@ -5,9 +5,14 @@ import com.tomato.remember.application.member.repository.MemberRepository;
 import com.tomato.remember.application.memorial.dto.MemorialCreateRequestDTO;
 import com.tomato.remember.application.memorial.dto.MemorialCreateResponseDTO;
 import com.tomato.remember.application.memorial.dto.MemorialListResponseDTO;
+import com.tomato.remember.application.memorial.dto.MemorialQuestionAnswerDTO;
 import com.tomato.remember.application.memorial.entity.Memorial;
+import com.tomato.remember.application.memorial.entity.MemorialAnswer;
 import com.tomato.remember.application.memorial.entity.MemorialFile;
 import com.tomato.remember.application.memorial.code.MemorialFileType;
+import com.tomato.remember.application.memorial.entity.MemorialQuestion;
+import com.tomato.remember.application.memorial.repository.MemorialAnswerRepository;
+import com.tomato.remember.application.memorial.repository.MemorialQuestionRepository;
 import com.tomato.remember.application.memorial.repository.MemorialRepository;
 import com.tomato.remember.application.member.entity.Member;
 import com.tomato.remember.common.code.ResponseStatus;
@@ -40,42 +45,56 @@ public class MemorialServiceImpl implements MemorialService {
     private final MemorialRepository memorialRepository;
     private final FileStorageService fileStorageService;
     private final MemberRepository memberRepository;
+    private final MemorialAnswerRepository memorialAnswerRepository;
+    private final MemorialQuestionRepository memorialQuestionRepository;
 
+    /**
+     * 메모리얼 생성 (업데이트된 버전)
+     */
     @Override
     @Transactional
     public MemorialCreateResponseDTO createMemorial(
-        MemorialCreateRequestDTO memorialData,
-        List<MultipartFile> profileImages,
-        List<MultipartFile> voiceFiles,
-        MultipartFile videoFile,
-        Member member) {
+            MemorialCreateRequestDTO memorialData,
+            List<MultipartFile> profileImages,
+            List<MultipartFile> voiceFiles,
+            MultipartFile videoFile,
+            Member member) {
 
-        log.info("메모리얼 생성 시작 - 사용자: {}, 메모리얼명: {}", member.getId(), memorialData.getName());
+        log.info("메모리얼 생성 시작 - 사용자: {}, 메모리얼명: {}, 답변 수: {}",
+                member.getId(), memorialData.getName(), memorialData.getAnsweredQuestionCount());
 
-        List<String> uploadedFileUrls = new ArrayList<>();  // 업로드된 파일 URL 추적
+        List<String> uploadedFileUrls = new ArrayList<>();
 
         try {
-            // 1. 메모리얼 엔티티 생성
+            // 1. 빈 답변 제거
+            memorialData.removeEmptyAnswers();
+
+            // 2. 메모리얼 엔티티 생성
             Memorial memorial = createMemorialEntity(memorialData, member);
 
-            // 2. 프로필 이미지 파일 처리
+            // 3. 프로필 이미지 파일 처리
             uploadedFileUrls.addAll(processProfileImages(memorial, profileImages, member.getId()));
 
-            // 3. 음성 파일 처리
+            // 4. 음성 파일 처리
             uploadedFileUrls.addAll(processVoiceFiles(memorial, voiceFiles, member.getId()));
 
-            // 4. 영상 파일 처리
+            // 5. 영상 파일 처리
             uploadedFileUrls.add(processVideoFile(memorial, videoFile, member.getId()));
 
-            // 5. 메모리얼 저장
+            // 6. 메모리얼 저장
             Memorial savedMemorial = memorialRepository.save(memorial);
 
-            log.info("메모리얼 생성 완료 - ID: {}, 이름: {}", savedMemorial.getId(), savedMemorial.getName());
+            // 7. 동적 질문 답변 처리
+            processQuestionAnswers(savedMemorial, memorialData.getQuestionAnswers(), member);
+
+            log.info("메모리얼 생성 완료 - ID: {}, 이름: {}, 답변 수: {}",
+                    savedMemorial.getId(), savedMemorial.getName(),
+                    memorialData.getAnsweredQuestionCount());
 
             return MemorialCreateResponseDTO.success(
-                savedMemorial.getId(),
-                savedMemorial.getName(),
-                savedMemorial.getNickname()
+                    savedMemorial.getId(),
+                    savedMemorial.getName(),
+                    savedMemorial.getNickname()
             );
 
         } catch (Exception e) {
@@ -225,21 +244,16 @@ public class MemorialServiceImpl implements MemorialService {
      */
     private Memorial createMemorialEntity(MemorialCreateRequestDTO dto, Member member) {
         return Memorial.builder()
-            .name(dto.getName())
-            .nickname(dto.getNickname())
-            .gender(dto.getGender())
-            .relationship(dto.getRelationship())
-            .birthDate(dto.getBirthDate())
-            .deathDate(dto.getDeathDate())
-            .personality(dto.getPersonality())
-            .hobbies(dto.getFavoriteWords())  // favoriteWords -> hobbies
-            .favoriteFood(dto.getFavoriteFoods())  // favoriteFoods -> favoriteFood
-            .specialMemories(dto.getMemories())  // memories -> specialMemories
-            .speechHabits(dto.getHabits())  // habits -> speechHabits
-            .description(dto.getDescription())
-            .isPublic(dto.getIsPublic())
-            .owner(member)
-            .build();
+                .name(dto.getName())
+                .nickname(dto.getNickname())
+                .gender(dto.getGender())
+                .relationship(dto.getRelationship())
+                .birthDate(dto.getBirthDate())
+                .deathDate(dto.getDeathDate())
+                .description(dto.getDescription())
+                .isPublic(dto.getIsPublic())
+                .owner(member)
+                .build();
     }
 
     /**
@@ -472,5 +486,56 @@ public class MemorialServiceImpl implements MemorialService {
         }
 
         return builder.build();
+    }
+
+    /**
+     * 동적 질문 답변 처리 (간단한 버전)
+     */
+    private void processQuestionAnswers(Memorial memorial, List<MemorialQuestionAnswerDTO> questionAnswers, Member member) {
+        if (questionAnswers == null || questionAnswers.isEmpty()) {
+            log.warn("질문 답변이 없습니다 - 메모리얼: {}", memorial.getId());
+            return;
+        }
+
+        log.info("질문 답변 처리 시작 - 메모리얼: {}, 답변 수: {}",
+                memorial.getId(), questionAnswers.size());
+
+        try {
+            int savedCount = 0;
+
+            for (MemorialQuestionAnswerDTO answerDTO : questionAnswers) {
+                // 빈 답변 건너뛰기
+                if (!answerDTO.hasAnswer()) {
+                    continue;
+                }
+
+                // 질문 엔티티 조회
+                MemorialQuestion question = memorialQuestionRepository.findById(answerDTO.getQuestionId())
+                        .orElse(null);
+
+                if (question == null) {
+                    log.warn("존재하지 않는 질문 ID: {}", answerDTO.getQuestionId());
+                    continue;
+                }
+
+                // 답변 엔티티 생성 및 저장
+                MemorialAnswer answer = MemorialAnswer.createOwnerAnswer(
+                        memorial, member, question, answerDTO.getTrimmedAnswer());
+
+                memorialAnswerRepository.save(answer);
+                savedCount++;
+
+                log.debug("질문 답변 저장 완료 - 질문ID: {}, 답변 길이: {}자",
+                        answerDTO.getQuestionId(), answerDTO.getAnswerLength());
+            }
+
+            log.info("질문 답변 처리 완료 - 메모리얼: {}, 저장된 답변 수: {}",
+                    memorial.getId(), savedCount);
+
+        } catch (Exception e) {
+            log.error("질문 답변 처리 실패 - 메모리얼: {}, 오류: {}",
+                    memorial.getId(), e.getMessage(), e);
+            throw new APIException("질문 답변 처리에 실패했습니다.", ResponseStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 }
