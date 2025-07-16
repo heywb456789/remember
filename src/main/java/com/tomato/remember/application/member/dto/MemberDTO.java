@@ -2,6 +2,7 @@ package com.tomato.remember.application.member.dto;
 
 import com.tomato.remember.common.code.MemberRole;
 import com.tomato.remember.common.code.MemberStatus;
+import java.time.LocalDate;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
@@ -14,6 +15,7 @@ import java.time.LocalDateTime;
 public class MemberDTO {
     private Long id;
     private LocalDateTime createdAt;
+    private LocalDate birthDate;
     private String password;
     private String phoneNumber;
     private String inviteCode;

@@ -60,7 +60,7 @@ spring:
 
     from: remeber.noreply@gmail.com
     name: 토마토리멤버
-    domain: http://114.31.52.64:8096  #  localhost 환경에 맞게 수정
+    domain: http://114.31.52.64:8095  #  localhost 환경에 맞게 수정
 
   # =======================================================
   # 🔐 JWT 보안 설정 (개발서버용)
@@ -108,7 +108,7 @@ spring:
 app:
   file:
     upload-dir: /home/nara/uploads
-    base-url: http://114.31.52.64:8096
+    base-url: http://114.31.52.64:8095
 
 # =======================================================
 # 🔐 토마토리멤버 개발서버 보안 설정
@@ -118,7 +118,7 @@ tomato-remember:
     # CORS 설정 (개발서버용)
     cors:
       allowed-origins:
-        - http://114.31.52.64:8096
+        - http://114.31.52.64:8095
         - http://localhost:3000  # 로컬 개발 지원
       allow-credentials: true
 

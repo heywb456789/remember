@@ -78,6 +78,11 @@ public class FamilyMemberResponse {
     private StatsInfo stats;
 
     /**
+     * 고인 상세 정보 (가족 구성원별 개별 입력)
+     */
+    private DeceasedInfo deceasedInfo;
+
+    /**
      * 메모리얼 정보
      */
     @Getter
@@ -156,6 +161,29 @@ public class FamilyMemberResponse {
             .inviteMessage(familyMember.getInviteMessage())
             .dateTime(buildDateTimeInfo(familyMember))
             .stats(buildStatsInfo(familyMember))
+            .deceasedInfo(buildDeceasedInfo(familyMember))
+            .build();
+    }
+
+
+    private static DeceasedInfo buildDeceasedInfo(FamilyMember familyMember) {
+        // 입력된 필드 개수 계산
+        int filledCount = 0;
+        if (familyMember.getMemberPersonality() != null && !familyMember.getMemberPersonality().trim().isEmpty()) filledCount++;
+        if (familyMember.getMemberHobbies() != null && !familyMember.getMemberHobbies().trim().isEmpty()) filledCount++;
+        if (familyMember.getMemberFavoriteFood() != null && !familyMember.getMemberFavoriteFood().trim().isEmpty()) filledCount++;
+        if (familyMember.getMemberSpecialMemories() != null && !familyMember.getMemberSpecialMemories().trim().isEmpty()) filledCount++;
+        if (familyMember.getMemberSpeechHabits() != null && !familyMember.getMemberSpeechHabits().trim().isEmpty()) filledCount++;
+
+        return DeceasedInfo.builder()
+            .personality(familyMember.getMemberPersonality())
+            .hobbies(familyMember.getMemberHobbies())
+            .favoriteFood(familyMember.getMemberFavoriteFood())
+            .specialMemories(familyMember.getMemberSpecialMemories())
+            .speechHabits(familyMember.getMemberSpeechHabits())
+            .hasDeceasedInfo(familyMember.hasDeceasedInfo())
+            .hasRequiredDeceasedInfo(familyMember.hasRequiredDeceasedInfo())
+            .filledFieldCount(filledCount)
             .build();
     }
 
@@ -334,5 +362,19 @@ public class FamilyMemberResponse {
      */
     public boolean canAccessVideoCall() {
         return canAccessMemorial() && permissions.isVideoCallAccess();
+    }
+
+    /**
+     * 고인 상세 정보 완성 여부
+     */
+    public boolean hasDeceasedInfo() {
+        return deceasedInfo != null && deceasedInfo.isHasDeceasedInfo();
+    }
+
+    /**
+     * 고인 상세 정보 필수 항목 완성 여부
+     */
+    public boolean hasRequiredDeceasedInfo() {
+        return deceasedInfo != null && deceasedInfo.isHasRequiredDeceasedInfo();
     }
 }

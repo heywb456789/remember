@@ -33,7 +33,7 @@ public class MemorialListResponseDTO {
     private Integer voiceFileCount;
     private Integer videoFileCount;
 
-    // 접근 권한 관련 정보 (새로 추가)
+    // 접근 권한 관련 정보
     private Boolean isOwner;           // 소유자 여부
     private Boolean canAccess;         // 접근 권한 여부
     private String accessType;         // 접근 타입 (OWNER, FAMILY_MEMBER)
@@ -43,6 +43,11 @@ public class MemorialListResponseDTO {
     // 가족 구성원으로서의 관계 정보 (가족 구성원인 경우)
     private String familyRelationship;        // 가족 구성원으로서의 관계
     private String familyRelationshipDisplay; // 가족 구성원으로서의 관계 표시명
+
+    // 고인 상세 정보 완성 여부 (가족 구성원인 경우)
+    private Boolean hasDeceasedInfo;          // 고인 상세 정보 입력 여부
+    private Boolean hasRequiredDeceasedInfo;  // 고인 상세 정보 필수 항목 완성 여부
+    private Integer deceasedInfoFieldCount;   // 입력된 고인 상세 정보 필드 개수
 
     /**
      * 접근 타입 설정
@@ -108,5 +113,65 @@ public class MemorialListResponseDTO {
         }
 
         return subtitle.toString();
+    }
+
+    /**
+     * 영상통화 시작 가능 여부 확인 (전체 조건)
+     */
+    public Boolean canStartVideoCallWithAllConditions() {
+        // 1. 기본 접근 권한 확인
+        if (!canAccess || !getCanVideoCall()) {
+            return false;
+        }
+
+        // 2. 프로필 이미지 확인
+        if (!hasRequiredProfileImages) {
+            return false;
+        }
+
+        // 3. 소유자인 경우: AI 학습 완료 확인
+        if (isOwner) {
+            return aiTrainingCompleted;
+        }
+
+        // 4. 가족 구성원인 경우: 고인 상세 정보 + AI 학습 완료 확인
+        return hasRequiredDeceasedInfo && aiTrainingCompleted;
+    }
+
+    /**
+     * 영상통화 시작 불가 사유 반환
+     */
+    public String getVideoCallBlockReason() {
+        if (!canAccess) {
+            return "접근 권한이 없습니다.";
+        }
+
+        if (!getCanVideoCall()) {
+            return "영상통화 권한이 없습니다.";
+        }
+
+        if (!hasRequiredProfileImages) {
+            return "프로필 사진을 등록해주세요.";
+        }
+
+        if (!isOwner && !hasRequiredDeceasedInfo) {
+            return "고인에 대한 상세 정보를 입력해주세요.";
+        }
+
+        if (!aiTrainingCompleted) {
+            return "AI 학습이 완료되지 않았습니다.";
+        }
+
+        return null; // 영상통화 가능
+    }
+
+    /**
+     * 고인 상세 정보 완성도 퍼센트 (0-100)
+     */
+    public Integer getDeceasedInfoCompletionPercent() {
+        if (deceasedInfoFieldCount == null) {
+            return 0;
+        }
+        return (deceasedInfoFieldCount * 100) / 5; // 총 5개 필드 기준
     }
 }

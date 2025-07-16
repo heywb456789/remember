@@ -2,6 +2,8 @@ package com.tomato.remember.application.family.service;
 
 import com.tomato.remember.application.family.code.InviteStatus;
 import com.tomato.remember.application.family.dto.FamilyAllDataResponse;
+import com.tomato.remember.application.family.dto.FamilyInfoRequestDTO;
+import com.tomato.remember.application.family.dto.FamilyInfoResponseDTO;
 import com.tomato.remember.application.family.dto.FamilyInviteRequest;
 import com.tomato.remember.application.family.dto.FamilyMemberResponse;
 import com.tomato.remember.application.family.dto.FamilyPageData;
@@ -17,6 +19,7 @@ import com.tomato.remember.application.memorial.repository.MemorialRepository;
 import com.tomato.remember.application.memorial.service.MemorialService;
 import com.tomato.remember.common.dto.ListDTO;
 import java.util.Collections;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -868,6 +871,152 @@ public class FamilyService {
             .anyMatch(fm -> fm.getMemorial().getId().equals(memorial.getId())
                 && fm.getInviteStatus() != InviteStatus.REJECTED
                 && fm.getInviteStatus() != InviteStatus.CANCELLED);
+    }
+
+
+    // FamilyServiceImpl.java에 추가할 구현 메서드들
+
+    public FamilyInfoResponseDTO getFamilyInfo(Long memorialId, Member member) {
+        log.info("가족 구성원 고인 상세 정보 조회 - 메모리얼: {}, 사용자: {}", memorialId, member.getId());
+
+        // 1. 메모리얼 조회
+        Memorial memorial = memorialRepository.findById(memorialId)
+                .orElseThrow(() -> new IllegalArgumentException("메모리얼을 찾을 수 없습니다."));
+
+        // 2. 가족 구성원 관계 조회
+        FamilyMember familyMember = familyMemberRepository.findByMemorialAndMember(memorial, member)
+                .orElseThrow(() -> new IllegalArgumentException("해당 메모리얼의 가족 구성원이 아닙니다."));
+
+        // 3. 권한 확인
+        validateFamilyMemberAccess(familyMember);
+
+        // 4. 소유자는 접근 불가
+        if (memorial.getOwner().getId().equals(member.getId())) {
+            throw new SecurityException("메모리얼 소유자는 이 기능을 사용할 수 없습니다.");
+        }
+
+        // 5. DTO 변환 후 반환
+        return FamilyInfoResponseDTO.from(familyMember, memorial);
+    }
+
+    @Transactional
+    public void saveFamilyInfo(Long memorialId, Member member, FamilyInfoRequestDTO request) {
+        log.info("가족 구성원 고인 상세 정보 저장 - 메모리얼: {}, 사용자: {}", memorialId, member.getId());
+
+        // 1. 메모리얼 조회
+        Memorial memorial = memorialRepository.findById(memorialId)
+                .orElseThrow(() -> new IllegalArgumentException("메모리얼을 찾을 수 없습니다."));
+
+        // 2. 가족 구성원 관계 조회
+        FamilyMember familyMember = familyMemberRepository.findByMemorialAndMember(memorial, member)
+                .orElseThrow(() -> new IllegalArgumentException("해당 메모리얼의 가족 구성원이 아닙니다."));
+
+        // 3. 권한 확인
+        validateFamilyMemberAccess(familyMember);
+
+        // 4. 소유자는 접근 불가
+        if (memorial.getOwner().getId().equals(member.getId())) {
+            throw new SecurityException("메모리얼 소유자는 이 기능을 사용할 수 없습니다.");
+        }
+
+        // 5. 이미 입력된 경우 수정 불가
+        if (familyMember.hasDeceasedInfo()) {
+            throw new IllegalArgumentException("이미 고인 상세 정보가 입력되어 수정할 수 없습니다.");
+        }
+
+        // 6. 고인 상세 정보 업데이트
+        familyMember.updateDeceasedInfo(
+                request.getPersonality(),
+                request.getHobbies(),
+                request.getFavoriteFood(),
+                request.getSpecialMemories(),
+                request.getSpeechHabits()
+        );
+
+        // 7. 저장
+        familyMemberRepository.save(familyMember);
+
+        log.info("가족 구성원 고인 상세 정보 저장 완료 - 메모리얼: {}, 사용자: {}, 완성도: {}%",
+                memorialId, member.getId(), familyMember.hasRequiredDeceasedInfo() ? 100 : 0);
+    }
+
+    public Map<String, Object> checkFamilyInfoAccess(Long memorialId, Member member) {
+        log.info("가족 구성원 고인 상세 정보 접근 권한 확인 - 메모리얼: {}, 사용자: {}", memorialId, member.getId());
+
+        try {
+            // 1. 메모리얼 조회
+            Memorial memorial = memorialRepository.findById(memorialId)
+                    .orElseThrow(() -> new IllegalArgumentException("메모리얼을 찾을 수 없습니다."));
+
+            // 2. 소유자는 접근 불가
+            if (memorial.getOwner().getId().equals(member.getId())) {
+                return Map.of(
+                        "canAccess", false,
+                        "message", "메모리얼 소유자는 이 기능을 사용할 수 없습니다.",
+                        "reason", "OWNER_ACCESS_DENIED"
+                );
+            }
+
+            // 3. 가족 구성원 관계 조회
+            FamilyMember familyMember = familyMemberRepository.findByMemorialAndMember(memorial, member)
+                    .orElse(null);
+
+            if (familyMember == null) {
+                return Map.of(
+                        "canAccess", false,
+                        "message", "해당 메모리얼의 가족 구성원이 아닙니다.",
+                        "reason", "NOT_FAMILY_MEMBER"
+                );
+            }
+
+            // 4. 가족 구성원 권한 확인
+            if (!familyMember.isActive() || !familyMember.getMemorialAccess()) {
+                return Map.of(
+                        "canAccess", false,
+                        "message", "메모리얼 접근 권한이 없습니다.",
+                        "reason", "ACCESS_DENIED"
+                );
+            }
+
+            // 5. 이미 입력된 경우
+            if (familyMember.hasDeceasedInfo()) {
+                return Map.of(
+                        "canAccess", true,
+                        "alreadySubmitted", true,
+                        "message", "이미 고인 상세 정보가 입력되었습니다.",
+                        "reason", "ALREADY_SUBMITTED"
+                );
+            }
+
+            // 6. 새로 입력 가능
+            return Map.of(
+                    "canAccess", true,
+                    "alreadySubmitted", false,
+                    "message", "고인 상세 정보를 입력할 수 있습니다.",
+                    "reason", "CAN_INPUT"
+            );
+
+        } catch (Exception e) {
+            log.error("가족 구성원 고인 상세 정보 접근 권한 확인 실패 - 메모리얼: {}", memorialId, e);
+            return Map.of(
+                    "canAccess", false,
+                    "message", "접근 권한 확인 중 오류가 발생했습니다.",
+                    "reason", "SYSTEM_ERROR"
+            );
+        }
+    }
+
+    /**
+     * 가족 구성원 접근 권한 유효성 검사
+     */
+    private void validateFamilyMemberAccess(FamilyMember familyMember) {
+        if (!familyMember.isActive()) {
+            throw new SecurityException("초대가 승인되지 않은 상태입니다.");
+        }
+
+        if (!familyMember.getMemorialAccess()) {
+            throw new SecurityException("메모리얼 접근 권한이 없습니다.");
+        }
     }
 
 }

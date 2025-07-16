@@ -1,11 +1,11 @@
-// 개선된 profile-settings.js
+// 수정된 profile-settings.js
 import { showToast, showConfirm, showLoading, hideLoading } from './common.js';
 import { authFetch } from './commonFetch.js';
 
 // 페이지 상태 관리 (단순화)
 let pageState = {
     photos: new Array(5).fill(null),      // 기존 이미지 URL들
-    photoDetails: new Array(5).fill(null), // 🔧 추가: sortOrder 포함 상세 정보
+    photoDetails: new Array(5).fill(null), // sortOrder 포함 상세 정보
     photosToDelete: [],                   // 삭제할 사진 sortOrder들
     newPhotos: [],                       // 새로 추가할 사진 파일들
     hasStartedPhotoUpload: false,        // 사진 업로드 시작 여부
@@ -136,15 +136,20 @@ async function saveProfile() {
         if (phone) formData.append('phoneNumber', phone);
         if (birthDate) formData.append('birthDate', birthDate);
 
-        // 🔧 수정: sortOrder 기반 삭제 요청
-        console.log('📸 삭제할 사진 sortOrder:', pageState.photosToDelete);
+        // 삭제할 이미지 추가
         pageState.photosToDelete.forEach(sortOrder => {
             formData.append('imagesToDelete', sortOrder);
         });
 
-        // 새 이미지
+        // 새로운 이미지 추가
         pageState.newPhotos.forEach(file => {
             formData.append('images', file);
+        });
+
+        console.log('📸 전송 데이터:', {
+            삭제할이미지: pageState.photosToDelete,
+            새이미지개수: pageState.newPhotos.length,
+            새이미지파일명: pageState.newPhotos.map(f => f.name)
         });
 
         const result = await authFetch('/api/profile/update', {
@@ -152,34 +157,15 @@ async function saveProfile() {
             body: formData
         });
 
-        if (result.status?.code === 'OK_0000') {
-            showToast('프로필이 성공적으로 저장되었습니다.', 'success');
+        console.log('📸 서버 응답:', result);
 
+        if (result.status?.code === 'OK_0000') {
             const responseData = result.response || {};
 
-            // 🔧 수정: 새로운 응답 구조 처리
-            const images = responseData.imageUrls || [];
+            showToast('프로필이 성공적으로 저장되었습니다.', 'success');
 
-            console.log('📸 저장 응답 데이터:', {
-                images,
-                totalImages: responseData.totalImages
-            });
-
-            // 상태 초기화
-            pageState.photos = new Array(5).fill(null);
-            pageState.photoDetails = new Array(5).fill(null);
-            pageState.photosToDelete = [];
-            pageState.newPhotos = [];
-
-            // 🔧 수정: sortOrder 기반 이미지 업데이트
-            if (images && images.length > 0) {
-                updateAllPhotoSlotsWithSortOrder(images);
-            } else {
-                updateAllPhotoSlots([]);
-            }
-
-            // 폼 필드 업데이트
-            updateFormFields(responseData);
+            // 🔧 핵심 수정: 상태 초기화를 응답 처리 후에 실행
+            await handleSaveSuccess(responseData);
 
         } else {
             throw new Error(result.status?.message || '저장 실패');
@@ -196,89 +182,204 @@ async function saveProfile() {
 }
 
 /**
- * 모든 사진 슬롯 업데이트 (sortOrder 기반)
+ * 저장 성공 후 처리
  */
-function updateAllPhotoSlotsWithSortOrder(images) {
-    console.log('📸 sortOrder 기반 슬롯 업데이트:', images);
+async function handleSaveSuccess(responseData) {
+    console.log('📸 저장 성공 처리 시작:', responseData);
 
-    // 모든 슬롯 초기화
-    for (let i = 0; i < 5; i++) {
-        resetPhotoSlot(i);
+    // 🔧 먼저 기존 경고 메시지 제거
+    clearFaceDetectionWarning();
+
+    // 상태 초기화
+    pageState.photos = new Array(5).fill(null);
+    pageState.photoDetails = new Array(5).fill(null);
+    pageState.photosToDelete = [];
+    pageState.newPhotos = [];
+
+    // 폼 필드 업데이트
+    updateFormFields(responseData);
+
+    // 이미지 업데이트
+    const images = responseData.imageUrls || [];
+    const invalidImageNumbers = responseData.invalidImageNumbers || [];
+
+    console.log('📸 이미지 업데이트:', {
+        총이미지수: images.length,
+        재인증필요: invalidImageNumbers
+    });
+
+    if (images && images.length > 0) {
+        // 🔧 핵심 수정: 응답 데이터 구조에 맞게 업데이트
+        updatePhotoSlotsFromResponse(images, invalidImageNumbers);
+    } else {
+        // 이미지가 없는 경우 모든 슬롯 초기화
+        resetAllPhotoSlots();
     }
 
-    // sortOrder 기반으로 이미지 배치
+    // 재인증 필요한 이미지가 있으면 알림 표시
+    if (invalidImageNumbers.length > 0) {
+        setTimeout(() => {
+            showFaceDetectionWarning(invalidImageNumbers);
+        }, 1000);
+    }
+
+    console.log('📸 저장 성공 처리 완료');
+}
+
+/**
+ * 서버 응답 데이터로부터 사진 슬롯 업데이트
+ */
+function updatePhotoSlotsFromResponse(images, invalidImageNumbers = []) {
+    console.log('📸 서버 응답 데이터로 슬롯 업데이트:', {
+        images: images.length,
+        invalidImageNumbers
+    });
+
+    // 🔧 모든 슬롯 초기화 (경고 메시지도 제거됨)
+    resetAllPhotoSlots();
+
+    // 이미지 배치 (sortOrder 기준)
     images.forEach(imageDetail => {
-        if (imageDetail && imageDetail.sortOrder) {
+        if (imageDetail && imageDetail.sortOrder && imageDetail.imageUrl) {
             const slotIndex = imageDetail.sortOrder - 1; // sortOrder는 1부터 시작
             if (slotIndex >= 0 && slotIndex < 5) {
                 pageState.photos[slotIndex] = imageDetail.imageUrl;
                 pageState.photoDetails[slotIndex] = imageDetail;
+
                 updatePhotoSlot(slotIndex, imageDetail.imageUrl, false, imageDetail.sortOrder);
+
+                // 얼굴 인식 실패한 이미지 표시
+                if (invalidImageNumbers.includes(imageDetail.sortOrder)) {
+                    markPhotoAsInvalid(slotIndex);
+                }
             }
         }
     });
+
+    // 5장 완료 상태 설정
+    if (images.length === 5) {
+        pageState.hasStartedPhotoUpload = true;
+    }
 
     updatePhotoUploadStatus();
 }
 
 /**
- * 기존 사진 로드 (단순화)
+ * 모든 사진 슬롯 리셋
+ */
+function resetAllPhotoSlots() {
+    console.log('📸 모든 슬롯 리셋');
+
+    // 🔧 경고 메시지도 함께 제거
+    clearFaceDetectionWarning();
+
+    for (let i = 0; i < 5; i++) {
+        resetPhotoSlot(i);
+    }
+}
+
+/**
+ * 얼굴 인식 경고 메시지 제거
+ */
+function clearFaceDetectionWarning() {
+    const existingWarning = document.getElementById('faceDetectionWarning');
+    if (existingWarning) {
+        existingWarning.remove();
+        console.log('📸 얼굴 인식 경고 메시지 제거');
+    }
+}
+
+/**
+ * 얼굴 인식 경고 표시
+ */
+function showFaceDetectionWarning(invalidImageNumbers) {
+    const photoSection = document.querySelector('.photo-section');
+    if (!photoSection) return;
+
+    // 🔧 기존 경고 확실히 제거
+    clearFaceDetectionWarning();
+
+    const warningDiv = document.createElement('div');
+    warningDiv.id = 'faceDetectionWarning';
+    warningDiv.className = 'alert alert-warning';
+    warningDiv.innerHTML = `
+        <i class="fas fa-exclamation-triangle"></i>
+        <strong>재인증 필요:</strong> ${invalidImageNumbers.join(', ')}번째 사진에서 얼굴이 인식되지 않았습니다. 
+        해당 사진을 다시 업로드해주세요.
+    `;
+
+    const photoGrid = document.getElementById('photoGrid');
+    if (photoGrid) {
+        photoSection.insertBefore(warningDiv, photoGrid);
+    }
+
+    console.log('📸 얼굴 인식 경고 표시:', invalidImageNumbers);
+}
+
+/**
+ * 얼굴 인식 실패 사진 표시
+ */
+function markPhotoAsInvalid(slotIndex) {
+    const slot = document.querySelector(`.photo-slot[data-index="${slotIndex}"]`);
+    if (slot) {
+        slot.classList.add('face-detection-failed');
+
+        // 기존 info에 경고 아이콘 추가
+        const photoInfo = slot.querySelector('.photo-info');
+        if (photoInfo) {
+            photoInfo.innerHTML += ' <i class="fas fa-exclamation-triangle" style="color: #dc3545;" title="얼굴 인식 실패"></i>';
+        }
+    }
+}
+
+/**
+ * 기존 사진 로드 (페이지 로드 시)
  */
 function loadExistingPhotos() {
-    // const profileImageDetails = window.serverData?.currentUser?.profileImageDetails || [];
-    const profileImages = window.serverData?.profileData?.imageUrls || [];
+    console.log('📸 기존 사진 로드 시작');
 
-    console.log('📸 로드할 이미지 정보:', {
-        details: profileImages,
-        urls: profileImages
+    const serverData = window.serverData || {};
+    const profileData = serverData.profileData || {};
+    const profileImages = profileData.imageUrls || [];
+
+    console.log('📸 서버 데이터 확인:', {
+        serverData: !!serverData,
+        profileData: !!profileData,
+        profileImages: profileImages.length
     });
 
     // 상태 초기화
     pageState.photos = new Array(5).fill(null);
     pageState.photoDetails = new Array(5).fill(null);
 
-    // 🔧 개선: sortOrder 기반 로딩
     if (profileImages && profileImages.length > 0) {
-        // 새로운 구조 사용 (sortOrder 포함)
-        profileImages.forEach(imageDetail => {
-            if (imageDetail && imageDetail.sortOrder) {
-                const slotIndex = imageDetail.sortOrder - 1; // sortOrder는 1부터 시작
-                if (slotIndex >= 0 && slotIndex < 5) {
-                    pageState.photos[slotIndex] = imageDetail.imageUrl;
-                    pageState.photoDetails[slotIndex] = imageDetail;
-                    updatePhotoSlot(slotIndex, imageDetail.imageUrl, false, imageDetail.sortOrder);
-                }
-            }
-        });
+        // 재인증 필요한 이미지 찾기
+        const invalidImageNumbers = profileImages
+            .filter(img => img.aiProcessed === false)
+            .map(img => img.sortOrder);
 
-        // 5장이면 업로드 시작된 것으로 간주
+        console.log('📸 재인증 필요한 이미지:', invalidImageNumbers);
+
+        updatePhotoSlotsFromResponse(profileImages, invalidImageNumbers);
+
+        // 5장이고 재인증 필요한 이미지가 있으면 경고 표시
+        if (profileImages.length === 5 && invalidImageNumbers.length > 0) {
+            setTimeout(() => {
+                showFaceDetectionWarning(invalidImageNumbers);
+            }, 1000);
+        }
+
         if (profileImages.length === 5) {
             pageState.hasStartedPhotoUpload = true;
         }
-
-        console.log('📸 기존 사진 로드 완료 (sortOrder 기반):', profileImages.length + '장');
-    } else if (profileImages && profileImages.length > 0) {
-        // 하위 호환성: 기존 구조 사용
-        profileImages.forEach((photoUrl, index) => {
-            if (index < 5) {
-                pageState.photos[index] = photoUrl;
-                updatePhotoSlot(index, photoUrl, false, index + 1);
-            }
-        });
-
-        // 5장이면 업로드 시작된 것으로 간주
-        if (profileImages.length === 5) {
-            pageState.hasStartedPhotoUpload = true;
-        }
-
-        console.log('📸 기존 사진 로드 완료 (하위 호환):', profileImages.length + '장');
     }
 
     updatePhotoUploadStatus();
+    console.log('📸 기존 사진 로드 완료');
 }
 
 /**
- * 사진 선택 처리 (단순화)
+ * 사진 선택 처리
  */
 function handlePhotoSelect(e) {
     const files = Array.from(e.target.files);
@@ -286,21 +387,18 @@ function handlePhotoSelect(e) {
 
     if (files.length === 0) return;
 
-    // 현재 상태 로그
-    console.log('📸 현재 상태:', {
-        기존사진: pageState.photos.filter(p => p).length,
-        새사진: pageState.newPhotos.length,
-        삭제예정: pageState.photosToDelete.length
-    });
+    // 현재 상태 확인
+    const currentValid = getTotalValidPhotoCount();
+    console.log('📸 현재 유효한 사진:', currentValid);
 
     // 사진 업로드 시작 표시
-    if (!pageState.hasStartedPhotoUpload && getTotalValidPhotoCount() === 0) {
+    if (!pageState.hasStartedPhotoUpload && currentValid === 0) {
         pageState.hasStartedPhotoUpload = true;
         showPhotoUploadCommitment();
     }
 
     // 남은 슬롯 계산
-    const remainingSlots = 5 - getTotalValidPhotoCount();
+    const remainingSlots = 5 - currentValid;
     if (remainingSlots <= 0) {
         showToast('최대 5장까지만 업로드할 수 있습니다.', 'warning');
         return;
@@ -308,6 +406,8 @@ function handlePhotoSelect(e) {
 
     // 파일 검증 및 추가
     const validFiles = files.slice(0, remainingSlots);
+    console.log(`📸 처리할 파일: ${validFiles.length}개`);
+
     addNewPhotos(validFiles);
 
     // 파일 인풋 리셋
@@ -315,37 +415,52 @@ function handlePhotoSelect(e) {
 }
 
 /**
- * 새 사진 추가 (단순화)
+ * 새 사진 추가
  */
 function addNewPhotos(files) {
-    files.forEach(file => {
+    console.log('📸 새 사진 추가 시작:', files.length);
+
+    let addedCount = 0;
+
+    files.forEach((file, fileIndex) => {
         if (validateImageFile(file)) {
             const emptySlotIndex = findNextEmptySlot();
 
             if (emptySlotIndex !== -1) {
-                // 임시 저장
+                // 즉시 슬롯 예약
+                const slot = document.querySelector(`.photo-slot[data-index="${emptySlotIndex}"]`);
+                if (slot) {
+                    slot.classList.add('filled', 'uploading');
+                    slot.innerHTML = `
+                        <div class="upload-placeholder">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <span>업로드 중...</span>
+                        </div>
+                    `;
+                }
+
+                // 파일 추가
                 pageState.newPhotos.push(file);
 
                 // 미리보기 표시
                 showImagePreview(emptySlotIndex, file);
 
-                console.log(`📸 새 사진 추가 - 슬롯: ${emptySlotIndex}, 파일: ${file.name}`);
+                addedCount++;
             }
         }
     });
 
+    console.log(`📸 총 ${addedCount}개 파일 추가 완료`);
     updatePhotoUploadStatus();
 }
 
 /**
- * 빈 슬롯 찾기 (단순화)
+ * 빈 슬롯 찾기
  */
 function findNextEmptySlot() {
     for (let i = 0; i < 5; i++) {
         const slot = document.querySelector(`.photo-slot[data-index="${i}"]`);
-
-        // 슬롯이 비어있으면 (filled 클래스가 없으면)
-        if (slot && !slot.classList.contains('filled')) {
+        if (slot && !slot.classList.contains('filled') && !slot.classList.contains('uploading')) {
             return i;
         }
     }
@@ -357,14 +472,35 @@ function findNextEmptySlot() {
  */
 function showImagePreview(slotIndex, file) {
     const reader = new FileReader();
+
     reader.onload = (e) => {
-        updatePhotoSlot(slotIndex, e.target.result, true);
-        console.log(`📸 미리보기 표시 완료 - 슬롯: ${slotIndex}`);
+        const slot = document.querySelector(`.photo-slot[data-index="${slotIndex}"]`);
+        if (slot) {
+            slot.classList.remove('uploading');
+            slot.classList.add('filled', 'new-photo');
+
+            const displaySortOrder = slotIndex + 1;
+            slot.innerHTML = `
+                <img src="${e.target.result}" alt="프로필 사진 ${displaySortOrder}">
+                <div class="photo-info">
+                    <span class="photo-order">${displaySortOrder}</span>
+                </div>
+                <button class="photo-remove" onclick="removePhoto(${slotIndex}, ${displaySortOrder})" aria-label="사진 삭제">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            slot.setAttribute('data-sort-order', displaySortOrder);
+        }
     };
-    reader.onerror = (e) => {
-        console.error('📸 미리보기 생성 실패:', e);
-        showToast('이미지 미리보기 생성에 실패했습니다.', 'error');
+
+    reader.onerror = () => {
+        console.error('미리보기 생성 실패');
+        resetPhotoSlot(slotIndex);
+        pageState.newPhotos.pop();
+        showToast(`이미지 미리보기 생성 실패: ${file.name}`, 'error');
+        updatePhotoUploadStatus();
     };
+
     reader.readAsDataURL(file);
 }
 
@@ -380,9 +516,7 @@ function updatePhotoSlot(index, imageUrl, isNewPhoto = false, sortOrder = null) 
         slot.classList.add('new-photo');
     }
 
-    // 🔧 수정: sortOrder 정보 포함
     const displaySortOrder = sortOrder || (index + 1);
-
     slot.innerHTML = `
         <img src="${imageUrl}" alt="프로필 사진 ${displaySortOrder}">
         <div class="photo-info">
@@ -392,14 +526,11 @@ function updatePhotoSlot(index, imageUrl, isNewPhoto = false, sortOrder = null) 
             <i class="fas fa-times"></i>
         </button>
     `;
-
-    // sortOrder 정보 저장
     slot.setAttribute('data-sort-order', displaySortOrder);
 }
 
-
 /**
- * 사진 제거 (단순화)
+ * 사진 제거
  */
 async function removePhoto(index, sortOrder = null) {
     const slot = document.querySelector(`.photo-slot[data-index="${index}"]`);
@@ -410,23 +541,20 @@ async function removePhoto(index, sortOrder = null) {
                            slot?.getAttribute('data-sort-order') ||
                            (index + 1);
 
-    console.log('📸 사진 제거 시도:', {
-        index,
-        sortOrder: actualSortOrder,
-        isNewPhoto
-    });
+    console.log('📸 사진 제거:', { index, actualSortOrder, isNewPhoto });
 
     if (isNewPhoto) {
-        // 새 사진 제거 - 마지막 추가된 것부터 제거
-        pageState.newPhotos.pop();
+        // 새 사진 제거
+        const newPhotoIndex = findNewPhotoIndex(index);
+        if (newPhotoIndex !== -1) {
+            pageState.newPhotos.splice(newPhotoIndex, 1);
+        }
     } else if (pageState.photos[index]) {
-        // 🔧 수정: 실제 sortOrder 사용
+        // 기존 사진 제거
         const sortOrderNum = parseInt(actualSortOrder);
         if (!pageState.photosToDelete.includes(sortOrderNum)) {
             pageState.photosToDelete.push(sortOrderNum);
         }
-
-        // 상태에서 제거
         pageState.photos[index] = null;
         pageState.photoDetails[index] = null;
     }
@@ -438,25 +566,22 @@ async function removePhoto(index, sortOrder = null) {
 }
 
 /**
- * 모든 사진 슬롯 업데이트
+ * 새 사진 배열에서 해당 슬롯의 파일 인덱스 찾기
  */
-function updateAllPhotoSlots(imageUrls) {
-    console.log('📸 하위 호환 슬롯 업데이트:', imageUrls);
-
-    // 모든 슬롯 초기화
-    for (let i = 0; i < 5; i++) {
-        resetPhotoSlot(i);
+function findNewPhotoIndex(slotIndex) {
+    let newPhotoCount = 0;
+    for (let i = 0; i < slotIndex; i++) {
+        const slot = document.querySelector(`.photo-slot[data-index="${i}"]`);
+        if (slot && slot.classList.contains('new-photo')) {
+            newPhotoCount++;
+        }
     }
 
-    // 순서대로 이미지 배치
-    imageUrls.forEach((url, index) => {
-        if (index < 5) {
-            pageState.photos[index] = url;
-            updatePhotoSlot(index, url, false, index + 1);
-        }
-    });
-
-    updatePhotoUploadStatus();
+    const currentSlot = document.querySelector(`.photo-slot[data-index="${slotIndex}"]`);
+    if (currentSlot && currentSlot.classList.contains('new-photo')) {
+        return newPhotoCount;
+    }
+    return -1;
 }
 
 /**
@@ -464,13 +589,16 @@ function updateAllPhotoSlots(imageUrls) {
  */
 function getTotalValidPhotoCount() {
     // 기존 사진 중 삭제 예정이 아닌 것들
-    const validExistingPhotos = pageState.photoDetails.filter((detail, index) => {
-        if (!detail) return false;
-        const sortOrder = detail.sortOrder || (index + 1);
+    const validExistingPhotos = pageState.photos.filter((photo, index) => {
+        if (!photo) return false;
+        const sortOrder = pageState.photoDetails[index]?.sortOrder || (index + 1);
         return !pageState.photosToDelete.includes(sortOrder);
     }).length;
 
-    return validExistingPhotos + pageState.newPhotos.length;
+    // 새 사진 개수
+    const newPhotoSlots = document.querySelectorAll('.photo-slot.new-photo, .photo-slot.uploading').length;
+
+    return validExistingPhotos + newPhotoSlots;
 }
 
 /**
@@ -537,20 +665,30 @@ function updateSaveButtonState() {
  */
 function updatePhotoUploadStatus() {
     const totalCount = getTotalValidPhotoCount();
+    const filledSlots = document.querySelectorAll('.photo-slot.filled').length;
+    const uploadingSlots = document.querySelectorAll('.photo-slot.uploading').length;
+
     let statusElement = document.getElementById('photoUploadStatus');
 
     if (!statusElement) {
         const photoSection = document.querySelector('.photo-section');
-        statusElement = document.createElement('div');
-        statusElement.id = 'photoUploadStatus';
-        statusElement.className = 'photo-upload-status';
-        photoSection.insertBefore(statusElement, document.getElementById('photoGrid'));
+        if (photoSection) {
+            statusElement = document.createElement('div');
+            statusElement.id = 'photoUploadStatus';
+            statusElement.className = 'photo-upload-status';
+            const photoGrid = document.getElementById('photoGrid');
+            if (photoGrid) {
+                photoSection.insertBefore(statusElement, photoGrid);
+            }
+        }
     }
+
+    if (!statusElement) return;
 
     if (pageState.hasStartedPhotoUpload || totalCount > 0) {
         const remaining = 5 - totalCount;
 
-        if (totalCount === 5) {
+        if (totalCount === 5 && uploadingSlots === 0) {
             statusElement.innerHTML = `
                 <div class="status-complete">
                     <i class="fas fa-check-circle"></i>
@@ -558,6 +696,14 @@ function updatePhotoUploadStatus() {
                 </div>
             `;
             statusElement.className = 'photo-upload-status complete';
+        } else if (uploadingSlots > 0) {
+            statusElement.innerHTML = `
+                <div class="status-progress">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <span>사진 처리 중... (${totalCount}/5)</span>
+                </div>
+            `;
+            statusElement.className = 'photo-upload-status progress';
         } else {
             statusElement.innerHTML = `
                 <div class="status-progress">
@@ -571,6 +717,8 @@ function updatePhotoUploadStatus() {
     } else {
         statusElement.style.display = 'none';
     }
+
+    updateSaveButtonState();
 }
 
 /**
@@ -628,7 +776,8 @@ function resetPhotoSlot(index) {
     const slot = document.querySelector(`.photo-slot[data-index="${index}"]`);
     if (!slot) return;
 
-    slot.classList.remove('filled', 'new-photo');
+    // 🔧 얼굴 인식 실패 클래스도 제거
+    slot.classList.remove('filled', 'new-photo', 'uploading', 'face-detection-failed');
     slot.removeAttribute('data-sort-order');
     slot.innerHTML = `
         <i class="fas fa-camera"></i>
@@ -657,24 +806,19 @@ function validateImageFile(file) {
 }
 
 function isValidEmail(email) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
 function isValidPhoneNumber(phone) {
-    const phoneRegex = /^010[0-9]{8}$/;
     const cleanPhone = phone.replace(/[-\s]/g, '');
-    return phoneRegex.test(cleanPhone);
+    return /^010[0-9]{8}$/.test(cleanPhone);
 }
 
 function isValidBirthDate(birthDate) {
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-    if (!dateRegex.test(birthDate)) return false;
-
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) return false;
     const date = new Date(birthDate);
     const today = new Date();
     const minDate = new Date(today.getFullYear() - 120, 0, 1);
-
     return date >= minDate && date <= today;
 }
 
@@ -683,14 +827,12 @@ function validateFormField(field) {
 
     const value = field.value?.trim() || '';
 
-    // 기존 에러 제거
     field.classList.remove('is-invalid');
     const errorElement = field.parentElement.querySelector('.invalid-feedback');
     if (errorElement) {
         errorElement.style.display = 'none';
     }
 
-    // 검증 로직
     if (field.hasAttribute('required') && !value) {
         showFieldError(field, '이 필드는 필수입니다.');
         return false;
@@ -730,16 +872,20 @@ function showFieldError(field, message) {
 
 function updateFormFields(responseData) {
     if (responseData.name) {
-        document.getElementById('userName').value = responseData.name;
+        const nameField = document.getElementById('userName');
+        if (nameField) nameField.value = responseData.name;
     }
     if (responseData.email) {
-        document.getElementById('userEmail').value = responseData.email;
+        const emailField = document.getElementById('userEmail');
+        if (emailField) emailField.value = responseData.email;
     }
     if (responseData.phoneNumber) {
-        document.getElementById('userPhone').value = responseData.phoneNumber;
+        const phoneField = document.getElementById('userPhone');
+        if (phoneField) phoneField.value = responseData.phoneNumber;
     }
     if (responseData.birthDate) {
-        document.getElementById('userBirthDate').value = responseData.birthDate;
+        const birthDateField = document.getElementById('userBirthDate');
+        if (birthDateField) birthDateField.value = responseData.birthDate;
     }
 }
 
@@ -775,4 +921,4 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-console.log('📱 개선된 프로필 설정 스크립트 로드 완료');
+console.log('📱 수정된 프로필 설정 스크립트 로드 완료');

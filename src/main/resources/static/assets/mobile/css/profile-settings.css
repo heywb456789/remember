@@ -889,3 +889,52 @@
         color: #81c784;
     }
 }
+
+/* profile-settings.css에 추가할 간단한 얼굴 인식 스타일 */
+
+/* 얼굴 인식 실패 사진 슬롯 */
+.photo-slot.face-detection-failed {
+    border: 2px solid #dc3545 !important;
+    background: rgba(220, 53, 69, 0.1);
+    animation: shake 0.5s ease-in-out;
+}
+
+.photo-slot.face-detection-failed:hover {
+    box-shadow: 0 0 10px rgba(220, 53, 69, 0.3);
+}
+
+/* 얼굴 인식 경고 알림 */
+.alert.alert-warning {
+    border-left: 4px solid #ffc107;
+    background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 234, 167, 0.1) 100%);
+    padding: 16px;
+    margin: 16px 0;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.alert.alert-warning i {
+    color: #856404;
+    font-size: 16px;
+}
+
+.alert.alert-warning strong {
+    color: #856404;
+}
+
+/* 흔들림 애니메이션 */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
+    20%, 40%, 60%, 80% { transform: translateX(2px); }
+}
+
+/* 반응형 */
+@media (max-width: 375px) {
+    .alert.alert-warning {
+        padding: 12px;
+        font-size: 13px;
+    }
+}

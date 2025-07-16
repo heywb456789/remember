@@ -1,6 +1,7 @@
 package com.tomato.remember.application.memorial.service;
 
 import com.tomato.remember.application.family.entity.FamilyMember;
+import com.tomato.remember.application.family.repository.FamilyMemberRepository;
 import com.tomato.remember.application.member.repository.MemberRepository;
 import com.tomato.remember.application.memorial.dto.MemorialCreateRequestDTO;
 import com.tomato.remember.application.memorial.dto.MemorialCreateResponseDTO;
@@ -40,6 +41,7 @@ public class MemorialServiceImpl implements MemorialService {
     private final MemorialRepository memorialRepository;
     private final FileStorageService fileStorageService;
     private final MemberRepository memberRepository;
+    private final FamilyMemberRepository familyMemberRepository;
 
     @Override
     @Transactional
@@ -124,7 +126,8 @@ public class MemorialServiceImpl implements MemorialService {
             // 가족 구성원으로서의 관계 정보 조회
             FamilyMember familyMember = null;
             if (! isOwner) {
-                familyMember = memorial.getFamilyMember(member);
+//                familyMember = memorial.getFamilyMember(member);
+                familyMember = familyMemberRepository.findByMemorialAndMember(memorial, member).orElse(null);
             }
 
             return convertToListResponseDTOWithAccessInfo(memorial, hasRequiredProfileImages, member, isOwner,
@@ -460,7 +463,10 @@ public class MemorialServiceImpl implements MemorialService {
         if (isOwner) {
             builder.accessType("OWNER")
                 .canModify(true)
-                .canVideoCall(true); // 소유자는 모든 권한 보유
+                .canVideoCall(true) // 소유자는 모든 권한 보유
+                .hasDeceasedInfo(true) // 소유자는 메모리얼 생성 시 이미 입력
+                .hasRequiredDeceasedInfo(true)
+                .deceasedInfoFieldCount(5); // 소유자는 모든 필드 입력됨으로 간주
         }
         // 가족 구성원인 경우
         else if (familyMember != null) {
@@ -468,9 +474,22 @@ public class MemorialServiceImpl implements MemorialService {
                 .canModify(false)
                 .canVideoCall(familyMember.getVideoCallAccess())
                 .familyRelationship(familyMember.getRelationship().name())
-                .familyRelationshipDisplay(familyMember.getRelationshipDisplayName());
+                .familyRelationshipDisplay(familyMember.getRelationshipDisplayName())
+                .hasDeceasedInfo(familyMember.hasDeceasedInfo())
+                .hasRequiredDeceasedInfo(familyMember.hasRequiredDeceasedInfo())
+                .deceasedInfoFieldCount(calculateDeceasedInfoFieldCount(familyMember));
         }
 
         return builder.build();
+    }
+
+    private Integer calculateDeceasedInfoFieldCount(FamilyMember familyMember) {
+        int count = 0;
+        if (familyMember.getMemberPersonality() != null && !familyMember.getMemberPersonality().trim().isEmpty()) count++;
+        if (familyMember.getMemberHobbies() != null && !familyMember.getMemberHobbies().trim().isEmpty()) count++;
+        if (familyMember.getMemberFavoriteFood() != null && !familyMember.getMemberFavoriteFood().trim().isEmpty()) count++;
+        if (familyMember.getMemberSpecialMemories() != null && !familyMember.getMemberSpecialMemories().trim().isEmpty()) count++;
+        if (familyMember.getMemberSpeechHabits() != null && !familyMember.getMemberSpeechHabits().trim().isEmpty()) count++;
+        return count;
     }
 }

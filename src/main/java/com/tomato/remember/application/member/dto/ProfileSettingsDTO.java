@@ -16,4 +16,5 @@ public class ProfileSettingsDTO {
     
     // 5장 모두 업로드해야 하는 정책 반영
     private boolean needsCompleteUpload; // 1-4장 상태는 허용 안함
+    private List<Integer> invalidImageNumbers;
 }

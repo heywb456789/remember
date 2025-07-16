@@ -40,6 +40,52 @@ const RELATIONSHIP_EMOJIS = {
 };
 
 /**
+ * 가족 구성원 배지 스타일 추가
+ */
+const familyMemberBadgeStyle = `
+  .family-member-badge {
+    background: #e3f2fd;
+    color: #1976d2;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 8px;
+    font-weight: 500;
+  }
+
+  .memorial-meta {
+    font-size: 12px;
+    color: var(--text-light);
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .memorial-meta .separator {
+    opacity: 0.5;
+  }
+
+  .access-type {
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+
+  .status-icon.status-heart {
+    color: #e91e63;
+  }
+
+  .status-icon.status-heart.status-ok {
+    color: #4caf50;
+  }
+
+  .status-icon.status-heart.status-warning {
+    color: #ff9800;
+  }
+`;
+
+
+/**
  * 메인 페이지 초기화
  */
 function initializeMainPage() {
@@ -514,7 +560,7 @@ async function checkVideoCallAvailability(memorial) {
   console.log('영상통화 가능 여부 확인:', memorial);
 
   try {
-    // 1. 프로필 이미지 확인
+    // 1. 프로필 이미지 확인 (공통)
     if (!memorial.hasRequiredProfileImages) {
       const confirmed = confirm(
           '영상통화 시작을 위해서는 프로필 사진을 등록해주세요.\n\n내정보 수정 페이지로 이동하시겠습니까?'
@@ -526,18 +572,62 @@ async function checkVideoCallAvailability(memorial) {
       return;
     }
 
-    // 2. AI 학습 완료 확인
+    // 2-1. 소유자인 경우: AI 학습 완료 확인
+    if (memorial.isOwner) {
+      if (!memorial.aiTrainingCompleted) {
+        alert('영상통화 준비를 위한 학습 중입니다. 잠시만 기다려주세요.');
+        return;
+      }
+
+      // 소유자 - 모든 조건 만족 시 영상통화 시작
+      startVideoCall(memorial.memorialId);
+      return;
+    }
+
+    // 2-2. 가족 구성원인 경우: 고인 상세 정보 확인
+    if (!memorial.hasRequiredDeceasedInfo) {
+      const confirmed = confirm(
+          '영상통화 시작을 위해서는 고인에 대한 상세 정보를 입력해주세요.\n\n' +
+          '(5개 항목을 모두 입력해야 합니다)\n\n' +
+          '메모리얼 정보 입력 페이지로 이동하시겠습니까?'
+      );
+
+      if (confirmed) {
+        // 가족 구성원용 메모리얼 정보 입력 페이지로 이동
+        window.location.href = `/mobile/memorial/family-info/${memorial.memorialId}`;
+      }
+      return;
+    }
+
+    // 3. AI 학습 완료 확인 (가족 구성원)
     if (!memorial.aiTrainingCompleted) {
       alert('영상통화 준비를 위한 학습 중입니다. 잠시만 기다려주세요.');
       return;
     }
 
-    // 3. 모든 조건 만족 시 영상통화 시작
+    // 가족 구성원 - 모든 조건 만족 시 영상통화 시작
     startVideoCall(memorial.memorialId);
 
   } catch (error) {
     console.error('영상통화 가능 여부 확인 중 오류:', error);
     alert('영상통화 확인 중 오류가 발생했습니다.');
+  }
+}
+
+async function confirmVideoCallStart(memorial) {
+  console.log('영상통화 시작 최종 확인:', memorial);
+
+  const memorialName = memorial.name || '메모리얼';
+  const accessType = memorial.isOwner ? '소유자' : '가족 구성원';
+
+  const confirmed = confirm(
+      `${memorialName}님과 영상통화를 시작하시겠습니까?\n\n` +
+      `접근 권한: ${accessType}\n` +
+      `관계: ${memorial.getDisplayRelationship?.() || memorial.relationshipDescription}`
+  );
+
+  if (confirmed) {
+    startVideoCall(memorial.memorialId);
   }
 }
 
@@ -577,25 +667,82 @@ function updateVideoCallButtonState() {
   // 메모리얼이 없으면 비활성화
   if (!hasMemorials) {
     videoCallBtn.disabled = true;
-    videoCallBtn.textContent = '영상통화';
+    videoCallBtn.innerHTML = '<i class="fas fa-video"></i> 영상통화';
     return;
   }
 
-  // 메모리얼이 1개면 항상 활성화
+  // 선택된 메모리얼 정보 가져오기
+  let selectedMemorial = null;
   if (!isMultipleMemorials) {
-    videoCallBtn.disabled = false;
-    videoCallBtn.innerHTML = '<i class="fas fa-video"></i> 영상통화';
-    return;
+    selectedMemorial = mainPageState.memorialItems[0];
+  } else if (hasSelection) {
+    selectedMemorial = mainPageState.memorialItems.find(
+        item => item.memorialId === mainPageState.selectedMemorialId
+    );
   }
 
-  // 메모리얼이 여러개면 선택 여부에 따라 상태 변경
-  if (hasSelection) {
+  // 버튼 텍스트 업데이트
+  if (selectedMemorial) {
+    const blockReason = getVideoCallBlockReason(selectedMemorial);
+    if (blockReason) {
+      videoCallBtn.disabled = false; // 클릭은 가능 (설명을 위해)
+      videoCallBtn.innerHTML = `<i class="fas fa-video"></i> 영상통화 <small>(${getShortBlockReason(blockReason)})</small>`;
+    } else {
+      videoCallBtn.disabled = false;
+      videoCallBtn.innerHTML = '<i class="fas fa-video"></i> 영상통화';
+    }
+  } else {
     videoCallBtn.disabled = false;
     videoCallBtn.innerHTML = '<i class="fas fa-video"></i> 영상통화';
-  } else {
-    videoCallBtn.disabled = false; // 클릭은 가능하지만 메시지 표시
-    videoCallBtn.innerHTML = '<i class="fas fa-video"></i> 영상통화';
   }
+}
+
+/**
+ * 영상통화 차단 사유 반환 (새로 추가)
+ */
+function getVideoCallBlockReason(memorial) {
+  // 프로필 이미지 확인
+  if (!memorial.hasRequiredProfileImages) {
+    return '프로필 사진을 등록해주세요.';
+  }
+
+  // 가족 구성원인 경우 고인 상세 정보 확인
+  if (!memorial.isOwner && !memorial.hasRequiredDeceasedInfo) {
+    return '고인에 대한 상세 정보를 입력해주세요.';
+  }
+
+  // AI 학습 상태 확인
+  if (!memorial.aiTrainingCompleted) {
+    return 'AI 학습이 완료되지 않았습니다.';
+  }
+
+  // 접근 권한 확인
+  if (!memorial.canAccess) {
+    return '접근 권한이 없습니다.';
+  }
+
+  // 영상통화 권한 확인
+  if (!memorial.isOwner && !memorial.canVideoCall) {
+    return '영상통화 권한이 없습니다.';
+  }
+
+  return null;
+}
+
+
+/**
+ * 짧은 차단 사유 텍스트 반환
+ */
+function getShortBlockReason(fullReason) {
+  const shortReasons = {
+    '프로필 사진을 등록해주세요.': '프로필 필요',
+    '고인에 대한 상세 정보를 입력해주세요.': '정보 입력 필요',
+    'AI 학습이 완료되지 않았습니다.': '학습 중',
+    '접근 권한이 없습니다.': '권한 없음',
+    '영상통화 권한이 없습니다.': '권한 없음'
+  };
+
+  return shortReasons[fullReason] || '준비 중';
 }
 
 /**
@@ -694,30 +841,69 @@ function createMemorialItem(memorial) {
   // 아바타 HTML 생성
   const avatarHtml = createAvatarHtml(memorial);
 
+  // 상태 표시 아이콘 생성
+  const statusIconsHtml = createStatusIconsHtml(memorial);
+
   item.innerHTML = `
     ${avatarHtml}
     <div class="memorial-info">
-      <div class="memorial-name">${memorial.name}</div>
-      <div class="memorial-relationship">${memorial.relationshipDescription || '관계 없음'}</div>
+      <div class="memorial-name">
+        ${memorial.name}
+        ${memorial.isOwner ? '' : '<span class="family-member-badge">가족</span>'}
+      </div>
+      <div class="memorial-relationship">${memorial.getDisplayRelationship?.() || memorial.relationshipDescription}</div>
+      <div class="memorial-meta">
+        <span class="access-type">${memorial.getAccessStatusText?.() || (memorial.isOwner ? '소유자' : '가족 구성원')}</span>
+        <span class="separator">•</span>
+        <span class="age">${memorial.formattedAge}</span>
+      </div>
     </div>
     <div class="memorial-status">
-      <div class="status-indicators">
-        ${memorial.hasRequiredProfileImages ?
-      '<i class="fas fa-image status-icon status-ok" title="프로필 사진 등록 완료"></i>' :
-      '<i class="fas fa-image status-icon status-warning" title="프로필 사진 필요"></i>'
-  }
-        ${memorial.aiTrainingCompleted ?
-      '<i class="fas fa-brain status-icon status-ok" title="AI 학습 완료"></i>' :
-      '<i class="fas fa-brain status-icon status-warning" title="AI 학습 중"></i>'
-  }
-      </div>
+      ${statusIconsHtml}
       <div class="memorial-arrow">
+        <i class="fas fa-chevron-right"></i>
         <i class="fas fa-check-circle selection-icon" style="display: none;"></i>
       </div>
     </div>
   `;
 
   return item;
+}
+
+/**
+ * 상태 표시 아이콘 HTML 생성
+ */
+function createStatusIconsHtml(memorial) {
+  const statusIcons = [];
+
+  // 프로필 이미지 상태
+  if (memorial.hasRequiredProfileImages) {
+    statusIcons.push('<i class="fas fa-image status-icon status-ok" title="프로필 사진 등록 완료"></i>');
+  } else {
+    statusIcons.push('<i class="fas fa-image status-icon status-warning" title="프로필 사진 필요"></i>');
+  }
+
+  // 가족 구성원인 경우 고인 상세 정보 상태 추가
+  if (!memorial.isOwner) {
+    if (memorial.hasRequiredDeceasedInfo) {
+      statusIcons.push('<i class="fas fa-heart status-icon status-ok" title="고인 상세 정보 입력 완료"></i>');
+    } else {
+      statusIcons.push('<i class="fas fa-heart status-icon status-warning" title="고인 상세 정보 입력 필요"></i>');
+    }
+  }
+
+  // AI 학습 상태
+  if (memorial.aiTrainingCompleted) {
+    statusIcons.push('<i class="fas fa-brain status-icon status-ok" title="AI 학습 완료"></i>');
+  } else {
+    statusIcons.push('<i class="fas fa-brain status-icon status-warning" title="AI 학습 중"></i>');
+  }
+
+  return `
+    <div class="status-indicators">
+      ${statusIcons.join('')}
+    </div>
+  `;
 }
 
 /**
@@ -858,6 +1044,15 @@ if (document.readyState === 'loading') {
 } else {
   setTimeout(initializeMainPage, 100);
 }
+
+// 스타일 동적 추가
+if (!document.getElementById('family-member-styles')) {
+  const styleSheet = document.createElement('style');
+  styleSheet.id = 'family-member-styles';
+  styleSheet.textContent = familyMemberBadgeStyle;
+  document.head.appendChild(styleSheet);
+}
+
 
 // 페이지 언로드 시 정리
 window.addEventListener('beforeunload', destroyMainPage);

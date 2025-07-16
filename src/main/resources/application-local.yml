@@ -57,7 +57,7 @@ spring:
 app:
   file:
     upload-dir: ./uploads
-    base-url: http://localhost:8080
+    base-url: http://192.168.20.22:8080
 #      ftp:
 #        host: 1.201.174.63
 #        port: 21

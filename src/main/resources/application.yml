@@ -457,5 +457,5 @@ one-id:
 app:
   file:
     upload-dir: /uploads
-    base-url: http://localhost:8080
+    base-url: http://192.168.20.22:8080
     url-pattern: /uploads/**    # 웹 접근 URL 경로

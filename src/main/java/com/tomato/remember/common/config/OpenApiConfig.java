@@ -50,7 +50,7 @@ import java.util.Map;
 })
 public class OpenApiConfig {
 
-    @Value("${server.port:8096}")
+    @Value("${server.port:8095}")
     private String serverPort;
 
     @Value("${server.servlet.context-path:}")

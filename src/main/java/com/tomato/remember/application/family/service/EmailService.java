@@ -34,7 +34,7 @@ public class EmailService {
     @Value("${spring.mail.from:noreply@tomatoremember.com}")
     private String fromEmail;
 
-    @Value("${spring.mail.domain:http://114.31.52.64:8096}")
+    @Value("${spring.mail.domain:http://114.31.52.64:8095}")
     private String appDomain;
 
     @Value("${spring.mail.name:토마토리멤버}")

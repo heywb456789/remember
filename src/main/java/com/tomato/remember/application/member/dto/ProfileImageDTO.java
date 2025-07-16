@@ -23,4 +23,5 @@ public class ProfileImageDTO {
     private String imageUrl;
     private Integer sortOrder;
     private String originalFilename;
+    private boolean aiProcessed;
 }

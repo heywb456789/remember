@@ -45,6 +45,8 @@ public class ProfileUpdateResponse {
 
     private LocalDateTime updatedAt;
 
+    private List<Integer> invalidImageNumbers;
+
     // ===== 헬퍼 메서드 =====
 
 

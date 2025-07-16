@@ -100,6 +100,29 @@ public class FamilyMember extends Audit {
     @Comment("마지막 접근 일시")
     @Column(name = "last_access_at")
     private LocalDateTime lastAccessAt;
+
+    // ===== 고인 상세 정보 (가족 구성원별 개별 입력) =====
+
+    @Comment("성격이나 특징 (가족 구성원 관점)")
+    @Column(length = 500, name = "member_personality")
+    private String memberPersonality;
+
+    @Comment("취미나 관심사 (가족 구성원 관점)")
+    @Column(length = 300, name = "member_hobbies")
+    private String memberHobbies;
+
+    @Comment("좋아하는 음식 (가족 구성원 관점)")
+    @Column(length = 300, name = "member_favorite_food")
+    private String memberFavoriteFood;
+
+    @Comment("기억에 남는 일화나 추억 (가족 구성원 관점)")
+    @Column(length = 300, name = "member_special_memories")
+    private String memberSpecialMemories;
+
+    @Comment("습관이나 말버릇 (가족 구성원 관점)")
+    @Column(length = 300, name = "member_speech_habits")
+    private String memberSpeechHabits;
+
     // ===== Setter 메서드 (연관관계 관리용) =====
 
     /**
@@ -171,6 +194,48 @@ public class FamilyMember extends Audit {
      */
     public void updateLastAccess() {
         this.lastAccessAt = LocalDateTime.now();
+    }
+
+    // ===== 고인 상세 정보 업데이트 =====
+
+    /**
+     * 고인 상세 정보 업데이트
+     */
+    public void updateDeceasedInfo(String personality, String hobbies, String favoriteFood,
+                                   String specialMemories, String speechHabits) {
+        this.memberPersonality = personality;
+        this.memberHobbies = hobbies;
+        this.memberFavoriteFood = favoriteFood;
+        this.memberSpecialMemories = specialMemories;
+        this.memberSpeechHabits = speechHabits;
+
+        log.info("고인 상세 정보 업데이트 - 멤버: {}, 메모리얼: {}", member.getId(), memorial.getId());
+    }
+
+    /**
+     * 고인 상세 정보 완성 여부 확인
+     */
+    public boolean hasDeceasedInfo() {
+        return (memberPersonality != null && !memberPersonality.trim().isEmpty()) ||
+               (memberHobbies != null && !memberHobbies.trim().isEmpty()) ||
+               (memberFavoriteFood != null && !memberFavoriteFood.trim().isEmpty()) ||
+               (memberSpecialMemories != null && !memberSpecialMemories.trim().isEmpty()) ||
+               (memberSpeechHabits != null && !memberSpeechHabits.trim().isEmpty());
+    }
+
+    /**
+     * 고인 상세 정보 필수 항목 완성 여부 확인 (최소 2개 이상)
+     */
+    public boolean hasRequiredDeceasedInfo() {
+        int filledCount = 0;
+
+        if (memberPersonality != null && !memberPersonality.trim().isEmpty()) filledCount++;
+        if (memberHobbies != null && !memberHobbies.trim().isEmpty()) filledCount++;
+        if (memberFavoriteFood != null && !memberFavoriteFood.trim().isEmpty()) filledCount++;
+        if (memberSpecialMemories != null && !memberSpecialMemories.trim().isEmpty()) filledCount++;
+        if (memberSpeechHabits != null && !memberSpeechHabits.trim().isEmpty()) filledCount++;
+
+        return filledCount >= 5;  // 5개 모두 있어야함
     }
 
     // ===== 상태 확인 메서드 =====

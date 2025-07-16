@@ -31,6 +31,7 @@ public class MemberProfileServiceImpl implements MemberProfileService {
     private final MemberRepository memberRepository;
     private final MemberAiProfileImageRepository profileImageRepository;
     private final FileStorageService fileStorageService;
+    private final FaceDetectionService faceDetectionService;
 
     // 지원하는 이미지 타입
     private static final List<String> ALLOWED_IMAGE_TYPES = Arrays.asList(
@@ -59,6 +60,30 @@ public class MemberProfileServiceImpl implements MemberProfileService {
         // 3. 저장
         Member updatedMember = memberRepository.save(member);
 
+        // 4. 🔥 프로필 이미지가 5장 완성되면 얼굴 인식 처리 (간단 버전)
+        if (imageResult.getFinalImageCount() == 5) {
+            log.info("프로필 이미지 5장 완성 - 얼굴 인식 처리 시작");
+            faceDetectionService.processProfileImages(updatedMember);
+        }
+
+        // 5. 최종 이미지 정보 다시 조회 (얼굴 인식 결과 포함)
+        List<MemberAiProfileImage> finalImages = profileImageRepository.findByMemberOrderBySortOrderAsc(updatedMember);
+
+        List<ProfileImageDTO> finalImageDTOs = finalImages.stream()
+        .map(img -> ProfileImageDTO.builder()
+            .sortOrder(img.getSortOrder())
+            .imageUrl(img.getImageUrl())
+            .originalFilename(img.getOriginalFilename())
+            .aiProcessed(img.getAiProcessed()) //얼굴 인식 결과 포함
+            .build())
+        .collect(Collectors.toList());
+
+        // 6.재인증 필요한 이미지 번호 찾기
+        List<Integer> invalidImageNumbers = finalImages.stream()
+            .filter(img -> !img.getAiProcessed())
+            .map(MemberAiProfileImage::getSortOrder)
+            .collect(Collectors.toList());
+
         log.info("통합 프로필 업데이트 완료 - 회원 ID: {}, 최종 이미지 수: {}",
             memberId, imageResult.getFinalImageCount());
 
@@ -70,7 +95,8 @@ public class MemberProfileServiceImpl implements MemberProfileService {
             .birthDate(updatedMember.getBirthDate())
             .preferredLanguage(updatedMember.getPreferredLanguage())
             .totalImages(imageResult.getFinalImageCount())
-            .imageUrls(imageResult.getImages())
+            .imageUrls(finalImageDTOs)
+            .invalidImageNumbers(invalidImageNumbers)
             .updatedAt(updatedMember.getUpdatedAt())
             .build();
     }
@@ -593,7 +619,13 @@ public class MemberProfileServiceImpl implements MemberProfileService {
                 .sortOrder(img.getSortOrder())
                 .imageUrl(img.getImageUrl())
                 .originalFilename(img.getOriginalFilename())
+                .aiProcessed(img.getAiProcessed())
                 .build())
+            .collect(Collectors.toList());
+
+        List<Integer> invalidImageNumbers = images.stream()
+            .filter(img -> !img.getAiProcessed())
+            .map(MemberAiProfileImage::getSortOrder)
             .collect(Collectors.toList());
 
         return ProfileSettingsDTO.builder()
@@ -604,6 +636,7 @@ public class MemberProfileServiceImpl implements MemberProfileService {
             .needsCompleteUpload(images.size() > 0 && images.size() < 5)
             .canStartVideoCall(images.size() == 5 && images.stream().allMatch(MemberAiProfileImage::isValid))
             .completionPercentage(images.size() * 20)
+            .invalidImageNumbers(invalidImageNumbers)
             .build();
     }
 }

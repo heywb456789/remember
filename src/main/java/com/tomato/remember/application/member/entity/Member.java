@@ -438,6 +438,7 @@ public class Member extends Audit {
     public MemberDTO convertDTO() {
         return MemberDTO.builder()
             .id(id)
+            .birthDate(birthDate)
             .createdAt(createdAt)
             .password(password)
             .phoneNumber(phoneNumber)
