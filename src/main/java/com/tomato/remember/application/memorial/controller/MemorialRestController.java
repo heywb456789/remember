@@ -1,6 +1,7 @@
 package com.tomato.remember.application.memorial.controller;
 
 import com.tomato.remember.application.memorial.dto.*;
+import com.tomato.remember.application.memorial.service.MemorialQuestionService;
 import com.tomato.remember.application.memorial.service.MemorialService;
 import com.tomato.remember.application.member.entity.Member;
 import com.tomato.remember.application.security.MemberUserDetails;
@@ -16,6 +17,10 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -36,6 +41,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class MemorialRestController {
 
     private final MemorialService memorialService;
+    private final MemorialQuestionService memorialQuestionService;
 
     /**
      * 메모리얼 등록
@@ -63,18 +69,33 @@ public class MemorialRestController {
             @Parameter(hidden = true) @AuthenticationPrincipal MemberUserDetails userDetails) {
 
         Member member = userDetails.getMember();
-        log.info("Creating memorial for member: {} (ID: {})", member.getName(), member.getId());
+        log.info("메모리얼 생성 요청 - 사용자: {} (ID: {}), 메모리얼명: {}",
+                member.getName(), member.getId(), memorialData.getName());
 
-        // 파일 개수 유효성 검사
-        validateFileCount(profileImages, voiceFiles, videoFile);
+        try {
+            // 1. 파일 개수 유효성 검사
+            validateFileCount(profileImages, voiceFiles, videoFile);
 
-        // 메모리얼 생성
-        MemorialCreateResponseDTO response = memorialService.createMemorial(
-                memorialData, profileImages, voiceFiles, videoFile, member);
+            // 2. 동적 질문 답변 유효성 검사
+            validateQuestionAnswers(memorialData.getQuestionAnswers());
 
-        log.info("Memorial created successfully: memorialId={}", response.getMemorialId());
+            // 3. 메모리얼 생성
+            MemorialCreateResponseDTO response = memorialService.createMemorial(
+                    memorialData, profileImages, voiceFiles, videoFile, member);
 
-        return ResponseDTO.ok(response);
+            log.info("메모리얼 생성 성공 - ID: {}, 이름: {}, 답변 수: {}",
+                    response.getMemorialId(), response.getName(),
+                    memorialData.getAnsweredQuestionCount());
+
+            return ResponseDTO.ok(response);
+
+        } catch (IllegalArgumentException e) {
+            log.warn("메모리얼 생성 실패 - 잘못된 요청: {}", e.getMessage());
+            throw new APIException(e.getMessage(), ResponseStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            log.error("메모리얼 생성 실패 - 사용자: {}, 오류: {}", member.getId(), e.getMessage(), e);
+            throw new APIException("메모리얼 생성 중 오류가 발생했습니다.", ResponseStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     /**
@@ -257,6 +278,68 @@ public class MemorialRestController {
 
         if (hasEmptyVoiceFile) {
             throw new IllegalArgumentException("업로드된 음성 파일 중 빈 파일이 있습니다.");
+        }
+    }
+
+    private void validateQuestionAnswers(List<MemorialQuestionAnswerDTO> questionAnswers) {
+        if (questionAnswers == null || questionAnswers.isEmpty()) {
+            throw new IllegalArgumentException("질문 답변은 최소 1개 이상 필요합니다.");
+        }
+
+        log.info("질문 답변 유효성 검사 시작 - 답변 수: {}", questionAnswers.size());
+
+        try {
+            // 활성 질문 목록 조회
+            List<MemorialQuestionResponse> activeQuestions = memorialQuestionService.getActiveQuestions();
+            Map<Long, MemorialQuestionResponse> questionMap = activeQuestions.stream()
+                    .collect(Collectors.toMap(MemorialQuestionResponse::getId, Function.identity()));
+
+            // 필수 질문 답변 검사
+            for (MemorialQuestionResponse question : activeQuestions) {
+                if (question.getIsRequired()) {
+                    boolean hasAnswer = questionAnswers.stream()
+                            .anyMatch(dto -> dto.getQuestionId().equals(question.getId()) && dto.hasAnswer());
+
+                    if (!hasAnswer) {
+                        throw new IllegalArgumentException(
+                                String.format("필수 질문에 답변이 없습니다: %s", question.getQuestionText()));
+                    }
+                }
+            }
+
+            // 각 답변의 유효성 검사
+            for (MemorialQuestionAnswerDTO answerDTO : questionAnswers) {
+                if (!answerDTO.hasAnswer()) {
+                    continue; // 빈 답변은 건너뛰기
+                }
+
+                MemorialQuestionResponse question = questionMap.get(answerDTO.getQuestionId());
+                if (question == null) {
+                    throw new IllegalArgumentException(
+                            String.format("존재하지 않는 질문입니다: %d", answerDTO.getQuestionId()));
+                }
+
+                // 답변 길이 검사
+                int answerLength = answerDTO.getAnswerLength();
+                if (answerLength < question.getMinLength()) {
+                    throw new IllegalArgumentException(
+                            String.format("답변이 너무 짧습니다. 최소 %d자 이상 입력해주세요: %s",
+                                    question.getMinLength(), question.getQuestionText()));
+                }
+
+                if (answerLength > question.getMaxLength()) {
+                    throw new IllegalArgumentException(
+                            String.format("답변이 너무 깁니다. 최대 %d자 이하로 입력해주세요: %s",
+                                    question.getMaxLength(), question.getQuestionText()));
+                }
+            }
+
+            log.info("질문 답변 유효성 검사 완료 - 유효한 답변 수: {}",
+                    questionAnswers.stream().filter(MemorialQuestionAnswerDTO::hasAnswer).count());
+
+        } catch (Exception e) {
+            log.error("질문 답변 유효성 검사 실패: {}", e.getMessage());
+            throw new IllegalArgumentException("질문 답변 유효성 검사에 실패했습니다: " + e.getMessage());
         }
     }
 }
