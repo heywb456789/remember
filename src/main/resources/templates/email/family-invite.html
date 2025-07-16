@@ -4,380 +4,161 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>가족 메모리얼 초대</title>
-    <style>
-        body {
-            font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', '맑은 고딕', sans-serif;
-            line-height: 1.6;
-            color: #333;
-            margin: 0;
-            padding: 0;
-            background-color: #f8f9fa;
-        }
-
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: #ffffff;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 32px 24px;
-            text-align: center;
-        }
-
-        .header h1 {
-            margin: 0;
-            font-size: 24px;
-            font-weight: 700;
-        }
-
-        .header p {
-            margin: 8px 0 0 0;
-            font-size: 16px;
-            opacity: 0.9;
-        }
-
-        .content {
-            padding: 32px 24px;
-        }
-
-        .invite-card {
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-            border-radius: 12px;
-            padding: 24px;
-            margin-bottom: 24px;
-            border-left: 4px solid #28a745;
-        }
-
-        .memorial-info {
-            display: flex;
-            align-items: center;
-            margin-bottom: 16px;
-        }
-
-        .memorial-avatar {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 600;
-            margin-right: 16px;
-            font-size: 18px;
-        }
-
-        .memorial-avatar img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            border-radius: 50%;
-        }
-
-        .memorial-details h3 {
-            margin: 0 0 4px 0;
-            font-size: 18px;
-            font-weight: 600;
-            color: #333;
-        }
-
-        .memorial-details p {
-            margin: 0;
-            font-size: 14px;
-            color: #666;
-        }
-
-        .inviter-info {
-            display: flex;
-            align-items: center;
-            margin-bottom: 16px;
-        }
-
-        .inviter-avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 600;
-            margin-right: 12px;
-            font-size: 14px;
-        }
-
-        .inviter-avatar img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            border-radius: 50%;
-        }
-
-        .inviter-details p {
-            margin: 0;
-            font-size: 14px;
-            color: #666;
-        }
-
-        .relationship-badge {
-            display: inline-block;
-            background: #28a745;
-            color: white;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: 600;
-            margin-left: 8px;
-        }
-
-        .invite-message {
-            background: #fff;
-            border-radius: 8px;
-            padding: 16px;
-            margin: 16px 0;
-            border: 1px solid #e9ecef;
-            font-style: italic;
-            color: #555;
-        }
-
-        .invite-button {
-            display: block;
-            width: 100%;
-            max-width: 300px;
-            margin: 32px auto;
-            padding: 16px 24px;
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            text-align: center;
-            transition: all 0.3s ease;
-        }
-
-        .invite-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
-        }
-
-        .expiration-info {
-            background: #fff3cd;
-            border-radius: 8px;
-            padding: 16px;
-            margin: 24px 0;
-            border-left: 4px solid #ffc107;
-        }
-
-        .expiration-info h4 {
-            margin: 0 0 8px 0;
-            font-size: 14px;
-            font-weight: 600;
-            color: #856404;
-        }
-
-        .expiration-info p {
-            margin: 0;
-            font-size: 13px;
-            color: #856404;
-        }
-
-        .footer {
-            background: #f8f9fa;
-            padding: 24px;
-            text-align: center;
-            border-top: 1px solid #e9ecef;
-        }
-
-        .footer p {
-            margin: 0;
-            font-size: 12px;
-            color: #6c757d;
-        }
-
-        .footer a {
-            color: #667eea;
-            text-decoration: none;
-        }
-
-        .divider {
-            height: 1px;
-            background: #e9ecef;
-            margin: 24px 0;
-        }
-
-        .features {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 16px;
-            margin: 24px 0;
-        }
-
-        .feature-item {
-            text-align: center;
-            padding: 16px;
-            background: #f8f9fa;
-            border-radius: 8px;
-        }
-
-        .feature-icon {
-            font-size: 24px;
-            margin-bottom: 8px;
-        }
-
-        .feature-title {
-            font-size: 14px;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 4px;
-        }
-
-        .feature-desc {
-            font-size: 12px;
-            color: #666;
-        }
-
-        @media (max-width: 600px) {
-            .container {
-                margin: 0;
-                border-radius: 0;
-            }
-
-            .header {
-                padding: 24px 16px;
-            }
-
-            .content {
-                padding: 24px 16px;
-            }
-
-            .memorial-info {
-                flex-direction: column;
-                text-align: center;
-            }
-
-            .memorial-avatar {
-                margin-right: 0;
-                margin-bottom: 12px;
-            }
-
-            .features {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
 </head>
-<body>
-    <div class="container">
-        <!-- 헤더 -->
-        <div class="header">
-            <h1 th:text="${appName}">토마토리멤버</h1>
-            <p>소중한 추억을 영원히 간직하세요</p>
-        </div>
+<body style="margin: 0; padding: 0; font-family: '맑은 고딕', 'Malgun Gothic', Arial, sans-serif; background-color: #f8f9fa;">
 
-        <!-- 메인 콘텐츠 -->
-        <div class="content">
-            <!-- 초대 카드 -->
-            <div class="invite-card">
-                <!-- 메모리얼 정보 -->
-                <div class="memorial-info">
-<!--                    <div class="memorial-avatar">-->
-<!--                        <img th:if="${deceasedProfileImage}" th:src="${deceasedProfileImage}" alt="프로필 이미지">-->
-<!--                        <span th:if="${!deceasedProfileImage}" th:text="${deceasedNickname?.substring(0,1)}">?</span>-->
-<!--                    </div>-->
-                    <div class="memorial-details">
-                        <h3>
-                            <span th:text="${deceasedNickname}">별명</span>
-                            (<span th:text="${deceasedName}">이름</span>)
-                        </h3>
-                        <p>메모리얼에 초대되었습니다</p>
-                    </div>
-                </div>
+    <!-- 외부 컨테이너 -->
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f8f9fa; padding: 20px 0;">
+        <tr>
+            <td align="center">
 
-                <!-- 초대자 정보 -->
-                <div class="inviter-info">
-<!--                    <div class="inviter-avatar">-->
-<!--                        <img th:if="${inviterProfileImage}" th:src="${inviterProfileImage}" alt="초대자 프로필">-->
-<!--                        <span th:if="${!inviterProfileImage}" th:text="${inviterName?.substring(0,1)}">?</span>-->
-<!--                    </div>-->
-                    <div class="inviter-details">
-                        <p>
-                            <strong th:text="${inviterName}">초대자</strong>님이
-                            <span class="relationship-badge" th:text="${relationshipDisplayName}">관계</span>
-                            로 초대했습니다
-                        </p>
-                    </div>
-                </div>
+                <!-- 메인 컨테이너 -->
+                <table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width: 600px; background-color: #ffffff; border: 1px solid #e9ecef;">
 
-                <!-- 초대 메시지 -->
-                <div class="invite-message" th:if="${inviteMessage}">
-                    <p th:text="${inviteMessage}">초대 메시지</p>
-                </div>
+                    <!-- 헤더 -->
+                    <tr>
+                        <td style="background-color: #667eea; color: white; padding: 32px 24px; text-align: center;">
+                            <h1 style="margin: 0; font-size: 24px; font-weight: bold;" th:text="${appName}">토마토리멤버</h1>
+                            <p style="margin: 8px 0 0 0; font-size: 16px;">소중한 추억을 영원히 간직하세요</p>
+                        </td>
+                    </tr>
 
-                <!-- 초대 수락 버튼 -->
-                <a th:href="${inviteLink}" class="invite-button">
-                    초대 수락하기
-                </a>
-            </div>
+                    <!-- 메인 콘텐츠 -->
+                    <tr>
+                        <td style="padding: 32px 24px;">
 
-            <!-- 만료 정보 -->
-            <div class="expiration-info">
-                <h4>⏰ 초대 만료 안내</h4>
-                <p>
-                    이 초대는 <strong th:text="${expiresAt}">만료일</strong>에 만료됩니다.
-                    (남은 시간: <span th:text="${remainingHours}">시간</span>시간)
-                </p>
-            </div>
+                            <!-- 초대 카드 -->
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f8f9fa; border-left: 4px solid #28a745; margin-bottom: 24px;">
+                                <tr>
+                                    <td style="padding: 24px;">
 
-            <div class="divider"></div>
+                                        <!-- 메모리얼 정보 -->
+                                        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 20px;">
+                                            <tr>
+                                                <td>
+                                                    <h3 style="margin: 0 0 8px 0; font-size: 20px; font-weight: bold; color: #333;">
+                                                        <span th:text="${deceasedNickname}">별명</span>
+                                                        <span th:if="${deceasedName != null and !#strings.isEmpty(deceasedName) and deceasedName != deceasedNickname}">
+                                                            (<span th:text="${deceasedName}">이름</span>)
+                                                        </span>
+                                                    </h3>
+                                                    <p style="margin: 0; font-size: 14px; color: #666;">메모리얼에 초대되었습니다</p>
+                                                </td>
+                                            </tr>
+                                        </table>
 
-            <!-- 서비스 소개 -->
-            <div class="features">
-                <div class="feature-item">
-                    <div class="feature-icon">💕</div>
-                    <div class="feature-title">추억 공유</div>
-                    <div class="feature-desc">가족과 함께 소중한 추억을 나누세요</div>
-                </div>
-                <div class="feature-item">
-                    <div class="feature-icon">🎥</div>
-                    <div class="feature-title">영상 통화</div>
-                    <div class="feature-desc">AI 기술로 고인과 대화할 수 있습니다</div>
-                </div>
-                <div class="feature-item">
-                    <div class="feature-icon">🔒</div>
-                    <div class="feature-title">안전한 보관</div>
-                    <div class="feature-desc">추억을 안전하게 보관하고 관리합니다</div>
-                </div>
-            </div>
+                                        <!-- 초대자 정보 -->
+                                        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 20px;">
+                                            <tr>
+                                                <td>
+                                                    <p style="margin: 0; font-size: 16px; color: #333;">
+                                                        <strong th:text="${inviterName}">초대자</strong>님이
+                                                        <span style="background-color: #28a745; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: bold;" th:text="${relationshipDisplayName}">관계</span>
+                                                        관계로 초대했습니다
+                                                    </p>
+                                                </td>
+                                            </tr>
+                                        </table>
 
-            <div class="divider"></div>
+                                        <!-- 초대 메시지 -->
+                                        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 20px;" th:if="${inviteMessage != null and !#strings.isEmpty(inviteMessage)}">
+                                            <tr>
+                                                <td style="background-color: #fff; border: 1px solid #e9ecef; padding: 16px;">
+                                                    <p style="margin: 0; font-size: 14px; color: #555; font-style: italic;" th:text="${inviteMessage}">초대 메시지</p>
+                                                </td>
+                                            </tr>
+                                        </table>
 
-            <!-- 도움말 -->
-            <div style="text-align: center; color: #666; font-size: 14px;">
-                <p>초대 링크가 작동하지 않나요?</p>
-                <p>아래 링크를 복사하여 브라우저에 직접 입력해 주세요:</p>
-                <p style="word-break: break-all; background: #f8f9fa; padding: 8px; border-radius: 4px; font-family: monospace;">
-                    <span th:text="${inviteLink}">초대 링크</span>
-                </p>
-            </div>
-        </div>
+                                        <!-- 초대 수락 버튼 -->
+                                        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                                            <tr>
+                                                <td align="center" style="padding: 32px 0;">
+                                                    <a th:href="${inviteLink}" style="background-color: #28a745; color: white; text-decoration: none; padding: 16px 32px; font-size: 16px; font-weight: bold; border-radius: 4px; display: inline-block;">
+                                                        초대 수락하기
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        </table>
 
-        <!-- 푸터 -->
-        <div class="footer">
-            <p th:text="${appName}">토마토리멤버</p>
-            <p>
-                이 이메일은 <span th:text="${inviterName}">초대자</span>님이 요청하여 발송되었습니다.<br>
-                문의사항이 있으시면 <a href="mailto:support@tomatoremember.com">support@tomatoremember.com</a>으로 연락주세요.
-            </p>
-        </div>
-    </div>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- 만료 정보 -->
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #fff3cd; border-left: 4px solid #ffc107; margin-bottom: 24px;">
+                                <tr>
+                                    <td style="padding: 16px;">
+                                        <h4 style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold; color: #856404;">⏰ 초대 만료 안내</h4>
+                                        <p style="margin: 0; font-size: 13px; color: #856404;">
+                                            이 초대는 <strong th:text="${expiresAt}">만료일</strong>에 만료됩니다.
+                                            <br>
+                                            (남은 시간: <strong th:text="${remainingHours}">시간</strong>시간)
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- 구분선 -->
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 32px 0;">
+                                <tr>
+                                    <td style="border-bottom: 1px solid #e9ecef;"></td>
+                                </tr>
+                            </table>
+
+                            <!-- 서비스 소개 -->
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 32px;">
+                                <tr>
+                                    <td width="33%" align="center" style="padding: 16px; background-color: #f8f9fa; vertical-align: top;">
+                                        <div style="font-size: 24px; margin-bottom: 8px;">💕</div>
+                                        <div style="font-size: 14px; font-weight: bold; color: #333; margin-bottom: 4px;">추억 공유</div>
+                                        <div style="font-size: 12px; color: #666;">가족과 함께 소중한 추억을 나누세요</div>
+                                    </td>
+                                    <td width="33%" align="center" style="padding: 16px; background-color: #f8f9fa; vertical-align: top;">
+                                        <div style="font-size: 24px; margin-bottom: 8px;">🎥</div>
+                                        <div style="font-size: 14px; font-weight: bold; color: #333; margin-bottom: 4px;">영상 통화</div>
+                                        <div style="font-size: 12px; color: #666;">AI 기술로 고인과 대화할 수 있습니다</div>
+                                    </td>
+                                    <td width="33%" align="center" style="padding: 16px; background-color: #f8f9fa; vertical-align: top;">
+                                        <div style="font-size: 24px; margin-bottom: 8px;">🔒</div>
+                                        <div style="font-size: 14px; font-weight: bold; color: #333; margin-bottom: 4px;">안전한 보관</div>
+                                        <div style="font-size: 12px; color: #666;">추억을 안전하게 보관하고 관리합니다</div>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- 도움말 -->
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                                <tr>
+                                    <td align="center" style="color: #666; font-size: 14px;">
+                                        <p style="margin: 0 0 8px 0;"><strong>초대 링크가 작동하지 않나요?</strong></p>
+                                        <p style="margin: 0 0 8px 0;">아래 링크를 복사하여 브라우저에 직접 입력해 주세요:</p>
+                                        <div style="background-color: #f8f9fa; padding: 12px; border: 1px solid #dee2e6; font-family: monospace; font-size: 12px; word-break: break-all;">
+                                            <span th:text="${inviteLink}">초대 링크</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+
+                        </td>
+                    </tr>
+
+                    <!-- 푸터 -->
+                    <tr>
+                        <td style="background-color: #f8f9fa; padding: 24px; text-align: center; border-top: 1px solid #e9ecef;">
+                            <p style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold;" th:text="${appName}">토마토리멤버</p>
+                            <p style="margin: 0; font-size: 12px; color: #6c757d;">
+                                이 이메일은 <strong th:text="${inviterName}">초대자</strong>님이 요청하여 발송되었습니다.
+                                <br>
+                                문의사항이 있으시면 <a href="mailto:support@tomatoremember.com" style="color: #667eea;">support@tomatoremember.com</a>으로 연락주세요.
+                            </p>
+                        </td>
+                    </tr>
+
+                </table>
+
+            </td>
+        </tr>
+    </table>
+
 </body>
 </html>

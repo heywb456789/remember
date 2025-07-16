@@ -2,7 +2,9 @@ package com.tomato.remember.application.family.service;
 
 import com.tomato.remember.application.family.dto.FamilyInviteRequest;
 import com.tomato.remember.application.family.entity.FamilyInviteToken;
+import com.tomato.remember.application.family.entity.FamilyMember;
 import com.tomato.remember.application.family.repository.FamilyInviteTokenRepository;
+import com.tomato.remember.application.family.repository.FamilyMemberRepository;
 import com.tomato.remember.application.member.entity.Member;
 import com.tomato.remember.application.memorial.entity.Memorial;
 import com.tomato.remember.application.memorial.repository.MemorialRepository;
@@ -28,6 +30,7 @@ import java.util.Optional;
 public class FamilyInviteService {
 
     private final FamilyInviteTokenRepository inviteTokenRepository;
+    private final FamilyMemberRepository familyMemberRepository;
     private final MemorialRepository memorialRepository;
     private final EmailService emailService;
     private final SmsService smsService;
@@ -47,13 +50,20 @@ public class FamilyInviteService {
             // 2. 연락처 유효성 검사
             validateContact(request.getMethod(), request.getContact());
 
-            // 3. 중복 초대 확인
+            // 3. 자기 자신 초대 방지 (연락처 기반)
+            if (isSelfInvite(inviter, request.getContact())) {
+                log.warn("자기 자신 초대 시도 차단 - 초대자: {}, 연락처: {}",
+                        inviter.getId(), maskContact(request.getContact()));
+                throw new IllegalArgumentException("자기 자신을 초대할 수 없습니다.");
+            }
+
+            // 4. 중복 초대 확인
             checkDuplicateInvite(memorial, request.getContact());
 
-            // 4. 초대 토큰 생성
+            // 5. 초대 토큰 생성
             FamilyInviteToken inviteToken = createInviteToken(memorial, inviter, request);
 
-            // 5. 초대 발송 처리
+            // 6. 초대 발송 처리
             String result = processInviteSending(inviteToken);
 
             log.info("가족 구성원 초대 발송 완료 - 토큰: {}, 메모리얼: {}, 연락처: {}",
@@ -118,13 +128,32 @@ public class FamilyInviteService {
             }
 
             FamilyInviteToken inviteToken = tokenOpt.get();
+            // 2. 자기 자신 초대 방지 검사
+            if (inviteToken.getInviter().getId().equals(acceptingMember.getId())) {
+                log.warn("자기 자신 초대 시도 차단 - 초대자: {}, 수락자: {}",
+                        inviteToken.getInviter().getId(), acceptingMember.getId());
+                throw new IllegalArgumentException("자기 자신을 초대할 수 없습니다.");
+            }
 
-            // 2. 초대 수락 처리
+            // 3. 메모리얼 소유자 자기 자신 초대 방지
+            if (inviteToken.getMemorial().getOwner().getId().equals(acceptingMember.getId())) {
+                log.warn("메모리얼 소유자 자기 자신 초대 시도 차단 - 소유자: {}, 수락자: {}",
+                        inviteToken.getMemorial().getOwner().getId(), acceptingMember.getId());
+                throw new IllegalArgumentException("메모리얼 소유자는 자기 자신을 초대할 수 없습니다.");
+            }
+
+            // 4. 중복 가족 구성원 확인
+            if (familyMemberRepository.existsByMemorialAndMember(inviteToken.getMemorial(), acceptingMember)) {
+                throw new IllegalArgumentException("이미 해당 메모리얼의 가족 구성원입니다.");
+            }
+
+            // 5. 초대 수락 처리
             inviteToken.accept(acceptingMember);
             inviteTokenRepository.save(inviteToken);
 
-            // 3. 가족 구성원 등록 (실제 서비스에서는 FamilyService.acceptInvite 호출)
-            // TODO: FamilyService.acceptInvite(inviteToken, acceptingMember) 호출
+            // 6. 가족 구성원 등록
+            FamilyMember familyMember = createFamilyMemberFromToken(inviteToken, acceptingMember);
+            familyMemberRepository.save(familyMember);
 
             log.info("초대 토큰 처리 완료 - 토큰: {}, 수락자: {}, 메모리얼: {}",
                     token.substring(0, 8) + "...",
@@ -139,6 +168,37 @@ public class FamilyInviteService {
                     token.substring(0, 8) + "...", acceptingMember.getId(), e);
             throw e;
         }
+    }
+
+    /**
+     * 초대 토큰에서 FamilyMember 생성 (접근 권한 없음으로 초기 설정)
+     */
+    private FamilyMember createFamilyMemberFromToken(FamilyInviteToken inviteToken, Member acceptingMember) {
+        log.info("FamilyMember 생성 - 메모리얼: {}, 구성원: {}, 관계: {}",
+                inviteToken.getMemorial().getId(),
+                acceptingMember.getId(),
+                inviteToken.getRelationship());
+
+        // 접근 권한 없음으로 초기 설정 (소유자가 나중에 권한 부여)
+        FamilyMember familyMember = FamilyMember.builder()
+                .memorial(inviteToken.getMemorial())
+                .member(acceptingMember)
+                .invitedBy(inviteToken.getInviter())
+                .relationship(inviteToken.getRelationship())
+                .inviteMessage(inviteToken.getInviteMessage())
+                .inviteStatus(com.tomato.remember.application.family.code.InviteStatus.ACCEPTED)
+                .acceptedAt(LocalDateTime.now())
+                .memorialAccess(false)  // 메모리얼 접근 권한 없음
+                .videoCallAccess(false) // 영상통화 권한 없음
+                .lastAccessAt(LocalDateTime.now())
+                .build();
+
+        log.info("FamilyMember 생성 완료 - 메모리얼 접근: {}, 영상통화: {}, 관계: {}",
+                familyMember.getMemorialAccess(),
+                familyMember.getVideoCallAccess(),
+                familyMember.getRelationshipDisplayName());
+
+        return familyMember;
     }
 
     /**
@@ -299,5 +359,22 @@ public class FamilyInviteService {
             // 전화번호 마스킹
             return contact.substring(0, 3) + "****" + contact.substring(contact.length() - 4);
         }
+    }
+
+    /**
+     * 자기 자신 초대 여부 확인 (연락처 기반)
+     */
+    private boolean isSelfInvite(Member inviter, String contact) {
+        // 이메일 확인
+        if (contact.contains("@")) {
+            return contact.equals(inviter.getEmail());
+        }
+
+        // 전화번호 확인 (하이픈 제거 후 비교)
+        String cleanContact = contact.replaceAll("[^0-9]", "");
+        String cleanInviterPhone = inviter.getPhoneNumber() != null ?
+                inviter.getPhoneNumber().replaceAll("[^0-9]", "") : "";
+
+        return cleanContact.equals(cleanInviterPhone);
     }
 }

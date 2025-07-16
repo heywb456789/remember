@@ -1,5 +1,6 @@
 package com.tomato.remember.application.memorial.service;
 
+import com.tomato.remember.application.family.entity.FamilyMember;
 import com.tomato.remember.application.member.repository.MemberRepository;
 import com.tomato.remember.application.memorial.dto.MemorialCreateRequestDTO;
 import com.tomato.remember.application.memorial.dto.MemorialCreateResponseDTO;
@@ -72,9 +73,9 @@ public class MemorialServiceImpl implements MemorialService {
             log.info("메모리얼 생성 완료 - ID: {}, 이름: {}", savedMemorial.getId(), savedMemorial.getName());
 
             return MemorialCreateResponseDTO.success(
-                    savedMemorial.getId(),
-                    savedMemorial.getName(),
-                    savedMemorial.getNickname()
+                savedMemorial.getId(),
+                savedMemorial.getName(),
+                savedMemorial.getNickname()
             );
 
         } catch (Exception e) {
@@ -104,21 +105,40 @@ public class MemorialServiceImpl implements MemorialService {
 
     @Override
     public ListDTO<MemorialListResponseDTO> getMyMemorials(Member member, Pageable pageable) {
-        log.info("사용자 메모리얼 목록 조회 - 사용자: {}", member.getId());
+        log.info("사용자 접근 가능한 메모리얼 목록 조회 (페이징) - 사용자: {}", member.getId());
 
-        Page<Memorial> memorialPage = memorialRepository.findByOwnerOrderByCreatedAtDesc(member, pageable);
+        // 기존: 소유한 메모리얼만 조회
+        // Page<Memorial> memorialPage = memorialRepository.findByOwnerOrderByCreatedAtDesc(member, pageable);
+
+        // 수정: 접근 가능한 모든 메모리얼 조회 (소유한 메모리얼 + 가족 구성원으로 참여한 메모리얼)
+        Page<Memorial> memorialPage = memorialRepository.findAccessibleMemorialsByMember(member, pageable);
 
         Member memberWithImages = memberRepository.findByIdWithProfileImages(member.getId());
-
         boolean hasRequiredProfileImages = memberWithImages.hasRequiredProfileImages();
 
-        // Page의 content를 DTO로 변환
-        Page<MemorialListResponseDTO> dtoPage = memorialPage.map(memorial ->
-            convertToListResponseDTO(memorial, hasRequiredProfileImages)
-        );
+        // Page의 content를 DTO로 변환 (접근 권한 정보 포함)
+        Page<MemorialListResponseDTO> dtoPage = memorialPage.map(memorial -> {
+            // 현재 사용자가 소유자인지 확인
+            boolean isOwner = memorial.getOwner().getId().equals(member.getId());
+
+            // 가족 구성원으로서의 관계 정보 조회
+            FamilyMember familyMember = null;
+            if (! isOwner) {
+                familyMember = memorial.getFamilyMember(member);
+            }
+
+            return convertToListResponseDTOWithAccessInfo(memorial, hasRequiredProfileImages, member, isOwner,
+                familyMember);
+        });
 
         // ListDTO.of 사용
-        return ListDTO.of(dtoPage);
+        ListDTO<MemorialListResponseDTO> result = ListDTO.of(dtoPage);
+
+        log.info("사용자 접근 가능한 메모리얼 목록 조회 완료 - 사용자: {}, 총 개수: {}, 페이지: {}/{}",
+            member.getId(), result.getPagination().getTotalElements(),
+            result.getPagination().getCurrentPage() + 1, result.getPagination().getTotalPages());
+
+        return result;
     }
 
     @Override
@@ -129,7 +149,7 @@ public class MemorialServiceImpl implements MemorialService {
             .orElseThrow(() -> new APIException(ResponseStatus.CANNOT_FIND_MEMORIAL));
 
         // 권한 확인
-        if (!memorial.canBeViewedBy(member)) {
+        if (! memorial.canBeViewedBy(member)) {
             throw new APIException(ResponseStatus.MEMORIAL_ACCESS_DENIED);
         }
 
@@ -149,7 +169,7 @@ public class MemorialServiceImpl implements MemorialService {
             .orElseThrow(() -> new APIException(ResponseStatus.CANNOT_FIND_MEMORIAL));
 
         // 권한 확인
-        if (!memorial.canBeViewedBy(member)) {
+        if (! memorial.canBeViewedBy(member)) {
             throw new APIException(ResponseStatus.MEMORIAL_ACCESS_DENIED);
         }
 
@@ -161,8 +181,7 @@ public class MemorialServiceImpl implements MemorialService {
     }
 
     /**
-     * 사용자가 소유한 메모리얼 목록 조회 (비페이징)
-     * FamilyController에서 사용
+     * 사용자가 소유한 메모리얼 목록 조회 (비페이징) FamilyController에서 사용
      */
     @Override
     public List<Memorial> findByOwner(Member owner) {
@@ -171,36 +190,34 @@ public class MemorialServiceImpl implements MemorialService {
     }
 
     /**
-     * 메모리얼 ID로 조회
-     * FamilyController에서 사용
+     * 메모리얼 ID로 조회 FamilyController에서 사용
      */
     @Override
     public Memorial findById(Long memorialId) {
         log.info("메모리얼 ID로 조회 - ID: {}", memorialId);
         return memorialRepository.findById(memorialId)
-                .orElseThrow(() -> {
-                    log.warn("메모리얼을 찾을 수 없음 - ID: {}", memorialId);
-                    return new IllegalArgumentException("메모리얼을 찾을 수 없습니다.");
-                });
+            .orElseThrow(() -> {
+                log.warn("메모리얼을 찾을 수 없음 - ID: {}", memorialId);
+                return new IllegalArgumentException("메모리얼을 찾을 수 없습니다.");
+            });
     }
 
     /**
-     * 사용자의 메모리얼 목록 조회 (API용, 비페이징)
-     * API 컨트롤러에서 사용
+     * 사용자의 메모리얼 목록 조회 (API용, 비페이징) API 컨트롤러에서 사용
      */
     @Override
     public List<MemorialListResponseDTO> getMyMemorialsForApi(Member member) {
-        log.info("사용자 메모리얼 목록 조회 (API용) - 사용자: {}", member.getId());
 
-        List<Memorial> memorials = memorialRepository.findByOwnerOrderByCreatedAtDesc(member);
+        log.info("사용자 접근 가능한 메모리얼 목록 조회 (API용) - 사용자: {}", member.getId());
+
+        List<Memorial> memorials = memorialRepository.findAccessibleMemorialsByMember(member);
 
         Member memberWithImages = memberRepository.findByIdWithProfileImages(member.getId());
-
         boolean hasRequiredProfileImages = memberWithImages.hasRequiredProfileImages();
 
         return memorials.stream()
-                .map(memorial -> convertToListResponseDTO(memorial, hasRequiredProfileImages))
-                .collect(Collectors.toList());
+            .map(memorial -> convertToListResponseDTO(memorial, hasRequiredProfileImages, member))
+            .collect(Collectors.toList());
     }
 
     /**
@@ -352,7 +369,40 @@ public class MemorialServiceImpl implements MemorialService {
     }
 
     /**
-     * Memorial 엔티티를 MemorialListResponseDTO로 변환
+     * Memorial 엔티티를 MemorialListResponseDTO로 변환 (접근 권한 정보 포함)
+     */
+    private MemorialListResponseDTO convertToListResponseDTO(Memorial memorial, boolean hasRequiredProfileImages,
+        Member currentUser) {
+        // 현재 사용자가 소유자인지 확인
+        boolean isOwner = memorial.getOwner().getId().equals(currentUser.getId());
+
+        // 가족 구성원으로서의 접근 권한 확인
+        boolean canAccess = memorial.canBeViewedBy(currentUser);
+
+        return MemorialListResponseDTO.builder()
+            .memorialId(memorial.getId())
+            .name(memorial.getName())
+            .nickname(memorial.getNickname())
+            .mainProfileImageUrl(memorial.getMainProfileImageUrl())
+            .lastVisitAt(memorial.getLastVisitAt())
+            .totalVisits(memorial.getTotalVisits())
+            .memoryCount(memorial.getMemoryCount())
+            .aiTrainingCompleted(memorial.getAiTrainingCompleted())
+            .formattedAge(memorial.getFormattedAge())
+            .relationshipDescription(memorial.getRelationship().getDisplayName())
+            .canStartVideoCall(memorial.canStartVideoCall())
+            .hasRequiredFiles(memorial.hasRequiredFiles())
+            .hasRequiredProfileImages(hasRequiredProfileImages)
+            .profileImageCount(memorial.getFileCount(MemorialFileType.PROFILE_IMAGE))
+            .voiceFileCount(memorial.getFileCount(MemorialFileType.VOICE_FILE))
+            .videoFileCount(memorial.getFileCount(MemorialFileType.VIDEO_FILE))
+            .isOwner(isOwner)  // 소유자 여부 추가
+            .canAccess(canAccess)  // 접근 권한 여부 추가
+            .build();
+    }
+
+    /**
+     * 기존 메서드와의 호환성을 위한 오버로드 메서드
      */
     private MemorialListResponseDTO convertToListResponseDTO(Memorial memorial, boolean hasRequiredProfileImages) {
         return MemorialListResponseDTO.builder()
@@ -372,6 +422,55 @@ public class MemorialServiceImpl implements MemorialService {
             .profileImageCount(memorial.getFileCount(MemorialFileType.PROFILE_IMAGE))
             .voiceFileCount(memorial.getFileCount(MemorialFileType.VOICE_FILE))
             .videoFileCount(memorial.getFileCount(MemorialFileType.VIDEO_FILE))
+            .isOwner(true)  // 기존 로직에서는 소유자만 조회했으므로 true
+            .canAccess(true)  // 기존 로직에서는 접근 가능한 것만 조회했으므로 true
             .build();
+    }
+
+    /**
+     * 접근 권한 정보를 포함한 DTO 변환
+     */
+    private MemorialListResponseDTO convertToListResponseDTOWithAccessInfo(Memorial memorial,
+        boolean hasRequiredProfileImages,
+        Member currentUser,
+        boolean isOwner,
+        FamilyMember familyMember) {
+
+        MemorialListResponseDTO.MemorialListResponseDTOBuilder builder = MemorialListResponseDTO.builder()
+            .memorialId(memorial.getId())
+            .name(memorial.getName())
+            .nickname(memorial.getNickname())
+            .mainProfileImageUrl(memorial.getMainProfileImageUrl())
+            .lastVisitAt(memorial.getLastVisitAt())
+            .totalVisits(memorial.getTotalVisits())
+            .memoryCount(memorial.getMemoryCount())
+            .aiTrainingCompleted(memorial.getAiTrainingCompleted())
+            .formattedAge(memorial.getFormattedAge())
+            .relationshipDescription(memorial.getRelationship().getDisplayName())
+            .canStartVideoCall(memorial.canStartVideoCall())
+            .hasRequiredFiles(memorial.hasRequiredFiles())
+            .hasRequiredProfileImages(hasRequiredProfileImages)
+            .profileImageCount(memorial.getFileCount(MemorialFileType.PROFILE_IMAGE))
+            .voiceFileCount(memorial.getFileCount(MemorialFileType.VOICE_FILE))
+            .videoFileCount(memorial.getFileCount(MemorialFileType.VIDEO_FILE))
+            .isOwner(isOwner)
+            .canAccess(true); // 조회 가능한 상태에서만 호출되므로 true
+
+        // 소유자인 경우
+        if (isOwner) {
+            builder.accessType("OWNER")
+                .canModify(true)
+                .canVideoCall(true); // 소유자는 모든 권한 보유
+        }
+        // 가족 구성원인 경우
+        else if (familyMember != null) {
+            builder.accessType("FAMILY_MEMBER")
+                .canModify(false)
+                .canVideoCall(familyMember.getVideoCallAccess())
+                .familyRelationship(familyMember.getRelationship().name())
+                .familyRelationshipDisplay(familyMember.getRelationshipDisplayName());
+        }
+
+        return builder.build();
     }
 }

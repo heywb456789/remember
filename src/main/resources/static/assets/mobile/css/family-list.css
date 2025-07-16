@@ -1018,3 +1018,203 @@ body {
 .loading .btn {
     cursor: not-allowed;
 }
+
+/* 권한 버튼 스타일 개선 */
+.permission-btn {
+    background: none;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    padding: 6px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    min-width: 70px;
+    text-align: center;
+    white-space: nowrap;
+    position: relative;
+}
+
+/* 권한 있음 상태 */
+.permission-btn.granted {
+    background: #d4edda;
+    color: #155724;
+    border-color: #c3e6cb;
+}
+
+.permission-btn.granted:hover {
+    background: #c3e6cb;
+    border-color: #b8dacc;
+    transform: translateY(-1px);
+}
+
+.permission-btn.granted::before {
+    content: '✓';
+    position: absolute;
+    left: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10px;
+    color: #155724;
+}
+
+/* 권한 없음 상태 */
+.permission-btn.denied {
+    background: #f8d7da;
+    color: #721c24;
+    border-color: #f5c6cb;
+}
+
+.permission-btn.denied:hover {
+    background: #f5c6cb;
+    border-color: #f1b0b7;
+    transform: translateY(-1px);
+}
+
+.permission-btn.denied::before {
+    content: '✗';
+    position: absolute;
+    left: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10px;
+    color: #721c24;
+}
+
+/* 대기 상태 */
+.permission-btn.pending {
+    background: #fff3cd;
+    color: #856404;
+    border-color: #ffeaa7;
+    cursor: not-allowed;
+}
+
+.permission-btn.pending::before {
+    content: '⏱';
+    position: absolute;
+    left: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10px;
+    color: #856404;
+}
+
+/* 거절 상태 */
+.permission-btn.rejected {
+    background: #f8d7da;
+    color: #721c24;
+    border-color: #f5c6cb;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.permission-btn.rejected::before {
+    content: '❌';
+    position: absolute;
+    left: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 8px;
+    color: #721c24;
+}
+
+/* 취소 상태 */
+.permission-btn.cancelled {
+    background: #e2e3e5;
+    color: #6c757d;
+    border-color: #d6d8db;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.permission-btn.cancelled::before {
+    content: '⊘';
+    position: absolute;
+    left: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10px;
+    color: #6c757d;
+}
+
+/* 소유자 권한 버튼 */
+.permission-btn.owner-permission {
+    background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+    color: #8b6914;
+    border: none;
+    cursor: not-allowed;
+    font-weight: 600;
+}
+
+.permission-btn.owner-permission::before {
+    content: '👑';
+    position: absolute;
+    left: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10px;
+}
+
+/* 로딩 상태 */
+.permission-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.permission-btn.loading {
+    background: #e9ecef;
+    color: #6c757d;
+    border-color: #ced4da;
+}
+
+.permission-btn.loading::before {
+    content: '';
+}
+
+/* 애니메이션 */
+.permission-btn:hover:not(:disabled):not(.pending):not(.rejected):not(.cancelled) {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* 상태 표시 개선 */
+.member-status {
+    font-size: 12px;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.member-status::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+/* 상태별 인디케이터 */
+.status-owner::before { background: #ffd700; }
+.status-pending::before { background: #ffc107; }
+.status-accepted::before { background: #28a745; }
+.status-rejected::before { background: #dc3545; }
+.status-cancelled::before { background: #6c757d; }
+.status-expired::before { background: #6c757d; }
+
+/* 반응형 개선 */
+@media (max-width: 375px) {
+    .permission-btn {
+        padding: 4px 8px;
+        font-size: 11px;
+        min-width: 60px;
+    }
+
+    .permission-btn::before {
+        font-size: 8px;
+        left: 3px;
+    }
+}

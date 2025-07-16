@@ -138,27 +138,36 @@ public class EmailService {
         Context context = new Context(Locale.KOREAN);
 
         try {
-            // 템플릿 변수 설정
-            context.setVariable("appName", appName);
-            context.setVariable("inviterName", inviteToken.getInviterName());
-            context.setVariable("memorialName", inviteToken.getMemorialName());
-            context.setVariable("relationshipDisplayName", inviteToken.getRelationshipDisplayName());
-            context.setVariable("inviteMessage", inviteToken.getInviteMessage());
+            // 메모리얼 정보
+            Memorial memorial = inviteToken.getMemorial();
+
+            // 디버깅 로그 추가
+            log.info("이메일 템플릿 변수 설정 - 메모리얼: name={}, nickname={}, 관계={}",
+                    memorial.getName(), memorial.getNickname(), inviteToken.getRelationshipDisplayName());
+
+            // 템플릿 변수 설정 (null 체크 강화)
+            context.setVariable("appName", appName != null ? appName : "토마토리멤버");
+            context.setVariable("inviterName", inviteToken.getInviterName() != null ? inviteToken.getInviterName() : "알 수 없음");
+            context.setVariable("memorialName", memorial.getName() != null && !memorial.getName().trim().isEmpty() ? memorial.getName() : "이름 없음");
+            context.setVariable("deceasedName", memorial.getName() != null && !memorial.getName().trim().isEmpty() ? memorial.getName() : null);
+            context.setVariable("deceasedNickname", memorial.getNickname() != null && !memorial.getNickname().trim().isEmpty() ? memorial.getNickname() : "별명 없음");
+            context.setVariable("relationshipDisplayName", inviteToken.getRelationshipDisplayName() != null ? inviteToken.getRelationshipDisplayName() : "관계 미설정");
+            context.setVariable("inviteMessage", inviteToken.getInviteMessage() != null && !inviteToken.getInviteMessage().trim().isEmpty() ? inviteToken.getInviteMessage() : null);
             context.setVariable("inviteLink", createInviteLink(inviteToken.getToken()));
             context.setVariable("expiresAt", formatExpirationDate(inviteToken));
             context.setVariable("remainingHours", inviteToken.getRemainingHours());
 
-            // 고인 정보 (간소화)
-            Memorial memorial = inviteToken.getMemorial();
-            context.setVariable("deceasedName", memorial.getName());
-            context.setVariable("deceasedNickname", memorial.getNickname());
-
             // 템플릿 처리
-            return templateEngine.process("email/family-invite", context);
+            String htmlContent = templateEngine.process("email/family-invite", context);
+
+            // 생성된 HTML 내용 로그 (처음 500자만)
+            log.info("생성된 HTML 내용 미리보기: {}",
+                    htmlContent.length() > 500 ? htmlContent.substring(0, 500) + "..." : htmlContent);
+
+            return htmlContent;
 
         } catch (Exception e) {
             log.error("이메일 HTML 내용 생성 실패: {}", e.getMessage());
-
             // 폴백 HTML 생성
             return createFallbackHtmlContent(inviteToken);
         }
@@ -168,24 +177,99 @@ public class EmailService {
      * 폴백 HTML 내용 생성 (템플릿 오류 시)
      */
     private String createFallbackHtmlContent(FamilyInviteToken inviteToken) {
+        Memorial memorial = inviteToken.getMemorial();
+
         StringBuilder html = new StringBuilder();
         html.append("<!DOCTYPE html>");
-        html.append("<html><head><meta charset='UTF-8'></head><body>");
-        html.append("<h2>").append(appName).append(" 가족 메모리얼 초대</h2>");
-        html.append("<p>").append(inviteToken.getInviterName()).append("님이 ");
-        html.append(inviteToken.getMemorialName()).append(" 메모리얼에 ");
-        html.append(inviteToken.getRelationshipDisplayName()).append(" 관계로 초대했습니다.</p>");
+        html.append("<html>");
+        html.append("<head>");
+        html.append("<meta charset='UTF-8'>");
+        html.append("<meta name='viewport' content='width=device-width, initial-scale=1.0'>");
+        html.append("<title>가족 메모리얼 초대</title>");
+        html.append("<style>");
+        html.append("body { font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 20px; background-color: #f8f9fa; }");
+        html.append(".container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }");
+        html.append(".header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 32px 24px; text-align: center; }");
+        html.append(".header h1 { margin: 0; font-size: 24px; font-weight: 700; }");
+        html.append(".header p { margin: 8px 0 0 0; font-size: 16px; opacity: 0.9; }");
+        html.append(".content { padding: 32px 24px; }");
+        html.append(".invite-card { background: #f8f9fa; border-radius: 12px; padding: 24px; margin-bottom: 24px; border-left: 4px solid #28a745; }");
+        html.append(".memorial-info h3 { margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #333; }");
+        html.append(".invite-message { background: #fff; border-radius: 8px; padding: 16px; margin: 16px 0; border: 1px solid #e9ecef; font-style: italic; color: #555; }");
+        html.append(".invite-button { display: inline-block; padding: 16px 32px; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 600; margin: 16px 0; }");
+        html.append(".invite-button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(40,167,69,0.3); }");
+        html.append(".expiration-info { background: #fff3cd; border-radius: 8px; padding: 16px; margin: 24px 0; border-left: 4px solid #ffc107; }");
+        html.append(".footer { background: #f8f9fa; padding: 24px; text-align: center; border-top: 1px solid #e9ecef; color: #6c757d; font-size: 12px; }");
+        html.append("</style>");
+        html.append("</head>");
+        html.append("<body>");
 
+        // 컨테이너 시작
+        html.append("<div class='container'>");
+
+        // 헤더
+        html.append("<div class='header'>");
+        html.append("<h1>").append(appName).append("</h1>");
+        html.append("<p>소중한 추억을 영원히 간직하세요</p>");
+        html.append("</div>");
+
+        // 메인 콘텐츠
+        html.append("<div class='content'>");
+
+        // 초대 카드
+        html.append("<div class='invite-card'>");
+        html.append("<div class='memorial-info'>");
+        html.append("<h3>").append(memorial.getNickname()).append(" (").append(memorial.getName()).append(") 메모리얼에 초대되었습니다</h3>");
+        html.append("<p><strong>").append(inviteToken.getInviterName()).append("</strong>님이 ");
+        html.append("<span style='background: #28a745; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600;'>");
+        html.append(inviteToken.getRelationshipDisplayName()).append("</span> 관계로 초대했습니다</p>");
+        html.append("</div>");
+
+        // 초대 메시지
         if (inviteToken.getInviteMessage() != null && !inviteToken.getInviteMessage().trim().isEmpty()) {
-            html.append("<p><strong>메시지:</strong> ").append(inviteToken.getInviteMessage()).append("</p>");
+            html.append("<div class='invite-message'>");
+            html.append("<p>").append(inviteToken.getInviteMessage()).append("</p>");
+            html.append("</div>");
         }
 
-        html.append("<p><a href='").append(createInviteLink(inviteToken.getToken())).append("'");
-        html.append(" style='background: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;'>");
-        html.append("초대 수락하기</a></p>");
+        // 초대 수락 버튼
+        html.append("<div style='text-align: center;'>");
+        html.append("<a href='").append(createInviteLink(inviteToken.getToken())).append("' class='invite-button'>");
+        html.append("초대 수락하기</a>");
+        html.append("</div>");
 
-        html.append("<p><small>이 초대는 ").append(formatExpirationDate(inviteToken)).append("에 만료됩니다.</small></p>");
-        html.append("</body></html>");
+        html.append("</div>"); // invite-card 끝
+
+        // 만료 정보
+        html.append("<div class='expiration-info'>");
+        html.append("<h4 style='margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: #856404;'>⏰ 초대 만료 안내</h4>");
+        html.append("<p style='margin: 0; font-size: 13px; color: #856404;'>");
+        html.append("이 초대는 <strong>").append(formatExpirationDate(inviteToken)).append("</strong>에 만료됩니다. ");
+        html.append("(남은 시간: <strong>").append(inviteToken.getRemainingHours()).append("시간</strong>)");
+        html.append("</p>");
+        html.append("</div>");
+
+        // 도움말
+        html.append("<div style='text-align: center; color: #666; font-size: 14px; margin-top: 24px;'>");
+        html.append("<p>초대 링크가 작동하지 않나요?</p>");
+        html.append("<p>아래 링크를 복사하여 브라우저에 직접 입력해 주세요:</p>");
+        html.append("<p style='word-break: break-all; background: #f8f9fa; padding: 8px; border-radius: 4px; font-family: monospace; font-size: 12px;'>");
+        html.append(createInviteLink(inviteToken.getToken()));
+        html.append("</p>");
+        html.append("</div>");
+
+        html.append("</div>"); // content 끝
+
+        // 푸터
+        html.append("<div class='footer'>");
+        html.append("<p><strong>").append(appName).append("</strong></p>");
+        html.append("<p>이 이메일은 ").append(inviteToken.getInviterName()).append("님이 요청하여 발송되었습니다.<br>");
+        html.append("문의사항이 있으시면 <a href='mailto:support@tomatoremember.com' style='color: #667eea;'>support@tomatoremember.com</a>으로 연락주세요.</p>");
+        html.append("</div>");
+
+        html.append("</div>"); // container 끝
+        html.append("</body>");
+        html.append("</html>");
 
         return html.toString();
     }

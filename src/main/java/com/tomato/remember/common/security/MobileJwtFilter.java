@@ -485,7 +485,8 @@ public class MobileJwtFilter extends OncePerRequestFilter {
                 "/mobile/assets/",
                 "/mobile/css/",
                 "/mobile/js/",
-                "/mobile/images/"
+                "/mobile/images/",
+                "/mobile/family/invite/"
         };
 
         for (String skipPath : skipPaths) {

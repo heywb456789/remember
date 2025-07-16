@@ -183,7 +183,7 @@ public class FamilyService {
         List<FamilyMemberResponse> result = new ArrayList<>();
 
         try {
-            // 🔥 1. 내가 소유한 메모리얼들 조회 (디버깅 강화)
+            //  1. 내가 소유한 메모리얼들 조회 (디버깅 강화)
             List<Memorial> myMemorials = memorialService.findByOwner(member);
             log.info("🔍 디버깅: 소유한 메모리얼 수: {} (사용자: {})", myMemorials.size(), member.getId());
 
@@ -201,7 +201,7 @@ public class FamilyService {
                 }
             }
 
-            // 🔥 2. 초대된 가족 구성원들 추가 (디버깅 강화)
+            //  2. 초대된 가족 구성원들 추가 (디버깅 강화)
             List<FamilyMember> familyMembers = familyMemberRepository.findAllAccessibleFamilyMembers(member);
             log.info("🔍 디버깅: 초대된 가족 구성원 수: {} (사용자: {})", familyMembers.size(), member.getId());
 
@@ -218,7 +218,7 @@ public class FamilyService {
             log.info("🎯 SSR용 전체 가족 구성원 조회 완료 - 사용자: {}, 총 구성원 수: {} (소유자: {}, 초대된 구성원: {})",
                 member.getId(), result.size(), myMemorials.size(), invitedMembers.size());
 
-            // 🔥 3. 결과 상세 로깅
+            //  3. 결과 상세 로깅
             for (FamilyMemberResponse familyMemberResponse : result) {
                 log.debug("📋 결과 구성원: ID={}, 이름={}, 관계={}, 메모리얼={}",
                     familyMemberResponse.getId(), familyMemberResponse.getMember().getName(),
@@ -236,11 +236,11 @@ public class FamilyService {
     /**
      * 소유자 정보를 FamilyMemberResponse로 변환
      */
-    // 🔥 public으로 변경해서 테스트
+    //  public으로 변경해서 테스트
     public FamilyMemberResponse createOwnerAsFamilyMember(Memorial memorial, Member owner) {
         log.debug("🏠 소유자 정보 생성 중 - 메모리얼: {}, 소유자: {}", memorial.getId(), owner.getId());
 
-        // 🔥 널 체크 추가
+        //  널 체크 추가
         if (memorial == null) {
             log.error("❌ Memorial이 null입니다!");
             throw new IllegalArgumentException("Memorial cannot be null");
@@ -251,7 +251,7 @@ public class FamilyService {
             throw new IllegalArgumentException("Owner cannot be null");
         }
 
-        // 🔥 소유권 확인
+        //  소유권 확인
         if (! memorial.getOwner().equals(owner)) {
             log.warn("⚠️ 소유권 불일치: 메모리얼 소유자={}, 요청자={}",
                 memorial.getOwner().getId(), owner.getId());
@@ -278,8 +278,8 @@ public class FamilyService {
                 .id(owner.getId())
                 .name(owner.getName())
                 .build())
-            .relationship(Relationship.SELF) // 🔥 핵심: SELF 관계
-            .relationshipDisplayName("메모리얼 소유자") // 🔥 표시명 명확화
+            .relationship(Relationship.SELF) //  핵심: SELF 관계
+            .relationshipDisplayName("메모리얼 소유자") //  표시명 명확화
             .inviteStatus(InviteStatus.ACCEPTED)
             .inviteStatusDisplayName("메모리얼 소유자")
             .permissions(FamilyMemberResponse.PermissionInfo.builder()
@@ -359,24 +359,24 @@ public class FamilyService {
     public FamilyAllDataResponse getAllFamilyDataForApp(Member member) {
         log.debug("앱용 전체 가족 데이터 조회 - 사용자: {}", member.getId());
 
-        // 🔥 1. SSR과 동일한 로직으로 데이터 조회 (소유자 포함)
+        //  1. SSR과 동일한 로직으로 데이터 조회 (소유자 포함)
         List<FamilyMemberResponse> allFamilyMembers = getAllFamilyMembersForSSR(member);
 
-        // 🔥 2. 접근 가능한 모든 메모리얼 조회
+        //  2. 접근 가능한 모든 메모리얼 조회
         List<Memorial> accessibleMemorials = getAccessibleMemorials(member);
 
-        // 🔥 3. 통계 정보 계산
+        //  3. 통계 정보 계산
         FamilyAllDataResponse.StatisticsInfo statistics = buildStatisticsInfo(
             accessibleMemorials, allFamilyMembers);
 
-        // 🔥 4. 메모리얼 정보 변환
+        //  4. 메모리얼 정보 변환
         List<FamilyAllDataResponse.MemorialInfo> memorialInfos = accessibleMemorials.stream()
             .map(this::buildMemorialInfo)
             .collect(Collectors.toList());
 
         FamilyAllDataResponse response = FamilyAllDataResponse.builder()
             .memorials(memorialInfos)
-            .familyMembers(allFamilyMembers) // 🔥 소유자 포함된 전체 목록
+            .familyMembers(allFamilyMembers) //  소유자 포함된 전체 목록
             .statistics(statistics)
             .build();
 
@@ -486,86 +486,6 @@ public class FamilyService {
         return familyMemberRepository.findAllAccessibleFamilyMembers(currentUser);
     }
 
-    // ===== 공통 액션 메서드 =====
-
-    /**
-     * 초대 수락
-     */
-    @Transactional
-    public void acceptInvite(String inviteToken, Member member) {
-        log.info("초대 수락 시작 - 토큰: {}, 사용자: {}",
-            inviteToken.substring(0, 8) + "...", member.getId());
-
-        // 초대 정보 조회
-        var inviteInfo = familyInviteService.getInviteInfo(inviteToken);
-        if (inviteInfo == null) {
-            throw new IllegalArgumentException("유효하지 않거나 만료된 초대 링크입니다.");
-        }
-
-        // 이미 가족 구성원인지 확인
-        if (familyMemberRepository.existsByMemorialAndMember(inviteInfo.getMemorial(), member)) {
-            throw new IllegalArgumentException("이미 가족 구성원으로 등록되어 있습니다.");
-        }
-
-        // 가족 구성원 생성
-        FamilyMember familyMember = FamilyMember.builder()
-            .memorial(inviteInfo.getMemorial())
-            .member(member)
-            .invitedBy(inviteInfo.getInviter())
-            .relationship(inviteInfo.getRelationship())
-            .inviteMessage(inviteInfo.getMessage())
-            .build();
-
-        // 초대 수락
-        familyMember.acceptInvite();
-
-        familyMemberRepository.save(familyMember);
-
-        // 초대 정보 삭제
-        familyInviteService.removeInviteInfo(inviteToken);
-
-        log.info("초대 수락 완료 - 구성원: {}, 메모리얼: {}", member.getId(), inviteInfo.getMemorial().getId());
-    }
-
-    /**
-     * 초대 거절
-     */
-    @Transactional
-    public void rejectInvite(String inviteToken, Member member) {
-        log.info("초대 거절 시작 - 토큰: {}, 사용자: {}",
-            inviteToken.substring(0, 8) + "...", member.getId());
-
-        // 초대 정보 조회
-        var inviteInfo = familyInviteService.getInviteInfo(inviteToken);
-        if (inviteInfo == null) {
-            throw new IllegalArgumentException("유효하지 않거나 만료된 초대 링크입니다.");
-        }
-
-        // 초대 정보 삭제
-        familyInviteService.removeInviteInfo(inviteToken);
-
-        log.info("초대 거절 완료 - 사용자: {}, 메모리얼: {}", member.getId(), inviteInfo.getMemorial().getId());
-    }
-
-    /**
-     * 초대 취소
-     */
-    @Transactional
-    public void cancelInvitation(Long familyMemberId, Member currentUser) {
-        log.info("초대 취소 시작 - 구성원: {}, 사용자: {}", familyMemberId, currentUser.getId());
-
-        FamilyMember familyMember = getFamilyMemberAndCheckOwnership(familyMemberId, currentUser);
-
-        if (! familyMember.isPending()) {
-            throw new IllegalArgumentException("대기 중인 초대만 취소할 수 있습니다.");
-        }
-
-        familyMember.cancelInvite();
-        familyMemberRepository.save(familyMember);
-
-        log.info("초대 취소 완료 - 구성원: {}", familyMemberId);
-    }
-
     /**
      * 권한 설정 변경
      */
@@ -620,13 +540,6 @@ public class FamilyService {
 
         // 같은 메모리얼의 가족 구성원인 경우
         return familyMemberRepository.existsActiveRelation(familyMember.getMemorial(), currentUser);
-    }
-
-    /**
-     * 초대 정보 조회 (SSR용)
-     */
-    public FamilyInviteService.InviteInfo getInviteInfo(String inviteToken) {
-        return familyInviteService.getInviteInfo(inviteToken);
     }
 
     /**

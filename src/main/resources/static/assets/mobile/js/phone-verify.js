@@ -358,7 +358,7 @@ const handleConfirm = async (elements) => {
         elements.timer.style.color = 'var(--success)';
       }
 
-      // 🔥 인증 완료 즉시 sessionStorage에 저장
+      //  인증 완료 즉시 sessionStorage에 저장
       const verificationData = {
         phoneNumber: phoneNumber,
         countryCode: elements.countryCode.value,

@@ -30,26 +30,26 @@ spring:
       mail:
         smtp:
           auth: true
-          # 🔥 465 포트는 SSL 전용 포트
+          #  465 포트는 SSL 전용 포트
           ssl:
             enable: true
             trust: smtp.gmail.com
-          # 🔥 STARTTLS는 465 포트에서 비활성화
+          #  STARTTLS는 465 포트에서 비활성화
           starttls:
             enable: false
             required: false
-          # 🔥 SSL 소켓 팩토리 설정 (465 포트 필수)
+          #  SSL 소켓 팩토리 설정 (465 포트 필수)
           socketFactory:
             class: javax.net.ssl.SSLSocketFactory
             port: 465
             fallback: false
-          # 🔥 타임아웃 설정
+          #  타임아웃 설정
           connectiontimeout: 60000
           timeout: 60000
           writetimeout: 60000
-          # 🔥 추가 설정
+          #  추가 설정
           quitwait: false
-          # 🔥 EHLO 설정 제거 (표준 JavaMail에서 지원하지 않음)
+          #  EHLO 설정 제거 (표준 JavaMail에서 지원하지 않음)
           # ehlo: false  # 이 설정은 제거
         debug: false
         transport:
@@ -57,7 +57,7 @@ spring:
 
     from: remeber.noreply@gmail.com
     name: 토마토리멤버
-    domain: http://localhost:8080  # 🔥 localhost 환경에 맞게 수정
+    domain: http://localhost:8080  #  localhost 환경에 맞게 수정
   # =======================================================
   # JPA 설정
   # =======================================================

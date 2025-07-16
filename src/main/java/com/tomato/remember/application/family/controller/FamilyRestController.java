@@ -278,36 +278,6 @@ public class FamilyRestController {
     }
 
     /**
-     * 초대 취소 (기존 API 유지)
-     * DELETE /api/family/invitations/{familyMemberId}
-     */
-    @DeleteMapping("/invitations/{familyMemberId}")
-    public ResponseDTO<String> cancelInvitation(
-            @PathVariable Long familyMemberId,
-            @AuthenticationPrincipal MemberUserDetails currentUser) {
-
-        log.info("초대 취소 API - 구성원: {}, 사용자: {}", familyMemberId, currentUser.getMember().getId());
-
-        try {
-            familyService.cancelInvitation(familyMemberId, currentUser.getMember());
-
-            log.info("초대 취소 완료 - 구성원: {}", familyMemberId);
-
-            return ResponseDTO.ok("초대가 취소되었습니다.");
-
-        } catch (IllegalArgumentException e) {
-            log.warn("초대 취소 실패 - 잘못된 요청: {}", e.getMessage());
-            throw new APIException(ResponseStatus.BAD_REQUEST);
-        } catch (SecurityException e) {
-            log.warn("초대 취소 실패 - 권한 없음: {}", e.getMessage());
-            throw new APIException(ResponseStatus.MEMORIAL_OWNER_ONLY);
-        } catch (Exception e) {
-            log.error("초대 취소 실패 - 구성원: {}", familyMemberId, e);
-            throw new APIException(ResponseStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    /**
      * 내가 받은 초대 목록 조회
      * GET /api/family/invitations/received
      */

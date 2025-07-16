@@ -70,53 +70,6 @@ public class FamilyController {
     }
 
     /**
-     * 초대 응답 페이지
-     * GET /mobile/family/invite/{inviteToken}
-     */
-    @GetMapping("/invite/{inviteToken}")
-    public String inviteResponsePage(@PathVariable String inviteToken,
-                                     @AuthenticationPrincipal MemberUserDetails currentUser,
-                                     Model model) {
-        log.info("초대 응답 페이지 요청 - 토큰: {}", inviteToken.substring(0, 8) + "...");
-
-        try {
-            // 초대 정보 조회
-            var inviteInfo = familyService.getInviteInfo(inviteToken);
-
-            if (inviteInfo == null) {
-                model.addAttribute("error", "유효하지 않거나 만료된 초대 링크입니다.");
-                return "mobile/family/invite-error";
-            }
-
-            // 로그인된 사용자면 자동 처리
-            if (currentUser != null) {
-                try {
-                    familyService.acceptInvite(inviteToken, currentUser.getMember());
-                    model.addAttribute("success", "가족 구성원으로 등록되었습니다.");
-                    model.addAttribute("memorial", inviteInfo.getMemorial());
-                    return "mobile/family/invite-success";
-                } catch (Exception e) {
-                    model.addAttribute("error", e.getMessage());
-                    return "mobile/family/invite-error";
-                }
-            }
-
-            // 비로그인 사용자는 가입 페이지로
-            model.addAttribute("inviteToken", inviteToken);
-            model.addAttribute("inviteInfo", inviteInfo);
-            model.addAttribute("memorial", inviteInfo.getMemorial());
-            model.addAttribute("inviter", inviteInfo.getInviter());
-
-            return "mobile/family/invite-signup";
-
-        } catch (Exception e) {
-            log.error("초대 응답 페이지 로드 실패 - 토큰: {}", inviteToken.substring(0, 8) + "...", e);
-            model.addAttribute("error", "초대 처리 중 오류가 발생했습니다.");
-            return "mobile/family/invite-error";
-        }
-    }
-
-    /**
      * 내가 소유한 모든 메모리얼의 가족 구성원 조회 (소유자 포함)
      */
     private List<FamilyMemberResponse> getAllFamilyMembersWithOwner(List<Memorial> memorials, Member owner) {
