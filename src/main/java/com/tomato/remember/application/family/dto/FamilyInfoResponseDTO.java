@@ -9,6 +9,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 
 /**
  * 가족 구성원용 고인 상세 정보 응답 DTO
@@ -20,7 +21,7 @@ import java.time.LocalDate;
 public class FamilyInfoResponseDTO {
 
     // ===== 메모리얼 기본 정보 (ReadOnly) =====
-    
+
     /**
      * 메모리얼 ID
      */
@@ -55,6 +56,16 @@ public class FamilyInfoResponseDTO {
      * 기일
      */
     private LocalDate deathDate;
+
+    /**
+     * 포맷팅된 생년월일 (기존 HTML 호환)
+     */
+    private String formattedBirthDate;
+
+    /**
+     * 포맷팅된 기일 (기존 HTML 호환)
+     */
+    private String formattedDeathDate;
 
     /**
      * 나이 (향년)
@@ -148,64 +159,94 @@ public class FamilyInfoResponseDTO {
                 .genderDisplayName(memorial.getGender().getDisplayName())
                 .birthDate(memorial.getBirthDate())
                 .deathDate(memorial.getDeathDate())
+                .formattedBirthDate(formatDate(memorial.getBirthDate()))
+                .formattedDeathDate(formatDate(memorial.getDeathDate()))
                 .formattedAge(memorial.getFormattedAge())
                 .relationship(familyMember.getRelationship().name())
                 .relationshipDisplayName(familyMember.getRelationshipDisplayName())
-                
-                // 가족 구성원 입력 정보
-                .personality(familyMember.getMemberPersonality())
-                .hobbies(familyMember.getMemberHobbies())
-                .favoriteFood(familyMember.getMemberFavoriteFood())
-                .specialMemories(familyMember.getMemberSpecialMemories())
-                .speechHabits(familyMember.getMemberSpeechHabits())
-                
+
+                // 가족 구성원 입력 정보 (Memorial에서 가져옴)
+                .personality(null)
+                .hobbies(null)
+                .favoriteFood(null)
+                .specialMemories(null)
+                .speechHabits(null)
+
                 // 상태 정보
-                .hasDeceasedInfo(familyMember.hasDeceasedInfo())
-                .hasRequiredDeceasedInfo(familyMember.hasRequiredDeceasedInfo())
-                .filledFieldCount(calculateFilledFieldCount(familyMember))
-                .completionPercent(calculateCompletionPercent(familyMember))
-                .canModify(!familyMember.hasDeceasedInfo()) // 이미 입력된 경우 수정 불가
-                .canStartVideoCall(familyMember.hasRequiredDeceasedInfo() && memorial.canStartVideoCall())
-                .videoCallBlockReason(getVideoCallBlockReason(familyMember, memorial))
+                .hasDeceasedInfo(hasDeceasedInfo(memorial))
+                .hasRequiredDeceasedInfo(hasRequiredDeceasedInfo(memorial))
+                .filledFieldCount(calculateFilledFieldCount(memorial))
+                .completionPercent(calculateCompletionPercent(memorial))
+                .canModify(!hasDeceasedInfo(memorial)) // 이미 입력된 경우 수정 불가
+                .canStartVideoCall(hasRequiredDeceasedInfo(memorial) && memorial.canStartVideoCall())
+                .videoCallBlockReason(getVideoCallBlockReason(memorial))
                 .build();
+    }
+
+    /**
+     * 날짜 포맷팅
+     */
+    private static String formatDate(LocalDate date) {
+        if (date == null) {
+            return null;
+        }
+        return date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+    }
+
+    /**
+     * 고인 상세 정보 입력 여부 확인
+     */
+    private static Boolean hasDeceasedInfo(Memorial memorial) {
+        return memorial.getPersonality() != null && !memorial.getPersonality().trim().isEmpty() &&
+               memorial.getHobbies() != null && !memorial.getHobbies().trim().isEmpty() &&
+               memorial.getFavoriteFood() != null && !memorial.getFavoriteFood().trim().isEmpty() &&
+               memorial.getSpecialMemories() != null && !memorial.getSpecialMemories().trim().isEmpty() &&
+               memorial.getSpeechHabits() != null && !memorial.getSpeechHabits().trim().isEmpty();
+    }
+
+    /**
+     * 필수 고인 상세 정보 입력 여부 확인
+     */
+    private static Boolean hasRequiredDeceasedInfo(Memorial memorial) {
+        return hasDeceasedInfo(memorial); // 5개 필드 모두 필수
     }
 
     /**
      * 입력된 필드 개수 계산
      */
-    private static Integer calculateFilledFieldCount(FamilyMember familyMember) {
+    private static Integer calculateFilledFieldCount(Memorial memorial) {
         int count = 0;
-        if (familyMember.getMemberPersonality() != null && !familyMember.getMemberPersonality().trim().isEmpty()) count++;
-        if (familyMember.getMemberHobbies() != null && !familyMember.getMemberHobbies().trim().isEmpty()) count++;
-        if (familyMember.getMemberFavoriteFood() != null && !familyMember.getMemberFavoriteFood().trim().isEmpty()) count++;
-        if (familyMember.getMemberSpecialMemories() != null && !familyMember.getMemberSpecialMemories().trim().isEmpty()) count++;
-        if (familyMember.getMemberSpeechHabits() != null && !familyMember.getMemberSpeechHabits().trim().isEmpty()) count++;
+        if (memorial.getPersonality() != null && !memorial.getPersonality().trim().isEmpty()) count++;
+        if (memorial.getHobbies() != null && !memorial.getHobbies().trim().isEmpty()) count++;
+        if (memorial.getFavoriteFood() != null && !memorial.getFavoriteFood().trim().isEmpty()) count++;
+        if (memorial.getSpecialMemories() != null && !memorial.getSpecialMemories().trim().isEmpty()) count++;
+        if (memorial.getSpeechHabits() != null && !memorial.getSpeechHabits().trim().isEmpty()) count++;
         return count;
     }
 
     /**
      * 완성도 퍼센트 계산
      */
-    private static Integer calculateCompletionPercent(FamilyMember familyMember) {
-        int filledCount = calculateFilledFieldCount(familyMember);
+    private static Integer calculateCompletionPercent(Memorial memorial) {
+        int filledCount = calculateFilledFieldCount(memorial);
         return (filledCount * 100) / 5;
     }
 
     /**
      * 영상통화 차단 사유 반환
      */
-    private static String getVideoCallBlockReason(FamilyMember familyMember, Memorial memorial) {
-        if (!familyMember.hasRequiredDeceasedInfo()) {
+    private static String getVideoCallBlockReason(Memorial memorial) {
+        if (!hasRequiredDeceasedInfo(memorial)) {
             return "고인에 대한 상세 정보를 입력해주세요.";
         }
-        
+
         if (!memorial.canStartVideoCall()) {
             if (!memorial.getAiTrainingCompleted()) {
                 return "AI 학습이 완료되지 않았습니다.";
             }
             return "영상통화 준비가 완료되지 않았습니다.";
         }
-        
+
         return null;
     }
 
@@ -221,6 +262,8 @@ public class FamilyInfoResponseDTO {
                 .genderDisplayName(memorial.getGender().getDisplayName())
                 .birthDate(memorial.getBirthDate())
                 .deathDate(memorial.getDeathDate())
+                .formattedBirthDate(formatDate(memorial.getBirthDate()))
+                .formattedDeathDate(formatDate(memorial.getDeathDate()))
                 .formattedAge(memorial.getFormattedAge())
                 .relationship(familyMember.getRelationship().name())
                 .relationshipDisplayName(familyMember.getRelationshipDisplayName())

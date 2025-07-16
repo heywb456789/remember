@@ -1,5 +1,4 @@
-// family-info.js - 가족 구성원용 고인 상세 정보 입력 페이지
-
+// family-info.js - 고인 상세 정보 페이지 JavaScript (메모리얼 통일 스타일)
 import { authFetch } from './commonFetch.js';
 import { showToast, showConfirm, showLoading, hideLoading } from './common.js';
 
@@ -15,13 +14,6 @@ let pageState = {
     favoriteFood: '',
     specialMemories: '',
     speechHabits: ''
-  },
-  validation: {
-    personality: false,
-    hobbies: false,
-    favoriteFood: false,
-    specialMemories: false,
-    speechHabits: false
   }
 };
 
@@ -38,7 +30,7 @@ const fieldLimits = {
  * 페이지 초기화
  */
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('가족 구성원 고인 상세 정보 페이지 초기화');
+  console.log('고인 상세 정보 페이지 초기화');
 
   try {
     // 서버 데이터 로드
@@ -70,8 +62,7 @@ function loadServerData() {
 
     console.log('서버 데이터 로드 완료:', {
       memorialId: pageState.memorialId,
-      isViewMode: pageState.isViewMode,
-      completionPercent: pageState.familyInfo?.completionPercent
+      isViewMode: pageState.isViewMode
     });
   } else {
     console.warn('서버 데이터가 없습니다.');
@@ -79,26 +70,30 @@ function loadServerData() {
 }
 
 /**
- * 이벤트 바인딩
+ * 이벤트 바인딩 (memorial-create.js 방식)
  */
 function bindEvents() {
-  // 뒤로가기 버튼
-  const backBtns = document.querySelectorAll('[data-action="go-back"]');
-  backBtns.forEach(btn => {
-    btn.addEventListener('click', handleGoBack);
+  // 통합된 클릭 이벤트 처리
+  document.addEventListener('click', function(e) {
+    const action = e.target.getAttribute('data-action') || e.target.closest('[data-action]')?.getAttribute('data-action');
+
+    if (!action) return;
+
+    switch(action) {
+      case 'go-back':
+        e.preventDefault();
+        handleGoBack();
+        break;
+      case 'start-video-call':
+        e.preventDefault();
+        handleStartVideoCall();
+        break;
+    }
   });
 
   // 입력 모드인 경우에만 폼 이벤트 바인딩
   if (!pageState.isViewMode) {
     bindFormEvents();
-  }
-
-  // 조회 모드인 경우 영상통화 버튼 바인딩
-  if (pageState.isViewMode) {
-    const videoCallBtn = document.querySelector('[data-action="start-video-call"]');
-    if (videoCallBtn) {
-      videoCallBtn.addEventListener('click', handleStartVideoCall);
-    }
   }
 }
 
@@ -120,8 +115,8 @@ function bindFormEvents() {
 
     if (textarea && countElement) {
       textarea.addEventListener('input', (e) => {
-        handleTextareaInput(fieldName, e.target.value);
-        updateCharacterCount(fieldName, e.target.value, countElement);
+        handleTextareaChange(fieldName, e.target.value);
+        updateCharacterCount(textarea, countElement);
       });
 
       textarea.addEventListener('blur', (e) => {
@@ -137,53 +132,45 @@ function bindFormEvents() {
 function initializeForm() {
   console.log('폼 초기화');
 
-  // 기존 데이터가 있는 경우 폼에 설정
-  if (pageState.familyInfo) {
-    const fields = ['personality', 'hobbies', 'favoriteFood', 'specialMemories', 'speechHabits'];
-    fields.forEach(fieldName => {
-      const textarea = document.getElementById(fieldName);
-      const value = pageState.familyInfo[fieldName] || '';
+  // 가족 구성원은 빈 폼으로 시작 (기존 데이터 미반영)
+  const fields = ['personality', 'hobbies', 'favoriteFood', 'specialMemories', 'speechHabits'];
+  fields.forEach(fieldName => {
+    const textarea = document.getElementById(fieldName);
 
-      if (textarea) {
-        textarea.value = value;
-        pageState.formData[fieldName] = value;
+    if (textarea) {
+      // 빈 값으로 초기화
+      textarea.value = '';
+      pageState.formData[fieldName] = '';
 
-        // 글자 수 업데이트
-        const countElement = document.getElementById(`${fieldName}Count`);
-        if (countElement) {
-          updateCharacterCount(fieldName, value, countElement);
-        }
-
-        // 유효성 검사
-        validateField(fieldName, value);
+      // 글자 수 카운터 초기화
+      const countElement = document.getElementById(`${fieldName}Count`);
+      if (countElement) {
+        updateCharacterCount(textarea, countElement);
       }
-    });
-  }
+    }
+  });
 
   // 제출 버튼 상태 업데이트
   updateSubmitButton();
 }
 
 /**
- * 텍스트 영역 입력 핸들러
+ * 텍스트 영역 변경 핸들러
  */
-function handleTextareaInput(fieldName, value) {
+function handleTextareaChange(fieldName, value) {
   pageState.formData[fieldName] = value;
-
-  // 실시간 유효성 검사
-  const isValid = validateField(fieldName, value);
-  pageState.validation[fieldName] = isValid;
-
-  // 제출 버튼 상태 업데이트
   updateSubmitButton();
 }
 
 /**
- * 글자 수 카운터 업데이트
+ * 글자 수 카운터 업데이트 (memorial-create.js 방식)
  */
-function updateCharacterCount(fieldName, value, countElement) {
-  const currentLength = value.length;
-  const maxLength = fieldLimits[fieldName].max;
+function updateCharacterCount(textarea, countElement) {
+  const currentLength = textarea.value.length;
+  const fieldName = textarea.name;
+  const limits = fieldLimits[fieldName];
+
+  if (!limits) return;
 
   countElement.textContent = currentLength;
 
@@ -191,7 +178,7 @@ function updateCharacterCount(fieldName, value, countElement) {
   const parentElement = countElement.parentElement;
   parentElement.classList.remove('warning', 'danger');
 
-  const percentage = (currentLength / maxLength) * 100;
+  const percentage = (currentLength / limits.max) * 100;
 
   if (percentage >= 90) {
     parentElement.classList.add('danger');
@@ -215,7 +202,7 @@ function validateField(fieldName, value) {
   }
 
   if (textarea) {
-    textarea.classList.remove('error');
+    textarea.classList.remove('is-invalid');
   }
 
   // 필수 필드 확인
@@ -247,7 +234,7 @@ function showFieldError(fieldName, message) {
   const errorElement = document.getElementById(`${fieldName}Error`);
 
   if (textarea) {
-    textarea.classList.add('error');
+    textarea.classList.add('is-invalid');
   }
 
   if (errorElement) {
@@ -259,7 +246,7 @@ function showFieldError(fieldName, message) {
 /**
  * 전체 폼 유효성 검사
  */
-function validateForm() {
+function validateAllData() {
   const fields = ['personality', 'hobbies', 'favoriteFood', 'specialMemories', 'speechHabits'];
   let isValid = true;
 
@@ -270,24 +257,25 @@ function validateForm() {
     if (!fieldValid) {
       isValid = false;
     }
-
-    pageState.validation[fieldName] = fieldValid;
   });
 
   return isValid;
 }
 
 /**
- * 제출 버튼 상태 업데이트
+ * 제출 버튼 상태 업데이트 (memorial-create.js 방식)
  */
 function updateSubmitButton() {
   const submitBtn = document.getElementById('submitBtn');
   if (!submitBtn) return;
 
-  const allValid = Object.values(pageState.validation).every(valid => valid === true);
-  const allFilled = Object.values(pageState.formData).every(value => value && value.trim().length > 0);
+  const fields = ['personality', 'hobbies', 'favoriteFood', 'specialMemories', 'speechHabits'];
+  const allFilled = fields.every(fieldName => {
+    const value = pageState.formData[fieldName];
+    return value && value.trim().length > 0;
+  });
 
-  const isFormValid = allValid && allFilled;
+  const isFormValid = allFilled;
 
   submitBtn.disabled = !isFormValid;
 
@@ -301,7 +289,7 @@ function updateSubmitButton() {
 }
 
 /**
- * 폼 제출 핸들러
+ * 폼 제출 핸들러 (memorial-create.js 방식)
  */
 async function handleFormSubmit(event) {
   event.preventDefault();
@@ -314,7 +302,7 @@ async function handleFormSubmit(event) {
 
   try {
     // 최종 유효성 검사
-    if (!validateForm()) {
+    if (!validateAllData()) {
       showToast('입력 정보를 확인해주세요.', 'warning');
       return;
     }
@@ -322,7 +310,7 @@ async function handleFormSubmit(event) {
     // 확인 다이얼로그
     const confirmed = await showConfirm(
       '고인 상세 정보 저장',
-      '입력하신 정보를 저장하시겠습니까?\n\n저장 후에는 수정할 수 없습니다.',
+      '입력하신 정보를 저장하시겠습니까?',
       '저장하기',
       '취소'
     );
@@ -337,10 +325,9 @@ async function handleFormSubmit(event) {
 
     // 제출 버튼 상태 변경
     const submitBtn = document.getElementById('submitBtn');
-    if (submitBtn) {
-      submitBtn.disabled = true;
-      submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 저장 중...';
-    }
+    const originalText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 저장 중...';
 
     // API 호출
     const response = await authFetch(`/api/memorial/${pageState.memorialId}/family-info`, {
@@ -364,11 +351,12 @@ async function handleFormSubmit(event) {
   } catch (error) {
     console.error('폼 제출 실패:', error);
 
-    const errorMessage = error.name === 'FetchError' ?
-      error.statusMessage :
-      (error.message || '저장 중 오류가 발생했습니다.');
-
-    showToast(errorMessage, 'error');
+    // FetchError인 경우 적절한 메시지 표시
+    if (error.name === 'FetchError') {
+      showToast(error.statusMessage || '서버 오류가 발생했습니다. 다시 시도해주세요.', 'error');
+    } else {
+      showToast(error.message || '저장 중 오류가 발생했습니다. 다시 시도해주세요.', 'error');
+    }
 
   } finally {
     // 로딩 종료
@@ -381,7 +369,7 @@ async function handleFormSubmit(event) {
 }
 
 /**
- * 뒤로가기 핸들러
+ * 뒤로가기 핸들러 (memorial-create.js 방식)
  */
 function handleGoBack() {
   console.log('뒤로가기 클릭');
@@ -423,37 +411,13 @@ function handleStartVideoCall() {
   window.location.href = `/mobile/videocall/${pageState.memorialId}`;
 }
 
-/**
- * 진행 상황 업데이트
- */
-function updateProgress() {
-  const progressBar = document.querySelector('.progress-fill');
-  const progressCount = document.querySelector('.progress-count');
-
-  if (!progressBar || !progressCount) return;
-
-  const filledCount = Object.values(pageState.formData).filter(value => value && value.trim().length > 0).length;
-  const totalCount = 5;
-  const percentage = (filledCount / totalCount) * 100;
-
-  progressBar.style.width = `${percentage}%`;
-  progressCount.textContent = `${filledCount}/${totalCount}`;
-}
-
-/**
- * 실시간 진행 상황 업데이트
- */
-function updateProgressInRealTime() {
-  if (!pageState.isViewMode) {
-    updateProgress();
-  }
-}
-
 // 전역 함수 등록
 window.familyInfoManager = {
   getState: () => pageState,
-  validateForm,
-  updateProgress: updateProgressInRealTime
+  validateForm: validateAllData,
+  handleFormSubmit,
+  handleGoBack,
+  handleStartVideoCall
 };
 
 console.log('family-info.js 로드 완료');

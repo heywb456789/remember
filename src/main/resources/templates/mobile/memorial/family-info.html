@@ -31,215 +31,219 @@
 
     <!-- 페이지 소개 -->
     <div class="page-intro">
-      <div class="intro-content">
-        <div class="intro-icon">
-          <i class="fas fa-heart"></i>
-        </div>
-        <div class="intro-text">
-          <h2 class="intro-title" th:text="${isViewMode ? '입력하신 고인 상세 정보입니다' : '고인에 대한 상세 정보를 입력해주세요'}">고인에 대한 상세 정보를 입력해주세요</h2>
-          <p class="intro-description" th:text="${isViewMode ? '영상통화를 통해 소중한 분과 만나보세요.' : 'AI가 더 생생하게 재현할 수 있도록 자세한 정보를 알려주세요.'}">AI가 더 생생하게 재현할 수 있도록 자세한 정보를 알려주세요.</p>
-        </div>
-      </div>
+      <p class="intro-description" th:text="${isViewMode ? '입력하신 고인 상세 정보입니다.' : 'AI가 더 생생하게 재현할 수 있도록 고인에 대한 자세한 정보를 알려주세요.'}">
+        AI가 더 생생하게 재현할 수 있도록 고인에 대한 자세한 정보를 알려주세요.
+      </p>
     </div>
 
-    <!-- 메모리얼 기본 정보 (ReadOnly) -->
-    <div class="memorial-info-section">
-      <div class="section-header">
-        <h2 class="section-title">
-          <i class="fas fa-user-circle"></i>
-          메모리얼 정보
-        </h2>
-      </div>
-
-      <div class="memorial-basic-info">
-        <div class="memorial-avatar">
-          <span class="memorial-initial" th:text="${familyInfo.name?.substring(0,1) ?: '?'}">?</span>
-        </div>
-        <div class="memorial-details">
-          <div class="memorial-name" th:text="${familyInfo.name}">고인 이름</div>
-          <div class="memorial-nickname" th:text="'(' + ${familyInfo.nickname} + ')'">호칭</div>
-          <div class="memorial-meta">
-            <span class="meta-item">
-              <i class="fas fa-venus-mars"></i>
-              <span th:text="${familyInfo.genderDisplayName}">성별</span>
-            </span>
-            <span class="meta-item" th:if="${familyInfo.formattedAge != null}">
-              <i class="fas fa-calendar-alt"></i>
-              <span th:text="${familyInfo.formattedAge}">향년</span>
-            </span>
-            <span class="meta-item">
-              <i class="fas fa-users"></i>
-              <span th:text="${familyInfo.relationshipDisplayName}">관계</span>
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 진행 상황 표시 -->
-    <div class="progress-section" th:if="${!isViewMode}">
-      <div class="progress-header">
-        <h3 class="progress-title">입력 진행 상황</h3>
-        <span class="progress-count" th:text="${familyInfo.filledFieldCount} + '/5'">0/5</span>
-      </div>
-      <div class="progress-bar">
-        <div class="progress-fill" th:style="'width: ' + ${familyInfo.completionPercent} + '%'"></div>
-      </div>
-      <div class="progress-description">
-        <span th:text="${familyInfo.completionPercent == 100 ? '모든 정보가 입력되었습니다!' : '모든 정보를 입력해야 영상통화를 시작할 수 있습니다.'}">
-          모든 정보를 입력해야 영상통화를 시작할 수 있습니다.
-        </span>
-      </div>
-    </div>
-
-    <!-- 완료 상태 표시 -->
-    <div class="completion-section" th:if="${isViewMode}">
-      <div class="completion-badge">
-        <i class="fas fa-check-circle"></i>
-        <span>입력 완료</span>
-      </div>
-      <div class="completion-description">
-        <p>고인에 대한 상세 정보 입력이 완료되었습니다.</p>
-        <p>이제 영상통화를 통해 소중한 분과 만나보세요.</p>
-      </div>
-    </div>
-
-    <!-- 고인 상세 정보 입력 폼 -->
-    <form id="familyInfoForm" class="family-info-form" th:if="${!isViewMode}">
+    <!-- 메모리얼 정보 입력 폼 -->
+    <form id="familyInfoForm" class="memorial-form">
       <input type="hidden" id="memorialId" th:value="${familyInfo.memorialId}">
 
-      <!-- 성격이나 특징 -->
-      <div class="form-section">
+      <!-- 1. 기본 정보 섹션 (ReadOnly) -->
+      <div class="form-section" id="basicInfoSection">
+        <div class="section-header">
+          <h2 class="section-title">
+            <i class="fas fa-user"></i>
+            기본 정보
+          </h2>
+        </div>
+
+        <!-- 이름 (ReadOnly) -->
+        <div class="form-group">
+          <label class="form-label" for="name">이름</label>
+          <input type="text" id="name" name="name" class="form-input readonly-input"
+                 th:value="${familyInfo.name}" readonly>
+        </div>
+
+        <!-- 호칭 (ReadOnly) -->
+        <div class="form-group">
+          <label class="form-label" for="nickname">호칭</label>
+          <input type="text" id="nickname" name="nickname" class="form-input readonly-input"
+                 th:value="${familyInfo.nickname}" readonly>
+        </div>
+
+        <!-- 성별 (ReadOnly) -->
+        <div class="form-group">
+          <label class="form-label">성별</label>
+          <div class="gender-options readonly-gender">
+            <div class="gender-option" th:classappend="${familyInfo.gender == 'MALE' ? 'selected' : ''}">
+              <div class="gender-card">
+                <i class="fas fa-mars"></i>
+                <span>남성</span>
+              </div>
+            </div>
+            <div class="gender-option" th:classappend="${familyInfo.gender == 'FEMALE' ? 'selected' : ''}">
+              <div class="gender-card">
+                <i class="fas fa-venus"></i>
+                <span>여성</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 생년월일 (ReadOnly) -->
+        <div class="form-group" th:if="${familyInfo.birthDate != null}">
+          <label class="form-label" for="birthDate">생년월일</label>
+          <input type="text" id="birthDate" name="birthDate" class="form-input readonly-input"
+                 th:value="${familyInfo.birthDate}" readonly>
+        </div>
+
+        <!-- 기일 (ReadOnly) -->
+        <div class="form-group" th:if="${familyInfo.deathDate != null}">
+          <label class="form-label" for="deathDate">기일</label>
+          <input type="text" id="deathDate" name="deathDate" class="form-input readonly-input"
+                 th:value="${familyInfo.deathDate}" readonly>
+        </div>
+
+        <!-- 나와의 관계 (ReadOnly) -->
+        <div class="form-group">
+          <label class="form-label" for="relationship">나와의 관계</label>
+          <input type="text" id="relationship" name="relationship" class="form-input readonly-input"
+                 th:value="${familyInfo.relationshipDisplayName}" readonly>
+        </div>
+      </div>
+
+      <!-- 2. 고인에 대한 정보 섹션 (입력 가능) -->
+      <div class="form-section" id="personalitySection" th:if="${!isViewMode}">
+        <div class="section-header">
+          <h2 class="section-title">
+            <i class="fas fa-heart"></i>
+            고인에 대한 정보
+          </h2>
+          <p class="section-description">AI가 더 생생하게 재현할 수 있도록 고인에 대한 자세한 정보를 알려주세요.</p>
+        </div>
+
+        <!-- 성격이나 특징 -->
         <div class="form-group">
           <label class="form-label required" for="personality">성격이나 특징은 어떠셨나요?</label>
           <textarea id="personality" name="personality" class="form-textarea"
                     placeholder="예: 항상 밝고 긍정적이셨고, 사람들을 따뜻하게 대해주셨어요."
-                    rows="4" maxlength="500" required
-                    th:text="${familyInfo.personality}"></textarea>
+                    rows="4" maxlength="500" required></textarea>
           <div class="character-count">
             <span id="personalityCount">0</span> / 500자
           </div>
           <div class="form-error" id="personalityError"></div>
         </div>
-      </div>
 
-      <!-- 취미나 관심사 -->
-      <div class="form-section">
+        <!-- 취미나 관심사 -->
         <div class="form-group">
           <label class="form-label required" for="hobbies">평소 즐기던 취미나 관심사는 무엇이었나요?</label>
           <textarea id="hobbies" name="hobbies" class="form-textarea"
                     placeholder="예: 정원 가꾸기를 좋아하셨고, 드라마 보는 것을 즐기셨어요."
-                    rows="3" maxlength="300" required
-                    th:text="${familyInfo.hobbies}"></textarea>
+                    rows="3" maxlength="300" required></textarea>
           <div class="character-count">
             <span id="hobbiesCount">0</span> / 300자
           </div>
           <div class="form-error" id="hobbiesError"></div>
         </div>
-      </div>
 
-      <!-- 좋아하는 음식 -->
-      <div class="form-section">
+        <!-- 좋아하는 음식 -->
         <div class="form-group">
           <label class="form-label required" for="favoriteFood">좋아하시던 음식이나 요리가 있었나요?</label>
           <textarea id="favoriteFood" name="favoriteFood" class="form-textarea"
                     placeholder="예: 김치찌개를 정말 좋아하셨고, 직접 만든 된장찌개가 유명했어요."
-                    rows="3" maxlength="300" required
-                    th:text="${familyInfo.favoriteFood}"></textarea>
+                    rows="3" maxlength="300" required></textarea>
           <div class="character-count">
             <span id="favoriteFoodCount">0</span> / 300자
           </div>
           <div class="form-error" id="favoriteFoodError"></div>
         </div>
-      </div>
 
-      <!-- 기억에 남는 일화나 추억 -->
-      <div class="form-section">
+        <!-- 기억에 남는 일화나 추억 -->
         <div class="form-group">
           <label class="form-label required" for="specialMemories">가장 기억에 남은 일화나 추억이 있나요?</label>
           <textarea id="specialMemories" name="specialMemories" class="form-textarea"
                     placeholder="예: 어릴 때 할머니가 들려주신 옛날이야기가 가장 기억에 남아요."
-                    rows="3" maxlength="300" required
-                    th:text="${familyInfo.specialMemories}"></textarea>
+                    rows="3" maxlength="300" required></textarea>
           <div class="character-count">
             <span id="specialMemoriesCount">0</span> / 300자
           </div>
           <div class="form-error" id="specialMemoriesError"></div>
         </div>
-      </div>
 
-      <!-- 습관이나 말버릇 -->
-      <div class="form-section">
+        <!-- 습관이나 말버릇 -->
         <div class="form-group">
           <label class="form-label required" for="speechHabits">평소 습관이나 말버릇이 있었나요?</label>
           <textarea id="speechHabits" name="speechHabits" class="form-textarea"
                     placeholder="예: 아침마다 산책을 하셨고, '건강이 최고다' 라는 말을 자주하셨어요."
-                    rows="3" maxlength="300" required
-                    th:text="${familyInfo.speechHabits}"></textarea>
+                    rows="3" maxlength="300" required></textarea>
           <div class="character-count">
             <span id="speechHabitsCount">0</span> / 300자
           </div>
           <div class="form-error" id="speechHabitsError"></div>
         </div>
+
+        <!-- 하단 버튼 -->
+        <div class="form-actions">
+          <button type="button" class="btn btn-outline" data-action="go-back">
+            취소
+          </button>
+          <button type="submit" class="btn btn-primary" id="submitBtn">
+            <i class="fas fa-save"></i>
+            저장하기
+          </button>
+        </div>
       </div>
 
-      <!-- 하단 버튼 -->
-      <div class="form-actions">
-        <button type="button" class="btn btn-outline" data-action="go-back">
-          취소
-        </button>
-        <button type="submit" class="btn btn-primary" id="submitBtn">
-          <i class="fas fa-save"></i>
-          저장하기
-        </button>
+      <!-- 3. 조회 모드 정보 표시 -->
+      <div class="form-section" id="viewModeSection" th:if="${isViewMode}">
+        <div class="section-header">
+          <h2 class="section-title">
+            <i class="fas fa-heart"></i>
+            고인에 대한 정보
+          </h2>
+        </div>
+
+        <!-- 성격이나 특징 (조회) -->
+        <div class="form-group">
+          <label class="form-label">성격이나 특징</label>
+          <div class="readonly-content" th:text="${familyInfo.personality ?: '입력된 정보가 없습니다.'}">-</div>
+        </div>
+
+        <!-- 취미나 관심사 (조회) -->
+        <div class="form-group">
+          <label class="form-label">취미나 관심사</label>
+          <div class="readonly-content" th:text="${familyInfo.hobbies ?: '입력된 정보가 없습니다.'}">-</div>
+        </div>
+
+        <!-- 좋아하는 음식 (조회) -->
+        <div class="form-group">
+          <label class="form-label">좋아하는 음식</label>
+          <div class="readonly-content" th:text="${familyInfo.favoriteFood ?: '입력된 정보가 없습니다.'}">-</div>
+        </div>
+
+        <!-- 기억에 남는 일화나 추억 (조회) -->
+        <div class="form-group">
+          <label class="form-label">기억에 남는 일화나 추억</label>
+          <div class="readonly-content" th:text="${familyInfo.specialMemories ?: '입력된 정보가 없습니다.'}">-</div>
+        </div>
+
+        <!-- 습관이나 말버릇 (조회) -->
+        <div class="form-group">
+          <label class="form-label">습관이나 말버릇</label>
+          <div class="readonly-content" th:text="${familyInfo.speechHabits ?: '입력된 정보가 없습니다.'}">-</div>
+        </div>
+
+        <!-- 영상통화 시작 버튼 -->
+        <div class="form-actions" th:if="${familyInfo.canStartVideoCall}">
+          <button type="button" class="btn btn-primary" data-action="start-video-call">
+            <i class="fas fa-video"></i>
+            영상통화 시작하기
+          </button>
+        </div>
+
+        <!-- 영상통화 불가 상태 -->
+        <div class="form-actions" th:if="${!familyInfo.canStartVideoCall}">
+          <div class="video-call-blocked">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span th:text="${familyInfo.videoCallBlockReason ?: '영상통화를 시작할 수 없습니다.'}">
+              영상통화를 시작할 수 없습니다.
+            </span>
+          </div>
+        </div>
       </div>
     </form>
-
-    <!-- 조회 모드 정보 표시 -->
-    <div class="view-mode-content" th:if="${isViewMode}">
-      <div class="info-section">
-        <div class="info-group">
-          <label class="info-label">성격이나 특징</label>
-          <div class="info-content" th:text="${familyInfo.personality}">-</div>
-        </div>
-
-        <div class="info-group">
-          <label class="info-label">취미나 관심사</label>
-          <div class="info-content" th:text="${familyInfo.hobbies}">-</div>
-        </div>
-
-        <div class="info-group">
-          <label class="info-label">좋아하는 음식</label>
-          <div class="info-content" th:text="${familyInfo.favoriteFood}">-</div>
-        </div>
-
-        <div class="info-group">
-          <label class="info-label">기억에 남는 일화나 추억</label>
-          <div class="info-content" th:text="${familyInfo.specialMemories}">-</div>
-        </div>
-
-        <div class="info-group">
-          <label class="info-label">습관이나 말버릇</label>
-          <div class="info-content" th:text="${familyInfo.speechHabits}">-</div>
-        </div>
-      </div>
-
-      <!-- 영상통화 시작 버튼 -->
-      <div class="video-call-section" th:if="${familyInfo.canStartVideoCall}">
-        <button class="btn btn-primary video-call-btn" data-action="start-video-call">
-          <i class="fas fa-video"></i>
-          영상통화 시작하기
-        </button>
-      </div>
-
-      <!-- 영상통화 불가 상태 -->
-      <div class="video-call-blocked" th:if="${!familyInfo.canStartVideoCall}">
-        <div class="blocked-message">
-          <i class="fas fa-exclamation-triangle"></i>
-          <span th:text="${familyInfo.videoCallBlockReason}">영상통화를 시작할 수 없습니다.</span>
-        </div>
-      </div>
-    </div>
   </div>
 </section>
 
