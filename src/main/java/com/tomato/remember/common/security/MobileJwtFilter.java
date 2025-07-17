@@ -39,7 +39,6 @@ public class MobileJwtFilter extends OncePerRequestFilter {
             "/mobile/dashboard",
             "/mobile/memorial/create",
             "/mobile/memorial/*/edit",
-            "/mobile/video-call",
             "/mobile/mypage",
             "/mobile/family"
     };
@@ -486,7 +485,8 @@ public class MobileJwtFilter extends OncePerRequestFilter {
                 "/mobile/css/",
                 "/mobile/js/",
                 "/mobile/images/",
-                "/mobile/family/invite/"
+                "/mobile/family/invite/",
+                "/mobile/video-call"
         };
 
         for (String skipPath : skipPaths) {

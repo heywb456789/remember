@@ -36,7 +36,13 @@ public class MainController {
     @GetMapping("/")
     public String root() {
         log.info("Root path accessed, redirecting to /mobile/home");
-        return "redirect:/mobile/home";
+//        return "redirect:/mobile/home";
+        return "mobile/call/video-call-intro";
+    }
+
+    @GetMapping("/mobile/video-call")
+    public String videoCall() {
+        return "mobile/call/video-call-sample";
     }
 
     /**

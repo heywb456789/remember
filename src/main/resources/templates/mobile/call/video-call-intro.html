@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>토마토리멤버 - 영상통화 체험</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Apple SD Gothic Neo', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .container {
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            padding: 40px 20px;
+        }
+
+        .header {
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+            line-height: 1.4;
+        }
+
+        .phone-container {
+            position: relative;
+            margin: 40px auto;
+            width: 200px;
+            height: 400px;
+        }
+
+        .phone-frame {
+            width: 100%;
+            height: 100%;
+            background: #2c3e50;
+            border-radius: 30px;
+            padding: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .phone-screen {
+            width: 100%;
+            height: 100%;
+            background: #34495e;
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .contact-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .contact-name {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 16px;
+            font-weight: 600;
+            color: white;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.3);
+            padding: 8px 16px;
+            border-radius: 20px;
+            backdrop-filter: blur(5px);
+        }
+
+        .navigation {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            padding: 0 20px;
+        }
+
+        .nav-btn {
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 20px;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        .video-call-btn {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 60px;
+            background: #e74c3c;
+            border: none;
+            border-radius: 30px;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .video-call-btn:hover {
+            background: #c0392b;
+            transform: translateX(-50%) scale(1.1);
+        }
+
+        .start-btn {
+            width: 100%;
+            padding: 16px;
+            background: #3498db;
+            border: none;
+            border-radius: 25px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+
+        .start-btn:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(52, 152, 219, 0.3);
+        }
+
+        .permission-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .permission-dialog {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 300px;
+            width: 90%;
+            text-align: center;
+            color: #333;
+        }
+
+        .permission-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .permission-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .permission-message {
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 24px;
+            color: #666;
+        }
+
+        .permission-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .permission-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .permission-btn.deny {
+            background: #ecf0f1;
+            color: #7f8c8d;
+        }
+
+        .permission-btn.allow {
+            background: #3498db;
+            color: white;
+        }
+
+        .permission-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 20px;
+            height: 20px;
+            background: #e74c3c;
+            border-radius: 10px;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">TOMATOREMEMBER</div>
+            <div class="subtitle">
+                소중한 추억을 영원히<br>
+                간직하세요
+            </div>
+        </div>
+
+        <div class="phone-container">
+            <div class="phone-frame">
+                <div class="phone-screen">
+                    <img id="contactImage" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Ccircle cx='60' cy='60' r='60' fill='%23bdc3c7'/%3E%3Ccircle cx='60' cy='45' r='20' fill='%23ecf0f1'/%3E%3Cpath d='M30 85 Q30 70 60 70 Q90 70 90 85 L90 120 L30 120 Z' fill='%23ecf0f1'/%3E%3C/svg%3E"
+                         alt="연락처" class="contact-image">
+                    <div id="contactName" class="contact-name">김근태</div>
+                    <button class="video-call-btn" onclick="requestPermissions()">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                            <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
+                        </svg>
+                        <div class="badge">1</div>
+                    </button>
+                </div>
+            </div>
+
+            <div class="navigation">
+                <button class="nav-btn" onclick="previousContact()">‹</button>
+                <button class="nav-btn" onclick="nextContact()">›</button>
+            </div>
+        </div>
+
+        <button class="start-btn" onclick="goToMainScreen()">토마토리멤버 시작하기</button>
+    </div>
+
+    <!-- 카메라 권한 요청 모달 -->
+    <div id="cameraModal" class="permission-modal">
+        <div class="permission-dialog">
+            <div class="permission-icon">📹</div>
+            <div class="permission-title">카메라 접근 허용</div>
+            <div class="permission-message">영상통화를 위해 카메라 접근 권한이 필요합니다.</div>
+            <div class="permission-buttons">
+                <button class="permission-btn deny" onclick="denyCamera()">거부</button>
+                <button class="permission-btn allow" onclick="allowCamera()">허용</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 마이크 권한 요청 모달 -->
+    <div id="micModal" class="permission-modal">
+        <div class="permission-dialog">
+            <div class="permission-icon">🎤</div>
+            <div class="permission-title">마이크 접근 허용</div>
+            <div class="permission-message">음성 대화를 위해 마이크 접근 권한이 필요합니다.</div>
+            <div class="permission-buttons">
+                <button class="permission-btn deny" onclick="denyMicrophone()">거부</button>
+                <button class="permission-btn allow" onclick="allowMicrophone()">허용</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 연락처 데이터
+        const contacts = [
+            {
+                name: "김근태",
+                image: "/images/kkt.png"
+            }
+            // ,
+            // {
+            //     name: "준비중",
+            //     image: "/images/tongtong_icon"
+            // }
+            // ,
+            // {
+            //     name: "준비중",
+            //     image: ""
+            // }
+        ];
+
+        let currentContactIndex = 0;
+        let cameraPermissionGranted = false;
+        let microphonePermissionGranted = false;
+
+        // 연락처 전환
+        function updateContact() {
+            const contact = contacts[currentContactIndex];
+            document.getElementById('contactImage').src = contact.image;
+            document.getElementById('contactName').textContent = contact.name;
+        }
+
+        function previousContact() {
+            currentContactIndex = (currentContactIndex - 1 + contacts.length) % contacts.length;
+            updateContact();
+        }
+
+        function nextContact() {
+            currentContactIndex = (currentContactIndex + 1) % contacts.length;
+            updateContact();
+        }
+
+        // 권한 요청 플로우
+        function requestPermissions() {
+            if (!cameraPermissionGranted) {
+                showModal('cameraModal');
+            } else if (!microphonePermissionGranted) {
+                showModal('micModal');
+            } else {
+                // 모든 권한이 허용된 경우 영상통화 페이지로 이동
+                goToVideoCall();
+            }
+        }
+
+        function showModal(modalId) {
+            document.getElementById(modalId).style.display = 'flex';
+        }
+
+        function hideModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        // 카메라 권한
+        function allowCamera() {
+            cameraPermissionGranted = true;
+            hideModal('cameraModal');
+
+            // 실제 카메라 권한 요청
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(function(stream) {
+                    console.log('카메라 권한이 허용되었습니다.');
+                    stream.getTracks().forEach(track => track.stop());
+
+                    // 마이크 권한 요청으로 이동
+                    if (!microphonePermissionGranted) {
+                        showModal('micModal');
+                    } else {
+                        // 모든 권한이 허용된 경우 영상통화 페이지로 이동
+                        goToVideoCall(); // 수정: 연락처 정보 포함하여 이동
+                    }
+                })
+                .catch(function(err) {
+                    console.error('카메라 권한이 거부되었습니다:', err);
+                    cameraPermissionGranted = false;
+                });
+        }
+
+        function denyCamera() {
+            cameraPermissionGranted = false;
+            hideModal('cameraModal');
+            alert('카메라 권한이 필요합니다. 브라우저 설정에서 권한을 허용해주세요.');
+        }
+
+        // 마이크 권한
+        function allowMicrophone() {
+            microphonePermissionGranted = true;
+            hideModal('micModal');
+
+            // 실제 마이크 권한 요청
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(function(stream) {
+                    console.log('마이크 권한이 허용되었습니다.');
+                    stream.getTracks().forEach(track => track.stop());
+
+                    // 모든 권한이 허용되었으므로 영상통화 페이지로 이동
+                    goToVideoCall(); // 수정: 연락처 정보 포함하여 이동
+                })
+                .catch(function(err) {
+                    console.error('마이크 권한이 거부되었습니다:', err);
+                    microphonePermissionGranted = false;
+                });
+        }
+
+        function denyMicrophone() {
+            microphonePermissionGranted = false;
+            hideModal('micModal');
+            alert('마이크 권한이 필요합니다. 브라우저 설정에서 권한을 허용해주세요.');
+        }
+
+        // 메인 화면으로 이동
+        function goToMainScreen() {
+            window.location.href = '/mobile/home';
+        }
+
+        // 영상통화 페이지로 이동
+        function goToVideoCall() {
+            const contactName = contacts[currentContactIndex].name;
+
+            // 연락처 정보를 localStorage에 저장
+            localStorage.setItem('selectedContact', contactName);
+
+            // URL 파라미터로도 전달
+            window.location.href = `/mobile/video-call?contact=${encodeURIComponent(contactName)}`;
+        }
+
+        // 초기화
+        updateContact();
+    </script>
+</body>
+</html>

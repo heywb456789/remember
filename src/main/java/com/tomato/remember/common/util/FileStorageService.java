@@ -22,9 +22,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * 파일 저장 서비스 (로컬 파일 시스템) - 단순화 버전
- * - 프로필 이미지, 동영상, Base64 이미지 등 모든 파일 타입 지원
- * - 환경별 local/dev 경로 제거로 단순화
+ * 파일 저장 서비스 (로컬 파일 시스템) - 단순화 버전 - 프로필 이미지, 동영상, Base64 이미지 등 모든 파일 타입 지원 - 환경별 local/dev 경로 제거로 단순화
  */
 @Slf4j
 @Service
@@ -38,12 +36,12 @@ public class FileStorageService {
 
     // 허용된 이미지 확장자
     private static final List<String> ALLOWED_IMAGE_EXTENSIONS = Arrays.asList(
-            "jpg", "jpeg", "png", "gif", "webp", "bmp", "svg"
+        "jpg", "jpeg", "png", "gif", "webp", "bmp", "svg"
     );
 
     // 허용된 비디오 확장자
     private static final List<String> ALLOWED_VIDEO_EXTENSIONS = Arrays.asList(
-            "mp4", "mov", "avi", "wmv", "mkv", "webm", "flv", "mpg", "mpeg", "m4v"
+        "mp4", "mov", "avi", "wmv", "mkv", "webm", "flv", "mpg", "mpeg", "m4v"
     );
 
     // 최대 파일 크기 (10MB)
@@ -54,14 +52,14 @@ public class FileStorageService {
     /**
      * 프로필 이미지 저장
      *
-     * @param file 업로드할 파일
-     * @param memberId 회원 ID
+     * @param file      업로드할 파일
+     * @param memberId  회원 ID
      * @param sortOrder 정렬 순서
      * @return 저장된 파일의 URL
      */
     public String saveProfileImage(MultipartFile file, Long memberId, Integer sortOrder) throws IOException {
         log.info("프로필 이미지 저장 시작 - 회원 ID: {}, 순서: {}, 파일: {}",
-                memberId, sortOrder, file.getOriginalFilename());
+            memberId, sortOrder, file.getOriginalFilename());
 
         validateImageFile(file);
 
@@ -96,9 +94,9 @@ public class FileStorageService {
     /**
      * MultipartFile 업로드 (범용)
      *
-     * @param file 업로드할 파일
+     * @param file     업로드할 파일
      * @param category 저장 카테고리
-     * @param postId 게시물 ID
+     * @param postId   게시물 ID
      * @return 저장된 파일의 상대 경로
      */
     public String upload(MultipartFile file, StorageCategory category, Long postId) {
@@ -111,18 +109,17 @@ public class FileStorageService {
     }
 
     /**
-     * 비디오 파일 변환 및 업로드
-     * 비디오 파일을 검증하고, 필요시 MP4로 변환 후 업로드합니다.
+     * 비디오 파일 변환 및 업로드 비디오 파일을 검증하고, 필요시 MP4로 변환 후 업로드합니다.
      *
      * @param videoFile 업로드할 비디오 파일
-     * @param category 파일 카테고리
-     * @param postId 연관된 게시물 ID
+     * @param category  파일 카테고리
+     * @param postId    연관된 게시물 ID
      * @return 업로드된 파일의 상대 경로
      * @throws APIException 파일 처리 과정에서 오류 발생 시
      */
     public String uploadVideo(MultipartFile videoFile, StorageCategory category, Long postId) {
         log.info("비디오 파일 업로드 시작 - 카테고리: {}, 게시물 ID: {}, 파일: {}",
-                category, postId, videoFile.getOriginalFilename());
+            category, postId, videoFile.getOriginalFilename());
 
         // 파일명 및 확장자 확인
         String originalFilename = videoFile.getOriginalFilename();
@@ -132,8 +129,9 @@ public class FileStorageService {
 
         // 확장자 검증
         String ext = getFileExtension(originalFilename);
-        if (!ALLOWED_VIDEO_EXTENSIONS.contains(ext)) {
-            throw new APIException("지원하지 않는 비디오 형식입니다. 지원 형식: " + String.join(", ", ALLOWED_VIDEO_EXTENSIONS), ResponseStatus.INVALID_FILE_TYPE);
+        if (! ALLOWED_VIDEO_EXTENSIONS.contains(ext)) {
+            throw new APIException("지원하지 않는 비디오 형식입니다. 지원 형식: " + String.join(", ", ALLOWED_VIDEO_EXTENSIONS),
+                ResponseStatus.INVALID_FILE_TYPE);
         }
 
         // 임시 파일 생성
@@ -149,13 +147,13 @@ public class FileStorageService {
         try {
             // MP4가 아닌 경우 FFmpeg로 변환
             File finalFile;
-            boolean needsConversion = !"mp4".equals(ext);
+            boolean needsConversion = ! "mp4".equals(ext);
 
             if (needsConversion) {
                 finalFile = convertToMp4(tempFile, ext);
                 String filename = UUID.randomUUID() + ".mp4";
                 String result = storeFile(category, postId, filename,
-                        () -> Files.newInputStream(finalFile.toPath()));
+                    () -> Files.newInputStream(finalFile.toPath()));
 
                 // 변환된 파일 정리
                 finalFile.delete();
@@ -165,7 +163,7 @@ public class FileStorageService {
                 // MP4는 바로 업로드
                 String filename = UUID.randomUUID() + ".mp4";
                 String result = storeFile(category, postId, filename,
-                        () -> Files.newInputStream(tempFile.toPath()));
+                    () -> Files.newInputStream(tempFile.toPath()));
 
                 log.info("비디오 업로드 완료 - 파일: {}", result);
                 return result;
@@ -185,8 +183,8 @@ public class FileStorageService {
      * Base64 이미지 업로드
      *
      * @param base64Data Base64 인코딩된 이미지 데이터 (data URI 형태도 지원)
-     * @param category 파일 카테고리
-     * @param postId 게시물 ID
+     * @param category   파일 카테고리
+     * @param postId     게시물 ID
      * @return 저장된 파일의 상대 경로
      */
     public String uploadBase64Image(String base64Data, StorageCategory category, Long postId) {
@@ -209,12 +207,24 @@ public class FileStorageService {
             if (meta.contains("image/")) {
                 String mime = meta.substring(meta.indexOf("image/") + 6, meta.indexOf(';'));
                 switch (mime) {
-                    case "jpeg": ext = "jpg"; break;
-                    case "png": ext = "png"; break;
-                    case "gif": ext = "gif"; break;
-                    case "webp": ext = "webp"; break;
-                    case "svg+xml": ext = "svg"; break;
-                    default: ext = "png"; break;
+                    case "jpeg":
+                        ext = "jpg";
+                        break;
+                    case "png":
+                        ext = "png";
+                        break;
+                    case "gif":
+                        ext = "gif";
+                        break;
+                    case "webp":
+                        ext = "webp";
+                        break;
+                    case "svg+xml":
+                        ext = "svg";
+                        break;
+                    default:
+                        ext = "png";
+                        break;
                 }
             }
         } else {
@@ -337,20 +347,19 @@ public class FileStorageService {
     }
 
     /**
-     * 비디오 파일을 MP4로 변환
-     * FFmpeg를 사용하여 다양한 비디오 형식을 MP4로 변환
+     * 비디오 파일을 MP4로 변환 FFmpeg를 사용하여 다양한 비디오 형식을 MP4로 변환
      */
     private File convertToMp4(File inputFile, String sourceExt) {
         File outputFile = new File(inputFile.getParent(), UUID.randomUUID() + ".mp4");
 
         try {
             ProcessBuilder pb = new ProcessBuilder(
-                    "ffmpeg", "-y",                    // 기존 파일 덮어쓰기
-                    "-i", inputFile.getAbsolutePath(), // 입력 파일
-                    "-c:v", "libx264",                 // 비디오 코덱: H.264
-                    "-preset", "fast",                 // 인코딩 속도 설정
-                    "-c:a", "aac",                     // 오디오 코덱: AAC
-                    outputFile.getAbsolutePath()       // 출력 파일
+                "ffmpeg", "-y",                    // 기존 파일 덮어쓰기
+                "-i", inputFile.getAbsolutePath(), // 입력 파일
+                "-c:v", "libx264",                 // 비디오 코덱: H.264
+                "-preset", "fast",                 // 인코딩 속도 설정
+                "-c:a", "aac",                     // 오디오 코덱: AAC
+                outputFile.getAbsolutePath()       // 출력 파일
             );
 
             Process process = pb.redirectErrorStream(true).start();
@@ -409,14 +418,16 @@ public class FileStorageService {
         String uuid = UUID.randomUUID().toString().substring(0, 8);
 
         return String.format("profile_%d_%d_%s_%s.%s",
-                memberId, sortOrder, timestamp, uuid, extension);
+            memberId, sortOrder, timestamp, uuid, extension);
     }
 
     /**
      * 파일 확장자 추출
      */
     private String getFileExtension(String filename) {
-        if (filename == null) return "jpg";
+        if (filename == null) {
+            return "jpg";
+        }
 
         String ext = FilenameUtils.getExtension(filename);
         return ext.isEmpty() ? "jpg" : ext.toLowerCase();
@@ -426,7 +437,7 @@ public class FileStorageService {
      * 디렉토리 생성
      */
     private void createDirectoryIfNotExists(Path path) throws IOException {
-        if (!Files.exists(path)) {
+        if (! Files.exists(path)) {
             Files.createDirectories(path);
             log.debug("디렉토리 생성: {}", path);
         }
@@ -457,7 +468,7 @@ public class FileStorageService {
         String uploadsPrefix = "/uploads/";
         int index = fileUrl.indexOf(uploadsPrefix);
 
-        if (index == -1) {
+        if (index == - 1) {
             throw new IllegalArgumentException("올바르지 않은 파일 URL입니다: " + fileUrl);
         }
 
@@ -469,15 +480,15 @@ public class FileStorageService {
      */
     private void cleanupEmptyDirectories(Path directory) {
         try {
-            if (directory == null || !Files.exists(directory)) {
+            if (directory == null || ! Files.exists(directory)) {
                 return;
             }
 
             // 디렉토리가 비어있고, 업로드 루트가 아닌 경우 삭제
             Path uploadRootPath = Paths.get(uploadRoot);
             if (Files.isDirectory(directory) &&
-                    isDirEmpty(directory) &&
-                    !directory.equals(uploadRootPath)) {
+                isDirEmpty(directory) &&
+                ! directory.equals(uploadRootPath)) {
 
                 Files.delete(directory);
                 log.debug("빈 디렉토리 삭제: {}", directory);
@@ -495,7 +506,7 @@ public class FileStorageService {
      */
     private boolean isDirEmpty(Path directory) throws IOException {
         try (var stream = Files.list(directory)) {
-            return !stream.findAny().isPresent();
+            return ! stream.findAny().isPresent();
         }
     }
 
@@ -508,7 +519,8 @@ public class FileStorageService {
         }
 
         if (file.getSize() > MAX_FILE_SIZE) {
-            throw new APIException("파일 크기는 " + formatFileSize(MAX_FILE_SIZE) + " 이하여야 합니다.", ResponseStatus.FILE_SIZE_EXCEEDED);
+            throw new APIException("파일 크기는 " + formatFileSize(MAX_FILE_SIZE) + " 이하여야 합니다.",
+                ResponseStatus.FILE_SIZE_EXCEEDED);
         }
 
         String originalFilename = file.getOriginalFilename();
@@ -524,13 +536,14 @@ public class FileStorageService {
         validateFile(file);
 
         String contentType = file.getContentType();
-        if (!isSupportedImageFormat(contentType)) {
+        if (! isSupportedImageFormat(contentType)) {
             throw new APIException("지원하지 않는 이미지 형식입니다. 지원 형식: JPEG, PNG, WebP, GIF", ResponseStatus.INVALID_FILE_TYPE);
         }
 
         String ext = getFileExtension(file.getOriginalFilename());
-        if (!ALLOWED_IMAGE_EXTENSIONS.contains(ext)) {
-            throw new APIException("지원하지 않는 이미지 확장자입니다. 지원 확장자: " + String.join(", ", ALLOWED_IMAGE_EXTENSIONS), ResponseStatus.INVALID_FILE_TYPE);
+        if (! ALLOWED_IMAGE_EXTENSIONS.contains(ext)) {
+            throw new APIException("지원하지 않는 이미지 확장자입니다. 지원 확장자: " + String.join(", ", ALLOWED_IMAGE_EXTENSIONS),
+                ResponseStatus.INVALID_FILE_TYPE);
         }
     }
 
@@ -538,29 +551,33 @@ public class FileStorageService {
      * 지원되는 이미지 형식인지 확인
      */
     private boolean isSupportedImageFormat(String contentType) {
-        if (contentType == null) return false;
+        if (contentType == null) {
+            return false;
+        }
 
         return contentType.equals("image/jpeg") ||
-                contentType.equals("image/jpg") ||
-                contentType.equals("image/png") ||
-                contentType.equals("image/gif") ||
-                contentType.equals("image/webp") ||
-                contentType.equals("image/bmp") ||
-                contentType.equals("image/svg+xml");
+            contentType.equals("image/jpg") ||
+            contentType.equals("image/png") ||
+            contentType.equals("image/gif") ||
+            contentType.equals("image/webp") ||
+            contentType.equals("image/bmp") ||
+            contentType.equals("image/svg+xml");
     }
 
     /**
      * 파일 크기 포맷팅
      */
     private String formatFileSize(long size) {
-        if (size <= 0) return "0 B";
+        if (size <= 0) {
+            return "0 B";
+        }
 
-        final String[] units = new String[] { "B", "KB", "MB", "GB", "TB" };
+        final String[] units = new String[]{"B", "KB", "MB", "GB", "TB"};
         int digitGroups = (int) (Math.log10(size) / Math.log10(1024));
 
         return String.format("%.1f %s",
-                size / Math.pow(1024, digitGroups),
-                units[digitGroups]);
+            size / Math.pow(1024, digitGroups),
+            units[digitGroups]);
     }
 
     /**
@@ -568,6 +585,275 @@ public class FileStorageService {
      */
     @FunctionalInterface
     private interface StreamSupplier {
+
         InputStream get() throws IOException;
+    }
+
+    /**
+     * 영상통화용 비디오 파일 업로드 및 변환 WebM, MOV 등을 MP4로 변환하여 저장
+     *
+     * @param videoFile 업로드할 비디오 파일
+     * @param sessionId 세션 ID
+     * @return 저장된 파일의 상대 경로
+     */
+    public String uploadVideoCallRecording(MultipartFile videoFile, String sessionId) {
+        log.info("영상통화 녹화 파일 업로드 시작 - 세션: {}, 파일: {}",
+            sessionId, videoFile.getOriginalFilename());
+
+        // 파일 기본 검증
+        validateVideoCallFile(videoFile);
+
+        String originalFilename = videoFile.getOriginalFilename();
+        String sourceExt = getFileExtension(originalFilename);
+
+        // 임시 파일 생성
+        File tempFile;
+        try {
+            tempFile = File.createTempFile("videocall-", "." + sourceExt);
+            videoFile.transferTo(tempFile);
+        } catch (IOException e) {
+            log.error("임시 파일 생성 실패", e);
+            throw new APIException("임시 파일 생성에 실패했습니다.", ResponseStatus.FILE_UPLOAD_FAILED);
+        }
+
+        try {
+            // 저장 경로 생성 (영상통화 전용)
+            String subDirectory = createVideoCallPath(sessionId);
+            Path uploadPath = Paths.get(uploadRoot, subDirectory);
+            createDirectoryIfNotExists(uploadPath);
+
+            // 파일명 생성
+            String outputFileName = generateVideoCallFileName(sessionId);
+            Path finalPath = uploadPath.resolve(outputFileName);
+
+            // 변환 처리
+            if ("webm".equals(sourceExt)) {
+                // WebM -> MP4 (FPS 보정 포함)
+                convertWebMToMp4WithFpsCorrection(tempFile, finalPath.toFile());
+            } else if (! "mp4".equals(sourceExt)) {
+                // 기타 형식 -> MP4
+                convertVideoToMp4(tempFile, finalPath.toFile());
+            } else {
+                // MP4는 그대로 복사
+                Files.copy(tempFile.toPath(), finalPath, StandardCopyOption.REPLACE_EXISTING);
+            }
+
+            // 상대 경로 반환
+            String relativePath = subDirectory + "/" + outputFileName;
+            log.info("영상통화 녹화 파일 변환 완료 - 결과: {}", relativePath);
+
+            return relativePath;
+
+        } catch (Exception e) {
+            log.error("영상통화 비디오 처리 실패", e);
+            throw new APIException("비디오 파일 처리에 실패했습니다.", ResponseStatus.FILE_UPLOAD_FAILED);
+        } finally {
+            // 임시 파일 정리
+            if (tempFile.exists()) {
+                tempFile.delete();
+            }
+        }
+    }
+
+    /**
+     * WebM 파일을 MP4로 변환 (FPS 자동 감지 및 보정)
+     */
+    private void convertWebMToMp4WithFpsCorrection(File inputFile, File outputFile) {
+        try {
+            // 1단계: 원본 FPS 감지
+            double sourceFps = detectVideoFps(inputFile);
+            log.info("감지된 FPS: {}", sourceFps);
+
+            // 2단계: FPS 보정값 계산
+            String targetFps = calculateTargetFps(sourceFps);
+
+            // 3단계: FFmpeg 변환 (FPS 보정 포함)
+            ProcessBuilder pb = new ProcessBuilder(
+                "ffmpeg", "-y",
+                "-i", inputFile.getAbsolutePath(),
+                "-c:v", "libx264",              // H.264 코덱
+                "-preset", "medium",            // 품질/속도 균형
+                "-crf", "23",                   // 품질 설정 (18-28, 낮을수록 고품질)
+                "-r", targetFps,                // 출력 FPS 설정
+                "-c:a", "aac",                  // AAC 오디오
+                "-b:a", "128k",                 // 오디오 비트레이트
+                "-movflags", "+faststart",      // 웹 최적화
+                outputFile.getAbsolutePath()
+            );
+
+            executeFFmpegProcess(pb, "WebM to MP4 변환");
+
+        } catch (Exception e) {
+            log.error("WebM 변환 실패", e);
+            throw new APIException("WebM 파일 변환에 실패했습니다.", ResponseStatus.FILE_UPLOAD_FAILED);
+        }
+    }
+
+    /**
+     * 일반 비디오 파일을 MP4로 변환
+     */
+    private void convertVideoToMp4(File inputFile, File outputFile) {
+        try {
+            ProcessBuilder pb = new ProcessBuilder(
+                "ffmpeg", "-y",
+                "-i", inputFile.getAbsolutePath(),
+                "-c:v", "libx264",
+                "-preset", "fast",
+                "-c:a", "aac",
+                "-movflags", "+faststart",
+                outputFile.getAbsolutePath()
+            );
+
+            executeFFmpegProcess(pb, "비디오 to MP4 변환");
+
+        } catch (Exception e) {
+            log.error("비디오 변환 실패", e);
+            throw new APIException("비디오 파일 변환에 실패했습니다.", ResponseStatus.FILE_UPLOAD_FAILED);
+        }
+    }
+
+    /**
+     * 비디오 파일의 FPS 감지
+     */
+    private double detectVideoFps(File videoFile) {
+        try {
+            ProcessBuilder pb = new ProcessBuilder(
+                "ffprobe", "-v", "quiet",
+                "-select_streams", "v:0",
+                "-show_entries", "stream=r_frame_rate",
+                "-of", "csv=p=0",
+                videoFile.getAbsolutePath()
+            );
+
+            Process process = pb.start();
+
+            StringBuilder output = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    output.append(line.trim());
+                }
+            }
+
+            int exitCode = process.waitFor();
+            if (exitCode != 0) {
+                log.warn("FPS 감지 실패, 기본값 사용");
+                return 30.0; // 기본값
+            }
+
+            String fpsString = output.toString().trim();
+            if (fpsString.contains("/")) {
+                // "30/1" 형태 처리
+                String[] parts = fpsString.split("/");
+                double numerator = Double.parseDouble(parts[0]);
+                double denominator = Double.parseDouble(parts[1]);
+                return numerator / denominator;
+            } else {
+                return Double.parseDouble(fpsString);
+            }
+
+        } catch (Exception e) {
+            log.warn("FPS 감지 중 오류, 기본값 사용: {}", e.getMessage());
+            return 30.0; // 기본값
+        }
+    }
+
+    /**
+     * 목표 FPS 계산 (모바일 호환성 고려)
+     */
+    private String calculateTargetFps(double sourceFps) {
+        // 일반적인 FPS 값으로 정규화
+        if (sourceFps <= 15) {
+            return "15";
+        } else if (sourceFps <= 24) {
+            return "24";
+        } else if (sourceFps <= 30) {
+            return "30";
+        } else if (sourceFps <= 60) {
+            return "30"; // 고FPS는 30으로 다운스케일 (호환성)
+        } else {
+            return "30"; // 매우 높은 FPS는 30으로
+        }
+    }
+
+    /**
+     * FFmpeg 프로세스 실행 공통 로직
+     */
+    private void executeFFmpegProcess(ProcessBuilder pb, String taskName) throws IOException, InterruptedException {
+        Process process = pb.redirectErrorStream(true).start();
+
+        // FFmpeg 출력 로깅 (에러 디버깅용)
+        StringBuilder ffmpegOutput = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                ffmpegOutput.append(line).append("\n");
+                log.debug("[ffmpeg] {}", line);
+            }
+        }
+
+        int exitCode = process.waitFor();
+        if (exitCode != 0) {
+            log.error("{} 실패 - 종료 코드: {}", taskName, exitCode);
+            log.error("FFmpeg 출력:\n{}", ffmpegOutput.toString());
+            throw new APIException(taskName + "에 실패했습니다.", ResponseStatus.FILE_UPLOAD_FAILED);
+        }
+
+        log.info("{} 완료", taskName);
+    }
+
+    /**
+     * 영상통화 파일 검증
+     */
+    private void validateVideoCallFile(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new APIException("녹화 파일을 선택해주세요.", ResponseStatus.FILE_EMPTY);
+        }
+
+        // 영상통화 파일 크기 제한 (50MB)
+        long maxSize = 50 * 1024 * 1024;
+        if (file.getSize() > maxSize) {
+            throw new APIException("녹화 파일 크기는 50MB 이하여야 합니다.", ResponseStatus.FILE_SIZE_EXCEEDED);
+        }
+
+        String originalFilename = file.getOriginalFilename();
+        if (originalFilename == null || originalFilename.trim().isEmpty()) {
+            throw new APIException("올바르지 않은 파일명입니다.", ResponseStatus.BAD_REQUEST);
+        }
+
+        // 영상통화에서 지원하는 확장자 (WebM, MP4, MOV 등)
+        String ext = getFileExtension(originalFilename);
+        List<String> allowedExts = Arrays.asList("webm", "mp4", "mov", "avi");
+
+        if (! allowedExts.contains(ext)) {
+            throw new APIException("지원하지 않는 비디오 형식입니다. 지원 형식: " +
+                String.join(", ", allowedExts), ResponseStatus.INVALID_FILE_TYPE);
+        }
+    }
+
+    /**
+     * 영상통화 저장 경로 생성
+     */
+    private String createVideoCallPath(String sessionId) {
+        LocalDateTime now = LocalDateTime.now();
+        String yearMonth = now.format(DateTimeFormatter.ofPattern("yyyy/MM"));
+        String date = now.format(DateTimeFormatter.ofPattern("dd"));
+
+        return String.format("videocall/%s/%s/%s", yearMonth, date, sessionId);
+    }
+
+    /**
+     * 영상통화 파일명 생성
+     */
+    private String generateVideoCallFileName(String sessionId) {
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HHmmss"));
+        return String.format("recording_%s_%s.mp4", sessionId, timestamp);
+    }
+
+    /**
+     * 영상통화 녹화 파일의 절대 URL 생성
+     */
+    public String getVideoCallUrl(String relativePath) {
+        return toAbsoluteUrl(relativePath);
     }
 }

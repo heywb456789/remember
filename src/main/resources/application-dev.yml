@@ -109,6 +109,12 @@ app:
   file:
     upload-dir: /home/nara/uploads
     base-url: http://114.31.52.64:8095
+  external-api:
+    video:
+      base-url: http://110.93.190.10:6063
+      process-endpoint: /downvideo
+      timeout: 30
+      retry-count: 3
 
 # =======================================================
 # 🔐 토마토리멤버 개발서버 보안 설정

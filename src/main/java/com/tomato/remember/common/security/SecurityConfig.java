@@ -137,7 +137,6 @@ public class SecurityConfig {
                                 "/mobile/dashboard/**",
                                 "/mobile/memorial/create",
                                 "/mobile/memorial/*/edit",
-                                "/mobile/video-call/**",
                                 "/mobile/mypage/**"
                         ).authenticated()
                         // 나머지 모든 모바일 경로는 허용 (선택적 인증)
@@ -166,7 +165,8 @@ public class SecurityConfig {
                         "/api/auth/register",
                         "/api/memorial/public/**",
                         "/api/videos/public/**",
-                        "/api/auth/smsCert/**"
+                        "/api/auth/smsCert/**",
+                        "/api/video/**"
                 )
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
