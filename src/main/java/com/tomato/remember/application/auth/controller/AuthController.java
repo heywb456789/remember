@@ -1,6 +1,8 @@
 package com.tomato.remember.application.auth.controller;
 
+import com.tomato.remember.common.util.CookieUtil;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -23,6 +25,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @RequestMapping("/mobile")
 @RequiredArgsConstructor
 public class AuthController {
+
+    private final CookieUtil cookieUtil;
 
     @GetMapping("/login")
     public String loginPage(Model model, HttpServletRequest request) {
@@ -49,6 +53,31 @@ public class AuthController {
         model.addAttribute("mainUrl", "/mobile/home");
 
         return "mobile/login/login";
+    }
+
+    @GetMapping("/logout")
+    public String logoutPage(HttpServletRequest request, HttpServletResponse response) {
+        log.info("🚪 로그아웃 요청 - IP: {}", request.getRemoteAddr());
+
+        try {
+            // 1. 쿠키 정리
+            cookieUtil.clearAllMemberTokens(response);
+            log.info("쿠키 정리 완료");
+
+            // 3. SecurityContext 정리
+            SecurityContextHolder.clearContext();
+            log.info("SecurityContext 정리 완료");
+
+            log.info("로그아웃 처리 완료");
+
+            // 4. 로그인 페이지로 리다이렉트
+            return "redirect:/mobile/home";
+
+        } catch (Exception e) {
+            log.error("로그아웃 처리 중 오류", e);
+            // 오류가 있어도 로그인 페이지로 이동
+            return "redirect:/mobile/login?error=logout_failed";
+        }
     }
 
     @GetMapping("/register")

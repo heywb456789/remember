@@ -16,7 +16,7 @@ const initLoginPage = () => {
     console.log('✅ 이미 로그인된 상태입니다.');
     showToast('이미 로그인되어 있습니다.', 'info');
     setTimeout(() => {
-      window.location.href = '/';
+      window.location.href = '/mobile/home';
     }, 1000);
     return;
   }
