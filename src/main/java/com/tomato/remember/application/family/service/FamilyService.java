@@ -7,6 +7,7 @@ import com.tomato.remember.application.family.dto.FamilyInfoResponseDTO;
 import com.tomato.remember.application.family.dto.FamilyInviteRequest;
 import com.tomato.remember.application.family.dto.FamilyMemberResponse;
 import com.tomato.remember.application.family.dto.FamilyPageData;
+import com.tomato.remember.application.family.dto.FamilyQuestionAnswerDTO;
 import com.tomato.remember.application.family.dto.FamilySearchCondition;
 import com.tomato.remember.application.family.dto.MemorialSummaryResponse;
 import com.tomato.remember.application.family.dto.FamilyPermissionRequest;
@@ -15,11 +16,16 @@ import com.tomato.remember.application.family.repository.FamilyMemberRepository;
 import com.tomato.remember.application.member.code.Relationship;
 import com.tomato.remember.application.member.entity.Member;
 import com.tomato.remember.application.memorial.entity.Memorial;
+import com.tomato.remember.application.memorial.entity.MemorialAnswer;
+import com.tomato.remember.application.memorial.entity.MemorialQuestion;
+import com.tomato.remember.application.memorial.repository.MemorialAnswerRepository;
+import com.tomato.remember.application.memorial.repository.MemorialQuestionRepository;
 import com.tomato.remember.application.memorial.repository.MemorialRepository;
 import com.tomato.remember.application.memorial.service.MemorialService;
 import com.tomato.remember.common.dto.ListDTO;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -47,6 +53,8 @@ public class FamilyService {
     private final MemorialRepository memorialRepository;
     private final MemorialService memorialService;
     private final FamilyInviteService familyInviteService;
+    private final MemorialQuestionRepository memorialQuestionRepository;
+    private final MemorialAnswerRepository memorialAnswerRepository;
 
     // ===== SSR 전용 메서드 =====
 
@@ -873,71 +881,103 @@ public class FamilyService {
                 && fm.getInviteStatus() != InviteStatus.CANCELLED);
     }
 
-
     // FamilyServiceImpl.java에 추가할 구현 메서드들
 
     public FamilyInfoResponseDTO getFamilyInfo(Long memorialId, Member member) {
         log.info("가족 구성원 고인 상세 정보 조회 - 메모리얼: {}, 사용자: {}", memorialId, member.getId());
 
-        // 1. 메모리얼 조회
-        Memorial memorial = memorialRepository.findById(memorialId)
+        try {
+            // 1. 메모리얼 조회
+            Memorial memorial = memorialRepository.findById(memorialId)
                 .orElseThrow(() -> new IllegalArgumentException("메모리얼을 찾을 수 없습니다."));
 
-        // 2. 가족 구성원 관계 조회
-        FamilyMember familyMember = familyMemberRepository.findByMemorialAndMember(memorial, member)
-                .orElseThrow(() -> new IllegalArgumentException("해당 메모리얼의 가족 구성원이 아닙니다."));
+            // 2. 가족 구성원 관계 조회
+            FamilyMember familyMember = familyMemberRepository.findByMemorialAndMember(memorial, member)
+                .orElseThrow(() -> new SecurityException("해당 메모리얼의 가족 구성원이 아닙니다."));
 
-        // 3. 권한 확인
-        validateFamilyMemberAccess(familyMember);
+            // 3. 가족 구성원의 답변 조회
+            List<MemorialAnswer> familyAnswers = memorialAnswerRepository
+                .findByMemorialAndFamilyMember(memorial, familyMember);
 
-        // 4. 소유자는 접근 불가
-        if (memorial.getOwner().getId().equals(member.getId())) {
-            throw new SecurityException("메모리얼 소유자는 이 기능을 사용할 수 없습니다.");
+            // 4. 답변이 없는 경우 - 입력 모드용 DTO 반환
+            if (familyAnswers.isEmpty()) {
+                log.info("가족 구성원 답변이 없음 - 입력 모드 DTO 반환");
+                return FamilyInfoResponseDTO.forInput(memorial, familyMember);
+            }
+
+            // 5. 답변이 있는 경우 - 조회 모드용 DTO 반환
+            Integer completionPercent = calculateFamilyAnswerCompletionPercent(memorial, familyMember);
+
+            log.info("가족 구성원 고인 상세 정보 조회 완료 - 메모리얼: {}, 답변수: {}, 완성도: {}%",
+                memorialId, familyAnswers.size(), completionPercent);
+
+            return FamilyInfoResponseDTO.forView(memorial, familyMember, familyAnswers, completionPercent);
+
+        } catch (Exception e) {
+            log.error("가족 구성원 고인 상세 정보 조회 실패 - 메모리얼: {}", memorialId, e);
+            throw new RuntimeException("고인 상세 정보 조회에 실패했습니다.", e);
+        }
+    }
+
+    /**
+     * 영상통화 차단 사유 조회
+     */
+    private String getVideoCallBlockReason(Memorial memorial, FamilyMember familyMember) {
+        if (! memorial.canStartVideoCall()) {
+            if (! memorial.getAiTrainingCompleted()) {
+                return "AI 학습이 완료되지 않았습니다.";
+            }
+            if (! memorial.hasRequiredFiles()) {
+                return "필요한 파일이 모두 업로드되지 않았습니다.";
+            }
+            return "영상통화를 시작할 수 없습니다.";
         }
 
-        // 5. DTO 변환 후 반환
-        return FamilyInfoResponseDTO.from(familyMember, memorial);
+        if (! familyMember.getVideoCallAccess()) {
+            return "영상통화 권한이 없습니다.";
+        }
+
+        return null;
     }
 
     @Transactional
-    public void saveFamilyInfo(Long memorialId, Member member, FamilyInfoRequestDTO request) {
-        log.info("가족 구성원 고인 상세 정보 저장 - 메모리얼: {}, 사용자: {}", memorialId, member.getId());
-
-        // 1. 메모리얼 조회
+    public void saveFamilyAnswers(
+        Long memorialId,
+        Member member,
+        List<FamilyQuestionAnswerDTO> answers
+    ) {
+        // 1) 메모리얼 조회
         Memorial memorial = memorialRepository.findById(memorialId)
-                .orElseThrow(() -> new IllegalArgumentException("메모리얼을 찾을 수 없습니다."));
+            .orElseThrow(() -> new IllegalArgumentException("메모리얼을 찾을 수 없습니다."));
 
-        // 2. 가족 구성원 관계 조회
-        FamilyMember familyMember = familyMemberRepository.findByMemorialAndMember(memorial, member)
-                .orElseThrow(() -> new IllegalArgumentException("해당 메모리얼의 가족 구성원이 아닙니다."));
+        // 2) 가족 구성원 조회 & 권한 확인
+        FamilyMember fm = familyMemberRepository
+            .findByMemorialAndMember(memorial, member)
+            .orElseThrow(() -> new IllegalArgumentException("가족 구성원이 아닙니다."));
+        validateFamilyMemberAccess(fm);
 
-        // 3. 권한 확인
-        validateFamilyMemberAccess(familyMember);
-
-        // 4. 소유자는 접근 불가
-        if (memorial.getOwner().getId().equals(member.getId())) {
-            throw new SecurityException("메모리얼 소유자는 이 기능을 사용할 수 없습니다.");
+        // 3) 중복 저장 방지
+        if (hasSubmittedFamilyAnswers(memorial, fm)) {
+            throw new IllegalArgumentException("이미 답변을 제출하셨습니다.");
         }
 
-        // 5. 이미 입력된 경우 수정 불가
-        if (familyMember.hasDeceasedInfo()) {
-            throw new IllegalArgumentException("이미 고인 상세 정보가 입력되어 수정할 수 없습니다.");
+        // 4) 각 문항별로 Answer 엔티티 생성·저장
+        for (FamilyQuestionAnswerDTO dto : answers) {
+            MemorialQuestion question = memorialQuestionRepository.findById(dto.getQuestionId())
+                .orElseThrow(() -> new IllegalArgumentException("질문을 찾을 수 없습니다. ID=" + dto.getQuestionId()));
+
+            MemorialAnswer answer = MemorialAnswer.builder()
+                .memorial(memorial)
+                .familyMember(fm)
+                .question(question)
+                .answerText(dto.getAnswerText().trim())
+                .createdAt(LocalDateTime.now())
+                .build();
+
+            memorialAnswerRepository.save(answer);
         }
 
-        // 6. 고인 상세 정보 업데이트
-        familyMember.updateDeceasedInfo(
-                request.getPersonality(),
-                request.getHobbies(),
-                request.getFavoriteFood(),
-                request.getSpecialMemories(),
-                request.getSpeechHabits()
-        );
-
-        // 7. 저장
-        familyMemberRepository.save(familyMember);
-
-        log.info("가족 구성원 고인 상세 정보 저장 완료 - 메모리얼: {}, 사용자: {}, 완성도: {}%",
-                memorialId, member.getId(), familyMember.hasRequiredDeceasedInfo() ? 100 : 0);
+        log.info("가족 구성원 답변 저장 완료 - 메모리얼: {}, 사용자: {}", memorialId, member.getId());
     }
 
     public Map<String, Object> checkFamilyInfoAccess(Long memorialId, Member member) {
@@ -946,63 +986,164 @@ public class FamilyService {
         try {
             // 1. 메모리얼 조회
             Memorial memorial = memorialRepository.findById(memorialId)
-                    .orElseThrow(() -> new IllegalArgumentException("메모리얼을 찾을 수 없습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("메모리얼을 찾을 수 없습니다."));
 
             // 2. 소유자는 접근 불가
             if (memorial.getOwner().getId().equals(member.getId())) {
                 return Map.of(
-                        "canAccess", false,
-                        "message", "메모리얼 소유자는 이 기능을 사용할 수 없습니다.",
-                        "reason", "OWNER_ACCESS_DENIED"
+                    "canAccess", false,
+                    "message", "메모리얼 소유자는 이 기능을 사용할 수 없습니다.",
+                    "reason", "OWNER_ACCESS_DENIED"
                 );
             }
 
             // 3. 가족 구성원 관계 조회
             FamilyMember familyMember = familyMemberRepository.findByMemorialAndMember(memorial, member)
-                    .orElse(null);
+                .orElse(null);
 
             if (familyMember == null) {
                 return Map.of(
-                        "canAccess", false,
-                        "message", "해당 메모리얼의 가족 구성원이 아닙니다.",
-                        "reason", "NOT_FAMILY_MEMBER"
+                    "canAccess", false,
+                    "message", "해당 메모리얼의 가족 구성원이 아닙니다.",
+                    "reason", "NOT_FAMILY_MEMBER"
                 );
             }
 
             // 4. 가족 구성원 권한 확인
-            if (!familyMember.isActive() || !familyMember.getMemorialAccess()) {
+            if (! familyMember.isActive() || ! familyMember.getMemorialAccess()) {
                 return Map.of(
-                        "canAccess", false,
-                        "message", "메모리얼 접근 권한이 없습니다.",
-                        "reason", "ACCESS_DENIED"
+                    "canAccess", false,
+                    "message", "메모리얼 접근 권한이 없습니다.",
+                    "reason", "ACCESS_DENIED"
                 );
             }
 
-            // 5. 이미 입력된 경우
-            if (familyMember.hasDeceasedInfo()) {
+            // 5. 이미 입력된 경우 확인 (MemorialAnswer 기반)
+            boolean alreadySubmitted = hasSubmittedFamilyAnswers(memorial, familyMember);
+
+            if (alreadySubmitted) {
                 return Map.of(
-                        "canAccess", true,
-                        "alreadySubmitted", true,
-                        "message", "이미 고인 상세 정보가 입력되었습니다.",
-                        "reason", "ALREADY_SUBMITTED"
+                    "canAccess", true,
+                    "alreadySubmitted", true,
+                    "message", "이미 고인 상세 정보가 입력되었습니다.",
+                    "reason", "ALREADY_SUBMITTED"
                 );
             }
 
             // 6. 새로 입력 가능
             return Map.of(
-                    "canAccess", true,
-                    "alreadySubmitted", false,
-                    "message", "고인 상세 정보를 입력할 수 있습니다.",
-                    "reason", "CAN_INPUT"
+                "canAccess", true,
+                "alreadySubmitted", false,
+                "message", "고인 상세 정보를 입력할 수 있습니다.",
+                "reason", "CAN_INPUT"
             );
 
         } catch (Exception e) {
             log.error("가족 구성원 고인 상세 정보 접근 권한 확인 실패 - 메모리얼: {}", memorialId, e);
             return Map.of(
-                    "canAccess", false,
-                    "message", "접근 권한 확인 중 오류가 발생했습니다.",
-                    "reason", "SYSTEM_ERROR"
+                "canAccess", false,
+                "message", "접근 권한 확인 중 오류가 발생했습니다.",
+                "reason", "SYSTEM_ERROR"
             );
+        }
+    }
+
+    /**
+     * 가족 구성원의 답변 제출 여부 확인
+     */
+    private boolean hasSubmittedFamilyAnswers(Memorial memorial, FamilyMember familyMember) {
+        log.info("가족 구성원 답변 제출 여부 확인 - 메모리얼: {}, 가족구성원: {}",
+            memorial.getId(), familyMember.getId());
+
+        try {
+            // 1. 활성 질문 목록 조회
+            List<MemorialQuestion> activeQuestions = memorialQuestionRepository.findActiveQuestions();
+
+            if (activeQuestions.isEmpty()) {
+                log.warn("활성 질문이 없습니다 - 메모리얼: {}", memorial.getId());
+                return false;
+            }
+
+            // 2. 필수 질문 목록 추출
+            List<MemorialQuestion> requiredQuestions = activeQuestions.stream()
+                .filter(MemorialQuestion::getIsRequired)
+                .collect(Collectors.toList());
+
+            if (requiredQuestions.isEmpty()) {
+                log.warn("필수 질문이 없습니다 - 메모리얼: {}", memorial.getId());
+                return false;
+            }
+
+            // 3. 가족 구성원의 완료된 답변 조회
+            List<MemorialAnswer> completedAnswers = memorialAnswerRepository
+                .findByMemorialAndFamilyMember(memorial, familyMember)
+                .stream()
+                .filter(MemorialAnswer::getIsComplete)
+                .collect(Collectors.toList());
+
+            if (completedAnswers.isEmpty()) {
+                log.info("가족 구성원 완료된 답변이 없습니다 - 메모리얼: {}, 가족구성원: {}",
+                    memorial.getId(), familyMember.getId());
+                return false;
+            }
+
+            // 4. 필수 질문에 대한 답변 완료 여부 확인
+            Set<Long> answeredQuestionIds = completedAnswers.stream()
+                .map(answer -> answer.getQuestion().getId())
+                .collect(Collectors.toSet());
+
+            // 5. 모든 필수 질문에 답변했는지 확인
+            boolean allRequiredAnswered = requiredQuestions.stream()
+                .allMatch(question -> answeredQuestionIds.contains(question.getId()));
+
+            log.info("가족 구성원 답변 제출 여부 확인 결과 - 메모리얼: {}, 가족구성원: {}, " +
+                    "필수질문수: {}, 답변완료수: {}, 모든필수답변완료: {}",
+                memorial.getId(), familyMember.getId(),
+                requiredQuestions.size(), answeredQuestionIds.size(), allRequiredAnswered);
+
+            return allRequiredAnswered;
+
+        } catch (Exception e) {
+            log.error("가족 구성원 답변 제출 여부 확인 실패 - 메모리얼: {}, 가족구성원: {}",
+                memorial.getId(), familyMember.getId(), e);
+            return false;
+        }
+    }
+
+    /**
+     * 가족 구성원의 답변 완성도 계산
+     */
+    private Integer calculateFamilyAnswerCompletionPercent(Memorial memorial, FamilyMember familyMember) {
+        log.info("가족 구성원 답변 완성도 계산 - 메모리얼: {}, 가족구성원: {}",
+            memorial.getId(), familyMember.getId());
+
+        try {
+            // 1. 활성 질문 목록 조회
+            List<MemorialQuestion> activeQuestions = memorialQuestionRepository.findActiveQuestions();
+
+            if (activeQuestions.isEmpty()) {
+                log.warn("활성 질문이 없음 - 메모리얼: {}", memorial.getId());
+                return 0;
+            }
+
+            // 2. 가족 구성원의 완료된 답변 수 조회
+            long completedAnswerCount = memorialAnswerRepository
+                .countCompletedAnswersByMemorialAndFamilyMember(memorial, familyMember);
+
+            // 3. 완성도 계산 (소수점 반올림)
+            int completionPercent = (int) Math.round((completedAnswerCount * 100.0) / activeQuestions.size());
+
+            log.info("가족 구성원 답변 완성도 계산 결과 - 메모리얼: {}, 가족구성원: {}, " +
+                    "전체질문수: {}, 완료답변수: {}, 완성도: {}%",
+                memorial.getId(), familyMember.getId(),
+                activeQuestions.size(), completedAnswerCount, completionPercent);
+
+            return completionPercent;
+
+        } catch (Exception e) {
+            log.error("가족 구성원 답변 완성도 계산 실패 - 메모리얼: {}, 가족구성원: {}",
+                memorial.getId(), familyMember.getId(), e);
+            return 0;
         }
     }
 
@@ -1010,11 +1151,11 @@ public class FamilyService {
      * 가족 구성원 접근 권한 유효성 검사
      */
     private void validateFamilyMemberAccess(FamilyMember familyMember) {
-        if (!familyMember.isActive()) {
+        if (! familyMember.isActive()) {
             throw new SecurityException("초대가 승인되지 않은 상태입니다.");
         }
 
-        if (!familyMember.getMemorialAccess()) {
+        if (! familyMember.getMemorialAccess()) {
             throw new SecurityException("메모리얼 접근 권한이 없습니다.");
         }
     }

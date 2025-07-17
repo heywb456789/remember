@@ -1,4 +1,4 @@
-// family-info.js - 고인 상세 정보 페이지 JavaScript (메모리얼 통일 스타일)
+// family-info.js - 고인 상세 정보 페이지 JavaScript (동적 질문 답변 방식)
 import { authFetch } from './commonFetch.js';
 import { showToast, showConfirm, showLoading, hideLoading } from './common.js';
 
@@ -8,29 +8,17 @@ let pageState = {
   isViewMode: false,
   memorialId: null,
   familyInfo: null,
-  formData: {
-    personality: '',
-    hobbies: '',
-    favoriteFood: '',
-    specialMemories: '',
-    speechHabits: ''
-  }
+  questionAnswers: [] // MemorialQuestionAnswerDTO 구조
 };
 
-// 필드 제한 설정
-const fieldLimits = {
-  personality: { max: 500, min: 10 },
-  hobbies: { max: 300, min: 5 },
-  favoriteFood: { max: 300, min: 5 },
-  specialMemories: { max: 300, min: 5 },
-  speechHabits: { max: 300, min: 5 }
-};
+// 서버에서 전달된 질문 데이터
+let questionsData = [];
 
 /**
  * 페이지 초기화
  */
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('고인 상세 정보 페이지 초기화');
+  console.log('고인 상세 정보 페이지 초기화 시작');
 
   try {
     // 서버 데이터 로드
@@ -42,6 +30,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // 입력 모드인 경우 폼 초기화
     if (!pageState.isViewMode) {
       initializeForm();
+
+      // 질문 이벤트 바인딩 (DOM 준비 후)
+      setTimeout(() => {
+        bindQuestionEvents();
+        updateSubmitButton();
+      }, 100);
     }
 
     console.log('페이지 초기화 완료');
@@ -58,19 +52,42 @@ function loadServerData() {
   if (window.familyInfoData) {
     pageState.memorialId = window.familyInfoData.memorialId;
     pageState.isViewMode = window.familyInfoData.isViewMode;
-    pageState.familyInfo = window.familyInfoData.familyInfo;
-
-    console.log('서버 데이터 로드 완료:', {
-      memorialId: pageState.memorialId,
-      isViewMode: pageState.isViewMode
-    });
-  } else {
-    console.warn('서버 데이터가 없습니다.');
   }
+  // fallback: hidden input 태그에서 가져오기
+  if (!pageState.memorialId) {
+    const hidden = document.getElementById('memorialId');
+    if (hidden && hidden.value) {
+      pageState.memorialId = hidden.value;
+      console.log('DOM에서 memorialId 로드:', pageState.memorialId);
+    }
+  }
+
+  // ── ② 질문 데이터 로드 ──
+  if (window.familyInfoData && Array.isArray(window.familyInfoData.questions)) {
+    questionsData = window.familyInfoData.questions;
+    console.log('서버 질문 데이터 로드 완료 - 질문 수:', questionsData.length);
+  } else {
+    console.warn('서버 질문 데이터가 없습니다. DOM에서 로드합니다.');
+    const textareas = document.querySelectorAll('textarea[data-question-id]');
+    questionsData = Array.from(textareas).map(textarea => ({
+      id:           parseInt(textarea.getAttribute('data-question-id'), 10),
+      placeholderText: textarea.getAttribute('placeholder') || '',
+      maxLength:    parseInt(textarea.getAttribute('maxlength'), 10) || 0,
+      minLength:    parseInt(textarea.getAttribute('minlength'), 10) || 0,
+      isRequired:   textarea.hasAttribute('required')
+    }));
+    console.log('DOM 기반 질문 데이터 로드 완료 - 질문 수:', questionsData.length);
+  }
+
+  // ── ③ 기존 답변 배열 세팅 ──
+  pageState.questionAnswers = Array.isArray(window.familyInfoData?.familyInfo?.questionAnswers)
+    ? window.familyInfoData.familyInfo.questionAnswers
+    : [];
 }
 
+
 /**
- * 이벤트 바인딩 (memorial-create.js 방식)
+ * 이벤트 바인딩
  */
 function bindEvents() {
   // 통합된 클릭 이벤트 처리
@@ -106,132 +123,238 @@ function bindFormEvents() {
   if (form) {
     form.addEventListener('submit', handleFormSubmit);
   }
+}
 
-  // 텍스트 영역 이벤트
-  const textareas = ['personality', 'hobbies', 'favoriteFood', 'specialMemories', 'speechHabits'];
-  textareas.forEach(fieldName => {
-    const textarea = document.getElementById(fieldName);
-    const countElement = document.getElementById(`${fieldName}Count`);
+/**
+ * 질문 이벤트 바인딩 (memorial-create.js 방식)
+ */
+function bindQuestionEvents() {
+  console.log('질문 이벤트 바인딩 시작, 질문 수:', questionsData.length);
 
-    if (textarea && countElement) {
-      textarea.addEventListener('input', (e) => {
-        handleTextareaChange(fieldName, e.target.value);
-        updateCharacterCount(textarea, countElement);
-      });
+  questionsData.forEach(question => {
+    const fieldId = `question_${question.id}`;
+    const textarea = document.getElementById(fieldId);
+    const countEl  = document.getElementById(`${fieldId}Count`);
 
-      textarea.addEventListener('blur', (e) => {
-        validateField(fieldName, e.target.value);
-      });
+    if (!textarea || !countEl) {
+      console.warn(`질문 요소 없음: ${fieldId}`);
+      return;
     }
+
+    // 스타일 초기 적용
+    applyTextareaStyles(textarea);
+    updateQuestionCharacterCount(textarea, countEl, question);
+
+    let debounce;
+    textarea.addEventListener('input', e => {
+      // 1) 앞 공백 제거
+      e.target.value = e.target.value.replace(/^\s+/, '');
+
+      const val = e.target.value;
+      console.log(`질문 ${question.id} 입력:`, val.length, '자');
+
+      // 2) 스타일·카운트·저장·검증
+      applyTextareaStyles(e.target);
+      updateQuestionAnswer(question.id, val.trim());
+      updateQuestionCharacterCount(textarea, countEl, question);
+
+      clearTimeout(debounce);
+      debounce = setTimeout(() => performInstantValidation(question, val), 300);
+
+      updateSubmitButton();
+    });
+
+    textarea.addEventListener('focus', e => {
+      applyTextareaStyles(e.target);
+      clearQuestionError(fieldId);
+    });
+
+    textarea.addEventListener('blur', e => {
+      validateQuestion(question, e.target.value);
+    });
+
+    console.log(`질문 ${question.id} 이벤트 바인딩 완료`);
   });
+}
+
+/**
+ * textarea 스타일 강제 적용
+ */
+function applyTextareaStyles(textarea) {
+  textarea.style.textAlign = 'left';
+  textarea.style.direction = 'ltr';
+  textarea.style.unicodeBidi = 'embed';
+  textarea.style.paddingLeft = '16px';
+  textarea.style.paddingRight = '16px';
+  textarea.style.textIndent = '0';
+  textarea.style.margin = '0';
+  textarea.style.whiteSpace = 'pre-wrap';
+  textarea.style.wordBreak = 'break-word';
+  textarea.style.overflowWrap = 'break-word';
 }
 
 /**
  * 폼 초기화
  */
+/**
+ * 폼 초기화
+ */
 function initializeForm() {
-  console.log('폼 초기화');
+  console.log('폼 초기화 시작');
+  loadServerData();
 
-  // 가족 구성원은 빈 폼으로 시작 (기존 데이터 미반영)
-  const fields = ['personality', 'hobbies', 'favoriteFood', 'specialMemories', 'speechHabits'];
-  fields.forEach(fieldName => {
-    const textarea = document.getElementById(fieldName);
-
-    if (textarea) {
-      // 빈 값으로 초기화
-      textarea.value = '';
-      pageState.formData[fieldName] = '';
-
-      // 글자 수 카운터 초기화
-      const countElement = document.getElementById(`${fieldName}Count`);
-      if (countElement) {
-        updateCharacterCount(textarea, countElement);
-      }
+  // 기존 답변이 있으면 textarea 에 미리 채워넣기
+  pageState.questionAnswers.forEach(ans => {
+    const ta      = document.getElementById(`question_${ans.questionId}`);
+    const countEl = document.getElementById(`question_${ans.questionId}Count`);
+    const q       = questionsData.find(q => q.id === ans.questionId);
+    if (ta && countEl && q) {
+      const v = ans.answerText.trim();
+      ta.value = v;
+      updateQuestionCharacterCount(ta, countEl, q);
+      updateQuestionAnswer(ans.questionId, v);
     }
   });
 
-  // 제출 버튼 상태 업데이트
+  // 질문 렌더링 후 즉시 이벤트 바인딩
+  bindQuestionEvents();
   updateSubmitButton();
 }
 
+
 /**
- * 텍스트 영역 변경 핸들러
+ * 기존 답변 로드
  */
-function handleTextareaChange(fieldName, value) {
-  pageState.formData[fieldName] = value;
-  updateSubmitButton();
+function loadExistingAnswers() {
+  questionsData.forEach(question => {
+    const textarea = document.getElementById(`question_${question.id}`);
+    if (textarea && textarea.value.trim()) {
+      updateQuestionAnswer(question.id, textarea.value.trim());
+    }
+  });
 }
 
 /**
- * 글자 수 카운터 업데이트 (memorial-create.js 방식)
+ * 질문 답변 업데이트 (memorial-create.js 방식)
  */
-function updateCharacterCount(textarea, countElement) {
-  const currentLength = textarea.value.length;
-  const fieldName = textarea.name;
-  const limits = fieldLimits[fieldName];
+function updateQuestionAnswer(questionId, answerText) {
+  const existingIndex = pageState.questionAnswers.findIndex(
+    answer => answer.questionId === questionId
+  );
 
-  if (!limits) return;
+  const answerDTO = {
+    questionId: questionId,
+    answerText: answerText ? answerText.trim() : ''
+  };
 
+  if (existingIndex >= 0) {
+    pageState.questionAnswers[existingIndex] = answerDTO;
+  } else {
+    pageState.questionAnswers.push(answerDTO);
+  }
+
+  console.log(`질문 ${questionId} 답변 업데이트:`, answerDTO);
+}
+
+/**
+ * 글자 수 카운터 업데이트
+ */
+function updateQuestionCharacterCount(textarea, countElement, question) {
+  const currentLength = textarea.value.trim().length;
   countElement.textContent = currentLength;
 
-  // 글자 수에 따른 색상 변경
-  const parentElement = countElement.parentElement;
-  parentElement.classList.remove('warning', 'danger');
+  const wrapper = countElement.parentElement;
+  wrapper.classList.remove('warning', 'danger');
 
-  const percentage = (currentLength / limits.max) * 100;
-
-  if (percentage >= 90) {
-    parentElement.classList.add('danger');
-  } else if (percentage >= 70) {
-    parentElement.classList.add('warning');
+  if (currentLength > 0) {
+    const pct = (currentLength / question.maxLength) * 100;
+    if (pct >= 90)       wrapper.classList.add('danger');
+    else if (pct >= 70)  wrapper.classList.add('warning');
   }
 }
 
 /**
- * 필드 유효성 검사
+ * 실시간 검증
  */
-function validateField(fieldName, value) {
-  const limits = fieldLimits[fieldName];
-  const textarea = document.getElementById(fieldName);
-  const errorElement = document.getElementById(`${fieldName}Error`);
+function performInstantValidation(question, value) {
+  const fieldId = `question_${question.id}`;
+  const textarea = document.getElementById(fieldId);
+  const countElement = document.getElementById(`${fieldId}Count`);
+
+  if (!textarea || !countElement) return;
+
+  const currentLength = value.trim().length;
+  const parentElement = countElement.parentElement;
+
+  // 글자 수 색상 업데이트
+  parentElement.classList.remove('warning', 'danger');
+
+  if (currentLength > 0) {
+    const percentage = (currentLength / question.maxLength) * 100;
+
+    if (percentage >= 90) {
+      parentElement.classList.add('danger');
+    } else if (percentage >= 70) {
+      parentElement.classList.add('warning');
+    }
+  }
+
+  // 즉각적인 에러 체크
+  if (currentLength > question.maxLength) {
+    showQuestionError(fieldId, `최대 ${question.maxLength}자까지 입력 가능합니다.`);
+  } else if (question.isRequired && currentLength === 0) {
+    clearQuestionError(fieldId);
+  } else {
+    clearQuestionError(fieldId);
+  }
+}
+
+/**
+ * 질문 유효성 검사
+ */
+function validateQuestion(question, value) {
+  const fieldId = `question_${question.id}`;
+  const textarea = document.getElementById(fieldId);
+
+  if (!textarea) return true;
+
+  // 트림된 값으로 검사
+  const trimmedValue = value ? value.trim() : '';
+  const currentLength = trimmedValue.length;
 
   // 에러 초기화
-  if (errorElement) {
-    errorElement.classList.remove('show');
-    errorElement.textContent = '';
-  }
+  clearQuestionError(fieldId);
 
-  if (textarea) {
-    textarea.classList.remove('is-invalid');
-  }
-
-  // 필수 필드 확인
-  if (!value || value.trim().length === 0) {
-    showFieldError(fieldName, '이 필드는 필수입니다.');
+  // 1. 필수 필드 검사
+  if (question.isRequired && currentLength === 0) {
+    showQuestionError(fieldId, '이 질문은 필수 입력입니다.');
     return false;
   }
 
-  // 최소 길이 확인
-  if (value.trim().length < limits.min) {
-    showFieldError(fieldName, `최소 ${limits.min}자 이상 입력해주세요.`);
-    return false;
-  }
+  // 2. 내용이 있는 경우만 길이 검사
+  if (currentLength > 0) {
+    // 최소 길이 검사
+    if (currentLength < question.minLength) {
+      showQuestionError(fieldId, `최소 ${question.minLength}자 이상 입력해주세요. (현재: ${currentLength}자)`);
+      return false;
+    }
 
-  // 최대 길이 확인
-  if (value.length > limits.max) {
-    showFieldError(fieldName, `최대 ${limits.max}자까지 입력 가능합니다.`);
-    return false;
+    // 최대 길이 검사
+    if (currentLength > question.maxLength) {
+      showQuestionError(fieldId, `최대 ${question.maxLength}자까지 입력 가능합니다. (현재: ${currentLength}자)`);
+      return false;
+    }
   }
 
   return true;
 }
 
 /**
- * 필드 에러 표시
+ * 질문 에러 표시
  */
-function showFieldError(fieldName, message) {
-  const textarea = document.getElementById(fieldName);
-  const errorElement = document.getElementById(`${fieldName}Error`);
+function showQuestionError(fieldId, message) {
+  const textarea = document.getElementById(fieldId);
+  const errorElement = document.getElementById(`${fieldId}Error`);
 
   if (textarea) {
     textarea.classList.add('is-invalid');
@@ -239,62 +362,107 @@ function showFieldError(fieldName, message) {
 
   if (errorElement) {
     errorElement.textContent = message;
+    errorElement.style.display = 'block';
     errorElement.classList.add('show');
   }
 }
 
 /**
- * 전체 폼 유효성 검사
+ * 질문 에러 초기화
  */
-function validateAllData() {
-  const fields = ['personality', 'hobbies', 'favoriteFood', 'specialMemories', 'speechHabits'];
+function clearQuestionError(fieldId) {
+  const textarea = document.getElementById(fieldId);
+  const errorElement = document.getElementById(`${fieldId}Error`);
+
+  if (textarea) {
+    textarea.classList.remove('is-invalid');
+  }
+
+  if (errorElement) {
+    errorElement.style.display = 'none';
+    errorElement.classList.remove('show');
+    errorElement.textContent = '';
+  }
+}
+
+/**
+ * 모든 질문 유효성 검사
+ */
+function validateAllQuestions() {
   let isValid = true;
+  let firstInvalidField = null;
 
-  fields.forEach(fieldName => {
-    const value = pageState.formData[fieldName];
-    const fieldValid = validateField(fieldName, value);
+  questionsData.forEach(question => {
+    const fieldId = `question_${question.id}`;
+    const textarea = document.getElementById(fieldId);
+    const value = textarea ? textarea.value : '';
 
-    if (!fieldValid) {
+    const questionValid = validateQuestion(question, value);
+    if (!questionValid) {
       isValid = false;
+      if (!firstInvalidField) {
+        firstInvalidField = textarea;
+      }
     }
   });
+
+  // 첫 번째 오류 필드로 스크롤
+  if (!isValid && firstInvalidField) {
+    firstInvalidField.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center'
+    });
+    firstInvalidField.focus();
+  }
 
   return isValid;
 }
 
 /**
- * 제출 버튼 상태 업데이트 (memorial-create.js 방식)
+ * 제출 버튼 상태 업데이트
  */
 function updateSubmitButton() {
   const submitBtn = document.getElementById('submitBtn');
   if (!submitBtn) return;
 
-  const fields = ['personality', 'hobbies', 'favoriteFood', 'specialMemories', 'speechHabits'];
-  const allFilled = fields.every(fieldName => {
-    const value = pageState.formData[fieldName];
-    return value && value.trim().length > 0;
-  });
+  // 필수 질문 답변 여부 확인
+  const questionsValid = checkRequiredQuestionsAnswered();
 
-  const isFormValid = allFilled;
+  submitBtn.disabled = !questionsValid;
 
-  submitBtn.disabled = !isFormValid;
-
-  if (isFormValid) {
+  if (questionsValid) {
     submitBtn.innerHTML = '<i class="fas fa-save"></i> 저장하기';
     submitBtn.classList.remove('btn-disabled');
   } else {
-    submitBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> 모든 정보를 입력해주세요';
+    submitBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> 필수질문 필요';
     submitBtn.classList.add('btn-disabled');
   }
 }
 
 /**
- * 폼 제출 핸들러 (memorial-create.js 방식)
+ * 필수 질문 답변 여부 확인
+ */
+function checkRequiredQuestionsAnswered() {
+  const requiredQuestions = questionsData.filter(q => q.isRequired);
+
+  for (const question of requiredQuestions) {
+    const answer = pageState.questionAnswers.find(a => a.questionId === question.id);
+    if (!answer || !answer.answerText || answer.answerText.trim().length < question.minLength) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * 폼 제출 핸들러
  */
 async function handleFormSubmit(event) {
   event.preventDefault();
 
   console.log('폼 제출 시작');
+  console.log('현재 질문 답변:', pageState.questionAnswers);
 
   if (pageState.isLoading) {
     return;
@@ -302,7 +470,7 @@ async function handleFormSubmit(event) {
 
   try {
     // 최종 유효성 검사
-    if (!validateAllData()) {
+    if (!validateAllQuestions()) {
       showToast('입력 정보를 확인해주세요.', 'warning');
       return;
     }
@@ -325,14 +493,23 @@ async function handleFormSubmit(event) {
 
     // 제출 버튼 상태 변경
     const submitBtn = document.getElementById('submitBtn');
-    const originalText = submitBtn.innerHTML;
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 저장 중...';
+
+    // 요청 데이터 준비 (빈 답변 제거)
+    const requestData = {
+      questionAnswers: pageState.questionAnswers.filter(answer =>
+        answer.answerText && answer.answerText.trim().length > 0
+      )
+    };
+
+    console.log('전송 데이터:', requestData);
 
     // API 호출
     const response = await authFetch(`/api/memorial/${pageState.memorialId}/family-info`, {
       method: 'POST',
-      body: JSON.stringify(pageState.formData)
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestData)
     });
 
     console.log('API 응답:', response);
@@ -369,14 +546,16 @@ async function handleFormSubmit(event) {
 }
 
 /**
- * 뒤로가기 핸들러 (memorial-create.js 방식)
+ * 뒤로가기 핸들러
  */
 function handleGoBack() {
   console.log('뒤로가기 클릭');
 
   // 입력 모드에서 내용이 있는 경우 확인
   if (!pageState.isViewMode) {
-    const hasContent = Object.values(pageState.formData).some(value => value && value.trim().length > 0);
+    const hasContent = pageState.questionAnswers.some(answer =>
+      answer.answerText && answer.answerText.trim().length > 0
+    );
 
     if (hasContent) {
       showConfirm(
@@ -410,14 +589,5 @@ function handleStartVideoCall() {
   // 영상통화 페이지로 이동
   window.location.href = `/mobile/videocall/${pageState.memorialId}`;
 }
-
-// 전역 함수 등록
-window.familyInfoManager = {
-  getState: () => pageState,
-  validateForm: validateAllData,
-  handleFormSubmit,
-  handleGoBack,
-  handleStartVideoCall
-};
 
 console.log('family-info.js 로드 완료');

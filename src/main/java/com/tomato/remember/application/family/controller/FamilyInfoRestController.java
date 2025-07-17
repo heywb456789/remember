@@ -35,8 +35,7 @@ public class FamilyInfoRestController {
     private final FamilyService familyService;
 
     /**
-     * 가족 구성원용 고인 상세 정보 조회
-     * GET /api/memorial/{memorialId}/family-info
+     * 가족 구성원용 고인 상세 정보 조회 GET /api/memorial/{memorialId}/family-info
      */
     @Operation(summary = "고인 상세 정보 조회", description = "가족 구성원이 고인에 대한 상세 정보를 조회합니다.")
     @ApiResponses({
@@ -49,18 +48,18 @@ public class FamilyInfoRestController {
     @SecurityRequirement(name = "BearerAuth")
     @GetMapping("/{memorialId}/family-info")
     public ResponseDTO<FamilyInfoResponseDTO> getFamilyInfo(
-            @PathVariable Long memorialId,
-            @Parameter(hidden = true) @AuthenticationPrincipal MemberUserDetails userDetails) {
+        @PathVariable Long memorialId,
+        @Parameter(hidden = true) @AuthenticationPrincipal MemberUserDetails userDetails) {
 
-        log.info("가족 구성원 고인 상세 정보 조회 API - 메모리얼: {}, 사용자: {}", 
-                memorialId, userDetails.getMember().getId());
+        log.info("가족 구성원 고인 상세 정보 조회 API - 메모리얼: {}, 사용자: {}",
+            memorialId, userDetails.getMember().getId());
 
         try {
             Member member = userDetails.getMember();
             FamilyInfoResponseDTO response = familyService.getFamilyInfo(memorialId, member);
 
-            log.info("가족 구성원 고인 상세 정보 조회 완료 - 메모리얼: {}, 완성도: {}%", 
-                    memorialId, response.getCompletionPercent());
+            log.info("가족 구성원 고인 상세 정보 조회 완료 - 메모리얼: {}, 완성도: {}%",
+                memorialId, response.getCompletionPercent());
 
             return ResponseDTO.ok(response);
 
@@ -77,8 +76,7 @@ public class FamilyInfoRestController {
     }
 
     /**
-     * 가족 구성원용 고인 상세 정보 등록
-     * POST /api/memorial/{memorialId}/family-info
+     * 가족 구성원용 고인 상세 정보 등록 POST /api/memorial/{memorialId}/family-info
      */
     @Operation(summary = "고인 상세 정보 등록", description = "가족 구성원이 고인에 대한 상세 정보를 등록합니다.")
     @ApiResponses({
@@ -91,37 +89,21 @@ public class FamilyInfoRestController {
     @SecurityRequirement(name = "BearerAuth")
     @PostMapping("/{memorialId}/family-info")
     public ResponseDTO<Map<String, Object>> saveFamilyInfo(
-            @PathVariable Long memorialId,
-            @Valid @RequestBody FamilyInfoRequestDTO request,
-            @Parameter(hidden = true) @AuthenticationPrincipal MemberUserDetails userDetails) {
-
-        log.info("가족 구성원 고인 상세 정보 등록 API - 메모리얼: {}, 사용자: {}, 완성도: {}/5", 
-                memorialId, userDetails.getMember().getId(), request.getFilledFieldCount());
+        @PathVariable Long memorialId,
+        @Valid @RequestBody FamilyInfoRequestDTO request,
+        @Parameter(hidden = true) @AuthenticationPrincipal MemberUserDetails userDetails) {
 
         try {
             Member member = userDetails.getMember();
-            
-            // 완성도 체크
-            if (!request.isComplete()) {
-                throw new IllegalArgumentException("모든 필드를 입력해주세요.");
-            }
 
-            // 고인 상세 정보 저장
-            familyService.saveFamilyInfo(memorialId, member, request);
+            familyService.saveFamilyAnswers(memorialId, member, request.getQuestionAnswers());
 
-            // 성공 응답 생성
-            Map<String, Object> responseData = Map.of(
-                    "success", true,
-                    "message", "고인에 대한 상세 정보가 등록되었습니다.",
-                    "memorialId", memorialId,
-                    "completionPercent", 100,
-                    "canStartVideoCall", true
+            Map<String, Object> data = Map.of(
+                "success", true,
+                "message", "답변이 저장되었습니다.",
+                "memorialId", memorialId
             );
-
-            log.info("가족 구성원 고인 상세 정보 등록 완료 - 메모리얼: {}, 사용자: {}", 
-                    memorialId, member.getId());
-
-            return ResponseDTO.ok(responseData);
+            return ResponseDTO.ok(data);
 
         } catch (IllegalArgumentException e) {
             log.warn("가족 구성원 고인 상세 정보 등록 실패 - 잘못된 요청: {}", e.getMessage());
@@ -136,25 +118,24 @@ public class FamilyInfoRestController {
     }
 
     /**
-     * 가족 구성원용 고인 상세 정보 등록 가능 여부 확인
-     * GET /api/memorial/{memorialId}/family-info/check
+     * 가족 구성원용 고인 상세 정보 등록 가능 여부 확인 GET /api/memorial/{memorialId}/family-info/check
      */
     @Operation(summary = "고인 상세 정보 등록 가능 여부 확인", description = "가족 구성원이 고인 상세 정보를 등록할 수 있는지 확인합니다.")
     @SecurityRequirement(name = "BearerAuth")
     @GetMapping("/{memorialId}/family-info/check")
     public ResponseDTO<Map<String, Object>> checkFamilyInfoAccess(
-            @PathVariable Long memorialId,
-            @Parameter(hidden = true) @AuthenticationPrincipal MemberUserDetails userDetails) {
+        @PathVariable Long memorialId,
+        @Parameter(hidden = true) @AuthenticationPrincipal MemberUserDetails userDetails) {
 
-        log.info("가족 구성원 고인 상세 정보 등록 가능 여부 확인 API - 메모리얼: {}, 사용자: {}", 
-                memorialId, userDetails.getMember().getId());
+        log.info("가족 구성원 고인 상세 정보 등록 가능 여부 확인 API - 메모리얼: {}, 사용자: {}",
+            memorialId, userDetails.getMember().getId());
 
         try {
             Member member = userDetails.getMember();
             Map<String, Object> checkResult = familyService.checkFamilyInfoAccess(memorialId, member);
 
-            log.info("가족 구성원 고인 상세 정보 등록 가능 여부 확인 완료 - 메모리얼: {}, 접근 가능: {}", 
-                    memorialId, checkResult.get("canAccess"));
+            log.info("가족 구성원 고인 상세 정보 등록 가능 여부 확인 완료 - 메모리얼: {}, 접근 가능: {}",
+                memorialId, checkResult.get("canAccess"));
 
             return ResponseDTO.ok(checkResult);
 
