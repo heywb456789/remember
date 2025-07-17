@@ -895,15 +895,18 @@ public class FamilyService {
             FamilyMember familyMember = familyMemberRepository.findByMemorialAndMember(memorial, member)
                 .orElseThrow(() -> new SecurityException("해당 메모리얼의 가족 구성원이 아닙니다."));
 
+            // 3. 가족 구성원의 질문 조회
+            List<MemorialQuestion> familQuestions= memorialQuestionRepository.findActiveQuestions();
+
             // 3. 가족 구성원의 답변 조회
             List<MemorialAnswer> familyAnswers = memorialAnswerRepository
                 .findByMemorialAndFamilyMember(memorial, familyMember);
 
             // 4. 답변이 없는 경우 - 입력 모드용 DTO 반환
-            if (familyAnswers.isEmpty()) {
-                log.info("가족 구성원 답변이 없음 - 입력 모드 DTO 반환");
-                return FamilyInfoResponseDTO.forInput(memorial, familyMember);
-            }
+//            if (familyAnswers.isEmpty()) {
+//                log.info("가족 구성원 답변이 없음 - 입력 모드 DTO 반환");
+//                return FamilyInfoResponseDTO.forInput(memorial, familyMember);
+//            }
 
             // 5. 답변이 있는 경우 - 조회 모드용 DTO 반환
             Integer completionPercent = calculateFamilyAnswerCompletionPercent(memorial, familyMember);
@@ -911,7 +914,7 @@ public class FamilyService {
             log.info("가족 구성원 고인 상세 정보 조회 완료 - 메모리얼: {}, 답변수: {}, 완성도: {}%",
                 memorialId, familyAnswers.size(), completionPercent);
 
-            return FamilyInfoResponseDTO.forView(memorial, familyMember, familyAnswers, completionPercent);
+            return FamilyInfoResponseDTO.forView(memorial, familyMember, familQuestions, familyAnswers, completionPercent);
 
         } catch (Exception e) {
             log.error("가족 구성원 고인 상세 정보 조회 실패 - 메모리얼: {}", memorialId, e);

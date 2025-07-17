@@ -110,4 +110,11 @@ public interface MemorialAnswerRepository extends JpaRepository<MemorialAnswer, 
         "AND ma.isComplete = true")
     boolean existsCompletedAnswersByMemorialAndFamilyMember(@Param("memorial") Memorial memorial,
         @Param("familyMember") FamilyMember familyMember);
+
+    // 이 메모리얼에 저장된 답변 총 개수
+    int countByMemorial(Memorial memorial);
+
+    // 이 메모리얼에서, “필수 질문”에 해당하는 답변 개수
+    int countByMemorialAndQuestionIsRequiredTrue(Memorial memorial);
+
 }

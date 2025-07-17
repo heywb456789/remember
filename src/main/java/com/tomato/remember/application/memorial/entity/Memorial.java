@@ -11,6 +11,7 @@ import com.tomato.remember.application.memorial.code.MemorialStatus;
 import com.tomato.remember.application.videocall.entity.VideoCall;
 import com.tomato.remember.common.audit.Audit;
 import jakarta.persistence.*;
+import java.util.Objects;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import lombok.extern.slf4j.Slf4j;
@@ -271,10 +272,15 @@ public class Memorial extends Audit {
      * 특정 회원의 가족 관계 조회
      */
     public FamilyMember getFamilyMember(Member member) {
+        if (member == null || member.getId() == null) {
+            return null;
+        }
         return familyMembers.stream()
-                .filter(fm -> fm.getMember().equals(member))
-                .findFirst()
-                .orElse(null);
+            // ID 비교로 바꿔주면 서로 다른 인스턴스라도 동일한 DB row면 매칭됩니다.
+            .filter(fm -> fm.getMember() != null
+                       && Objects.equals(fm.getMember().getId(), member.getId()))
+            .findFirst()
+            .orElse(null);
     }
 
     /**

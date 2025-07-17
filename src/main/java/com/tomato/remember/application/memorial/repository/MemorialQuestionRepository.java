@@ -35,4 +35,6 @@ public interface MemorialQuestionRepository extends JpaRepository<MemorialQuesti
      */
     @Query("SELECT mq FROM MemorialQuestion mq WHERE mq.isActive = true AND mq.isRequired = true ORDER BY mq.sortOrder ASC")
     List<MemorialQuestion> findRequiredQuestions();
+
+    int countByIsRequiredTrue();
 }

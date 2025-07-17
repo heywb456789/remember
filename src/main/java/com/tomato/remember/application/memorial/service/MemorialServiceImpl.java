@@ -353,7 +353,7 @@ public class MemorialServiceImpl implements MemorialService {
                 familyMember = memorial.getFamilyMember(member);
             }
 
-            return convertToListResponseDTOWithAccessInfo(memorial, hasRequiredProfileImages, member, isOwner, familyMember);
+            return buildListResponseDTO(memorial, hasRequiredProfileImages, member, isOwner, familyMember);
         });
 
         ListDTO<MemorialListResponseDTO> result = ListDTO.of(dtoPage);
@@ -712,4 +712,53 @@ public class MemorialServiceImpl implements MemorialService {
             throw new IllegalArgumentException("질문 답변 유효성 검사에 실패했습니다: " + e.getMessage());
         }
     }
+
+    private MemorialListResponseDTO buildListResponseDTO(
+        Memorial memorial,
+        boolean hasRequiredProfileImages,
+        Member currentUser,
+        boolean isOwner,
+        FamilyMember familyMember
+) {
+    // — 1) 전체 답변 필드 개수
+    int totalAnswered = memorialAnswerRepository.countByMemorial(memorial);
+    // — 2) 필수 질문 개수
+    long requiredQuestionCount = memorialQuestionRepository.countByIsRequiredTrue();
+    // — 3) 필수 질문 중 실제로 답변된 개수
+    int answeredRequired = memorialAnswerRepository
+        .countByMemorialAndQuestionIsRequiredTrue(memorial);
+
+    return MemorialListResponseDTO.builder()
+        .memorialId(memorial.getId())
+        .name(memorial.getName())
+        .nickname(memorial.getNickname())
+        .mainProfileImageUrl(memorial.getMainProfileImageUrl())
+        .lastVisitAt(memorial.getLastVisitAt())
+        .totalVisits(memorial.getTotalVisits())
+        .memoryCount(memorial.getMemoryCount())
+        .aiTrainingCompleted(memorial.getAiTrainingCompleted())
+        .formattedAge(memorial.getFormattedAge())
+        .relationshipDescription(memorial.getRelationship().getDisplayName())
+        .canStartVideoCall(memorial.canStartVideoCall())
+        .hasRequiredProfileImages(hasRequiredProfileImages)
+        .hasRequiredFiles(memorial.hasRequiredFiles())
+        .profileImageCount(memorial.getFileCount(MemorialFileType.PROFILE_IMAGE))
+        .voiceFileCount(memorial.getFileCount(MemorialFileType.VOICE_FILE))
+        .videoFileCount(memorial.getFileCount(MemorialFileType.VIDEO_FILE))
+
+        // 접근 권한
+        .isOwner(isOwner)
+        .canAccess(true) // 이미 권한 체크 끝난 데이터니까
+        .accessType(isOwner ? "OWNER" : "FAMILY_MEMBER")
+        .canVideoCall(isOwner ? true : familyMember.getVideoCallAccess())
+        .familyRelationship(isOwner ? null : familyMember.getRelationship().name())
+        .familyRelationshipDisplay(isOwner ? null : familyMember.getRelationshipDisplayName())
+
+        // —— 여기가 핵심: 고인 정보 관련 필드
+        .deceasedInfoFieldCount(totalAnswered)
+        .hasDeceasedInfo(totalAnswered > 0)
+        .hasRequiredDeceasedInfo(answeredRequired >= requiredQuestionCount)
+
+        .build();
+}
 }
