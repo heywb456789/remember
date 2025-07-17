@@ -1,4 +1,4 @@
-// memorial-create.js - 메모리얼 등록 JavaScript (SSR 기반)
+// memorial-create.js - 메모리얼 등록 JavaScript (수정된 버전)
 import { authFetch } from './commonFetch.js';
 
 // 상태 관리
@@ -11,8 +11,8 @@ let memorialData = {
   deathDate: '',
   relationship: '',
 
-  // 질문 답변들
-  questionAnswers: {},
+  // 질문 답변들 (동적 질문) - List<DTO> 형태
+  questionAnswers: [],
 
   // 업로드된 파일들
   profileImages: [],
@@ -39,35 +39,367 @@ document.addEventListener('DOMContentLoaded', function() {
   // 서버 데이터 로드
   loadServerData();
 
-  // 이벤트 바인딩
-  bindEvents();
+  // DOM 준비 확인 후 이벤트 바인딩
+  setTimeout(() => {
+    // 이벤트 바인딩
+    bindEvents();
 
-  // 드래그 앤 드롭 초기화
-  initializeDragAndDrop();
+    // 드래그 앤 드롭 초기화
+    initializeDragAndDrop();
 
-  // 파일 목록 컨테이너 초기 상태 설정
-  initializeFileContainers();
+    // 파일 목록 컨테이너 초기 상태 설정
+    initializeFileContainers();
 
-  // 질문 이벤트 바인딩
-  bindQuestionEvents();
+    // 질문 이벤트 바인딩 (DOM 준비 후)
+    bindQuestionEvents();
 
-  // 제출 버튼 초기 상태 설정
-  updateSubmitButton();
+    // 기존 폼 데이터 로드
+    loadExistingFormData();
 
-  console.log('초기화 완료');
+    // 제출 버튼 초기 상태 설정
+    updateSubmitButton();
+
+    console.log('초기화 완료');
+  }, 100);
 });
 
 /**
  * 서버 데이터 로드
  */
 function loadServerData() {
-  if (window.serverData && window.serverData.questions) {
+  if (window.serverData && Array.isArray(window.serverData.questions) && window.serverData.questions.length > 0) {
     questionsData = window.serverData.questions;
     console.log('서버 데이터 로드 완료 - 질문 수:', questionsData.length);
   } else {
-    console.warn('서버 데이터를 찾을 수 없습니다.');
-    questionsData = [];
+    // 서버 데이터가 없을 경우 DOM에서 질문 정보 추출
+    const textareas = document.querySelectorAll('textarea[data-question-id]');
+    questionsData = Array.from(textareas).map(textarea => ({
+      id: parseInt(textarea.getAttribute('data-question-id'), 10),
+      placeholderText: textarea.getAttribute('placeholder') || '',
+      maxLength: parseInt(textarea.getAttribute('maxlength'), 10) || 0,
+      minLength: parseInt(textarea.getAttribute('minlength'), 10) || 0,
+      isRequired: textarea.hasAttribute('required')
+    }));
+    console.warn('서버 데이터 없음—DOM에서 로드된 질문 수:', questionsData.length);
   }
+}
+
+/**
+ * ✅ 기존 폼 데이터 로드 (새로 추가)
+ */
+function loadExistingFormData() {
+  // 기본 정보 로드
+  const basicFields = ['name', 'nickname', 'birthDate', 'deathDate', 'relationship'];
+  basicFields.forEach(field => {
+    const element = document.getElementById(field);
+    if (element && element.value) {
+      memorialData[field] = element.value;
+    }
+  });
+
+  // 성별 라디오 버튼 로드
+  const genderRadio = document.querySelector('input[name="gender"]:checked');
+  if (genderRadio) {
+    memorialData.gender = genderRadio.value;
+  }
+
+  // 질문 답변 로드
+  questionsData.forEach(question => {
+    const textarea = document.getElementById(`question_${question.id}`);
+    if (textarea && textarea.value.trim()) {
+      updateQuestionAnswer(question.id, textarea.value);
+    }
+  });
+
+  console.log('기존 폼 데이터 로드 완료:', memorialData);
+}
+
+/**
+ * ✅ textarea 스타일 강제 적용 (간격 제거)
+ */
+function applyTextareaStyles(textarea) {
+  textarea.style.textAlign = 'left';
+  textarea.style.direction = 'ltr';
+  textarea.style.unicodeBidi = 'embed';
+  textarea.style.paddingLeft = '16px';
+  textarea.style.paddingRight = '16px';
+  textarea.style.textIndent = '0';
+  textarea.style.margin = '0';
+  textarea.style.whiteSpace = 'pre-wrap';
+  textarea.style.wordBreak = 'break-word';
+  textarea.style.overflowWrap = 'break-word';
+}
+
+/**
+ * ✅ 실시간 검증 (부드러운 피드백)
+ */
+function performInstantValidation(question, value) {
+  const fieldId = `question_${question.id}`;
+  const textarea = document.getElementById(fieldId);
+  const countElement = document.getElementById(`${fieldId}Count`);
+
+  if (!textarea || !countElement) return;
+
+  const currentLength = value.trim().length;
+  const parentElement = countElement.parentElement;
+
+  // 글자 수 색상 업데이트
+  parentElement.classList.remove('warning', 'danger');
+
+  if (currentLength > 0) {
+    const percentage = (currentLength / question.maxLength) * 100;
+
+    if (percentage >= 90) {
+      parentElement.classList.add('danger');
+    } else if (percentage >= 70) {
+      parentElement.classList.add('warning');
+    }
+  }
+
+  // 즉각적인 에러 체크
+  if (currentLength > question.maxLength) {
+    showQuestionError(fieldId, `최대 ${question.maxLength}자까지 입력 가능합니다.`);
+  } else if (question.isRequired && currentLength === 0) {
+    clearQuestionError(fieldId);
+  } else {
+    clearQuestionError(fieldId);
+  }
+}
+
+/**
+ * ✅ 질문 에러 초기화
+ */
+function clearQuestionError(fieldId) {
+  const textarea = document.getElementById(fieldId);
+  const errorElement = document.getElementById(`${fieldId}Error`);
+
+  if (textarea) {
+    textarea.classList.remove('is-invalid');
+  }
+
+  if (errorElement) {
+    errorElement.style.display = 'none';
+    errorElement.classList.remove('show');
+    errorElement.textContent = '';
+  }
+}
+
+/**
+ * ✅ 질문 이벤트 바인딩 (강화된 버전)
+ */
+function bindQuestionEvents() {
+  console.log('질문 이벤트 바인딩 시작, 질문 수:', questionsData.length);
+
+  questionsData.forEach(question => {
+    const fieldId = `question_${question.id}`;
+    const textarea = document.getElementById(fieldId);
+    const countElement = document.getElementById(`${fieldId}Count`);
+
+    console.log(`질문 ${question.id} 바인딩 시도:`, { textarea: !!textarea, countElement: !!countElement });
+
+    if (textarea && countElement) {
+      // 스타일 강제 적용 (패딩·인덴트 초기화)
+      applyTextareaStyles(textarea);
+
+      // 초기 글자 수 표시
+      updateQuestionCharacterCount(textarea, countElement, question);
+
+      // 실시간 입력 이벤트 (디바운스 포함)
+      let inputTimeout;
+      textarea.addEventListener('input', e => {
+        // 1) 선행 공백 제거
+        e.target.value = e.target.value.replace(/^\s+/, '');
+
+        // 2) trimmed 값을 기준으로 로깅 및 처리
+        const value = e.target.value;
+        console.log(`질문 ${question.id} 입력 이벤트:`, value.length, '자 (trimmed)');
+
+        // 스타일 재적용
+        applyTextareaStyles(e.target);
+
+        // 답변 저장 (trimmed 값)
+        updateQuestionAnswer(question.id, value.trim());
+
+        // 글자 수 카운터 업데이트
+        updateQuestionCharacterCount(textarea, countElement, question);
+
+        // 디바운스된 실시간 검증
+        clearTimeout(inputTimeout);
+        inputTimeout = setTimeout(() => {
+          performInstantValidation(question, value);
+        }, 300);
+
+        // 제출 버튼 상태 업데이트
+        updateSubmitButton();
+      });
+
+      // 포커스 시 스타일·에러 초기화
+      textarea.addEventListener('focus', e => {
+        applyTextareaStyles(e.target);
+        clearQuestionError(fieldId);
+      });
+
+      // 블러 시 유효성 검사
+      textarea.addEventListener('blur', e => {
+        validateQuestion(question, e.target.value);
+      });
+
+      console.log(`질문 ${question.id} 이벤트 바인딩 완료`);
+    } else {
+      console.warn(`질문 ${question.id} 요소를 찾을 수 없습니다:`, fieldId);
+    }
+  });
+}
+
+/**
+ * 질문 글자 수 카운터 업데이트
+ */
+function updateQuestionCharacterCount(textarea, countElement, question) {
+  // trim only leading/trailing whitespace so internal spaces still count
+  const trimmedValue = textarea.value.trim();
+  const currentLength = trimmedValue.length;
+  countElement.textContent = currentLength;
+
+  // (optional) if you want to also remove those leading spaces from the textarea itself:
+  // textarea.value = trimmedValue;
+
+  // 글자 수에 따른 색상 변경
+  const parentElement = countElement.parentElement;
+  parentElement.classList.remove('warning', 'danger');
+
+  if (currentLength > 0) {
+    const percentage = (currentLength / question.maxLength) * 100;
+
+    if (percentage >= 90) {
+      parentElement.classList.add('danger');
+    } else if (percentage >= 70) {
+      parentElement.classList.add('warning');
+    }
+  }
+}
+
+/**
+ * ✅ 질문 답변 업데이트 (로깅 추가)
+ */
+function updateQuestionAnswer(questionId, answerText) {
+  const existingIndex = memorialData.questionAnswers.findIndex(
+    answer => answer.questionId === questionId
+  );
+
+  const answerDTO = {
+    questionId: questionId,
+    answerText: answerText ? answerText.trim() : ''
+  };
+
+  if (existingIndex >= 0) {
+    memorialData.questionAnswers[existingIndex] = answerDTO;
+  } else {
+    memorialData.questionAnswers.push(answerDTO);
+  }
+
+  console.log(`질문 ${questionId} 답변 업데이트:`, answerDTO);
+  console.log('현재 모든 답변:', memorialData.questionAnswers);
+}
+
+/**
+ * 특정 질문의 답변 조회
+ */
+function getQuestionAnswer(questionId) {
+  const answer = memorialData.questionAnswers.find(
+    answer => answer.questionId === questionId
+  );
+  return answer ? answer.answerText : '';
+}
+
+/**
+ * ✅ 질문 유효성 검사 (강화된 버전)
+ */
+function validateQuestion(question, value) {
+  const fieldId = `question_${question.id}`;
+  const textarea = document.getElementById(fieldId);
+
+  if (!textarea) return true;
+
+  // 트림된 값으로 검사
+  const trimmedValue = value ? value.trim() : '';
+  const currentLength = trimmedValue.length;
+
+  // 에러 초기화
+  clearQuestionError(fieldId);
+
+  // 1. 필수 필드 검사
+  if (question.isRequired && currentLength === 0) {
+    showQuestionError(fieldId, '이 질문은 필수 입력입니다.');
+    return false;
+  }
+
+  // 2. 내용이 있는 경우만 길이 검사
+  if (currentLength > 0) {
+    // 최소 길이 검사
+    if (currentLength < question.minLength) {
+      showQuestionError(fieldId, `최소 ${question.minLength}자 이상 입력해주세요. (현재: ${currentLength}자)`);
+      return false;
+    }
+
+    // 최대 길이 검사
+    if (currentLength > question.maxLength) {
+      showQuestionError(fieldId, `최대 ${question.maxLength}자까지 입력 가능합니다. (현재: ${currentLength}자)`);
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * ✅ 질문 에러 표시 (강화된 버전)
+ */
+function showQuestionError(fieldId, message) {
+  const textarea = document.getElementById(fieldId);
+  const errorElement = document.getElementById(`${fieldId}Error`);
+
+  if (textarea) {
+    textarea.classList.add('is-invalid');
+  }
+
+  if (errorElement) {
+    errorElement.textContent = message;
+    errorElement.style.display = 'block';
+    errorElement.classList.add('show');
+  }
+}
+
+/**
+ * ✅ 모든 질문 유효성 검사 (강화된 버전)
+ */
+function validateAllQuestions() {
+  let isValid = true;
+  let firstInvalidField = null;
+
+  questionsData.forEach(question => {
+    const fieldId = `question_${question.id}`;
+    const textarea = document.getElementById(fieldId);
+    const value = textarea ? textarea.value : '';
+
+    const questionValid = validateQuestion(question, value);
+    if (!questionValid) {
+      isValid = false;
+      if (!firstInvalidField) {
+        firstInvalidField = textarea;
+      }
+    }
+  });
+
+  // 첫 번째 오류 필드로 스크롤
+  if (!isValid && firstInvalidField) {
+    firstInvalidField.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center'
+    });
+    firstInvalidField.focus();
+  }
+
+  return isValid;
 }
 
 /**
@@ -84,148 +416,6 @@ function initializeFileContainers() {
 }
 
 /**
- * 질문 이벤트 바인딩
- */
-function bindQuestionEvents() {
-  questionsData.forEach(question => {
-    const fieldId = `question_${question.id}`;
-    const textarea = document.getElementById(fieldId);
-    const countElement = document.getElementById(`${fieldId}Count`);
-
-    if (textarea && countElement) {
-      // textarea 스타일 강제 적용
-      textarea.style.textAlign = 'left';
-      textarea.style.direction = 'ltr';
-      textarea.style.unicodeBidi = 'embed';
-
-      // 텍스트 입력 이벤트
-      textarea.addEventListener('input', (e) => {
-        const value = e.target.value;
-
-        // 답변 저장
-        memorialData.questionAnswers[question.id] = value;
-
-        // 글자 수 카운터 업데이트
-        updateQuestionCharacterCount(textarea, countElement, question);
-
-        // 제출 버튼 상태 업데이트
-        updateSubmitButton();
-      });
-
-      // 포커스 이벤트에서도 스타일 재적용
-      textarea.addEventListener('focus', (e) => {
-        e.target.style.textAlign = 'left';
-        e.target.style.direction = 'ltr';
-      });
-
-      // 포커스 아웃 시 유효성 검사
-      textarea.addEventListener('blur', (e) => {
-        validateQuestion(question, e.target.value);
-      });
-
-      // 초기 글자 수 표시
-      updateQuestionCharacterCount(textarea, countElement, question);
-    }
-  });
-}
-
-/**
- * 질문 글자 수 카운터 업데이트
- */
-function updateQuestionCharacterCount(textarea, countElement, question) {
-  const currentLength = textarea.value.length;
-  countElement.textContent = currentLength;
-
-  // 글자 수에 따른 색상 변경
-  const parentElement = countElement.parentElement;
-  parentElement.classList.remove('warning', 'danger');
-
-  const percentage = (currentLength / question.maxLength) * 100;
-
-  if (percentage >= 90) {
-    parentElement.classList.add('danger');
-  } else if (percentage >= 70) {
-    parentElement.classList.add('warning');
-  }
-}
-
-/**
- * 질문 유효성 검사
- */
-function validateQuestion(question, value) {
-  const fieldId = `question_${question.id}`;
-  const textarea = document.getElementById(fieldId);
-  const errorElement = document.getElementById(`${fieldId}Error`);
-
-  // 에러 초기화
-  if (errorElement) {
-    errorElement.style.display = 'none';
-    errorElement.textContent = '';
-  }
-
-  if (textarea) {
-    textarea.classList.remove('is-invalid');
-  }
-
-  // 필수 필드 검사
-  if (question.isRequired && (!value || value.trim().length === 0)) {
-    showQuestionError(fieldId, '이 질문은 필수 입력입니다.');
-    return false;
-  }
-
-  // 최소 길이 검사
-  if (value && value.trim().length > 0 && value.trim().length < question.minLength) {
-    showQuestionError(fieldId, `최소 ${question.minLength}자 이상 입력해주세요.`);
-    return false;
-  }
-
-  // 최대 길이 검사
-  if (value && value.length > question.maxLength) {
-    showQuestionError(fieldId, `최대 ${question.maxLength}자까지 입력 가능합니다.`);
-    return false;
-  }
-
-  return true;
-}
-
-/**
- * 질문 에러 표시
- */
-function showQuestionError(fieldId, message) {
-  const textarea = document.getElementById(fieldId);
-  const errorElement = document.getElementById(`${fieldId}Error`);
-
-  if (textarea) {
-    textarea.classList.add('is-invalid');
-  }
-
-  if (errorElement) {
-    errorElement.textContent = message;
-    errorElement.style.display = 'block';
-  }
-}
-
-/**
- * 모든 질문 유효성 검사
- */
-function validateAllQuestions() {
-  let isValid = true;
-
-  questionsData.forEach(question => {
-    const fieldId = `question_${question.id}`;
-    const textarea = document.getElementById(fieldId);
-    const value = textarea ? textarea.value : '';
-
-    const questionValid = validateQuestion(question, value);
-    if (!questionValid) {
-      isValid = false;
-    }
-  });
-
-  return isValid;
-}
-
-/**
  * 이벤트 바인딩
  */
 function bindEvents() {
@@ -235,13 +425,22 @@ function bindEvents() {
     form.addEventListener('submit', handleFormSubmit);
   }
 
-  // 텍스트 입력 필드
-  const textInputs = ['name', 'nickname', 'birthDate', 'deathDate'];
-  textInputs.forEach(id => {
-    const input = document.getElementById(id);
-    if (input) {
-      input.addEventListener('input', handleBasicInfoChange);
-      input.addEventListener('blur', validateBasicInfo);
+  const basicInfoFields = [
+    { id: 'name', type: 'input' },
+    { id: 'nickname', type: 'input' },
+    { id: 'birthDate', type: 'input' },
+    { id: 'deathDate', type: 'input' },
+    { id: 'relationship', type: 'select' }
+  ];
+
+  basicInfoFields.forEach(({ id, type }) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.addEventListener('input', handleBasicInfoChange);
+      element.addEventListener('change', handleBasicInfoChange);
+      if (type === 'input') {
+        element.addEventListener('blur', handleBasicInfoChange);
+      }
     }
   });
 
@@ -250,12 +449,6 @@ function bindEvents() {
   genderInputs.forEach(radio => {
     radio.addEventListener('change', handleBasicInfoChange);
   });
-
-  // 관계 선택
-  const relationshipSelect = document.getElementById('relationship');
-  if (relationshipSelect) {
-    relationshipSelect.addEventListener('change', handleBasicInfoChange);
-  }
 
   // 통합된 클릭 이벤트 처리
   document.addEventListener('click', function(e) {
@@ -304,11 +497,39 @@ function bindEvents() {
         break;
     }
 
+    // 기존 모달 관련 처리
+    if (e.target.classList.contains('btn-close') || e.target.getAttribute('data-bs-dismiss') === 'modal') {
+      const modal = e.target.closest('.modal');
+      if (modal) {
+        modal.classList.remove('show');
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+      }
+    }
+
     // 모달 배경 클릭시 닫기
     if (e.target.classList.contains('modal')) {
       e.target.classList.remove('show');
       e.target.style.display = 'none';
       document.body.style.overflow = '';
+    }
+
+    // 기존 모달 푸터 버튼 처리
+    if (e.target.classList.contains('btn-primary') && e.target.getAttribute('data-bs-dismiss') === 'modal') {
+      const modal = e.target.closest('.modal');
+      if (modal) {
+        modal.classList.remove('show');
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+
+        if (modal.id === 'profileImageGuideModal') {
+          setTimeout(() => selectProfileImages(), 100);
+        } else if (modal.id === 'voiceFileGuideModal') {
+          setTimeout(() => selectVoiceFiles(), 100);
+        } else if (modal.id === 'videoFileGuideModal') {
+          setTimeout(() => selectVideoFile(), 100);
+        }
+      }
     }
   });
 
@@ -328,7 +549,7 @@ function bindEvents() {
 }
 
 /**
- * 모달 관련 헬퍼 함수들
+ * 모달 닫기 헬퍼 함수
  */
 function closeModal(element) {
   const modal = element.closest('.modal');
@@ -339,6 +560,9 @@ function closeModal(element) {
   }
 }
 
+/**
+ * 모달 닫고 파일 선택 헬퍼 함수
+ */
 function closeModalAndSelectFiles(element, inputId) {
   const modal = element.closest('.modal');
   if (modal) {
@@ -397,7 +621,7 @@ function setupDragAndDrop(zone, type, multiple) {
 }
 
 /**
- * 기본 정보 변경 핸들러
+ * ✅ 기본 정보 변경 핸들러 (로깅 추가)
  */
 function handleBasicInfoChange(event) {
   const { name, value, type } = event.target;
@@ -408,11 +632,11 @@ function handleBasicInfoChange(event) {
     memorialData[name] = value;
   }
 
-  // 실시간 유효성 검사
+  console.log('기본 정보 변경:', name, '=', value);
+  console.log('현재 memorialData:', memorialData);
+
   validateBasicInfo();
   updateSubmitButton();
-
-  console.log(`기본 정보 변경: ${name} = ${value}`);
 }
 
 /**
@@ -427,22 +651,17 @@ function handleFileSelect(event, type, multiple) {
 
   console.log(`파일 선택: ${type}, ${files.length}개`);
 
-  // 파일 개수 제한 확인
   if (!checkFileLimit(files, type, multiple)) {
     return;
   }
 
-  // 파일별 처리
   files.forEach(file => {
     if (validateFile(file, type)) {
       addFileToData(file, type);
     }
   });
 
-  // 파일 입력 초기화
   event.target.value = '';
-
-  // UI 업데이트
   updateFileList(type);
   updateSubmitButton();
 }
@@ -482,14 +701,12 @@ function validateFile(file, type) {
   const limits = fileLimits[type];
   if (!limits) return false;
 
-  // 파일 크기 확인
   if (file.size > limits.maxSize) {
     const maxSizeMB = (limits.maxSize / (1024 * 1024)).toFixed(1);
     alert(`파일 크기가 ${maxSizeMB}MB를 초과합니다: ${file.name}`);
     return false;
   }
 
-  // 파일 타입 확인
   const fileType = file.type.toLowerCase();
   const isValidType = limits.types.some(allowedType => {
     if (allowedType === 'image/jpeg') return fileType === 'image/jpeg' || fileType === 'image/jpg';
@@ -555,7 +772,6 @@ function updateFileList(type) {
     listContainer.style.display = 'none';
   }
 
-  // 업로드 영역 상태 업데이트
   updateUploadAreaState(type);
 }
 
@@ -686,7 +902,6 @@ function removeFile(type, index) {
     memorialData[type] = null;
   }
 
-  // UI 업데이트
   updateFileList(type);
   updateSubmitButton();
 }
@@ -705,12 +920,10 @@ function validateBasicInfo() {
     }
   });
 
-  // 이름 길이 검사
   if (memorialData.name && memorialData.name.length < 2) {
     isValid = false;
   }
 
-  // 호칭 길이 검사
   if (memorialData.nickname && memorialData.nickname.length < 2) {
     isValid = false;
   }
@@ -722,19 +935,16 @@ function validateBasicInfo() {
  * 전체 데이터 유효성 검사
  */
 function validateAllData() {
-  // 기본 정보 검사
   if (!validateBasicInfo()) {
     alert('기본 정보를 모두 입력해주세요.');
     return false;
   }
 
-  // 질문 답변 검사
   if (!validateAllQuestions()) {
     alert('필수 질문에 답변해주세요.');
     return false;
   }
 
-  // 필수 파일 검사
   const requiredFiles = [
     { key: 'profileImages', min: 5, name: '대표 사진' },
     { key: 'voiceFiles', min: 3, name: '음성 파일' },
@@ -762,7 +972,8 @@ function updateSubmitButton() {
   if (!submitBtn) return;
 
   const basicInfoValid = validateBasicInfo();
-  const questionsValid = validateAllQuestions();
+  // 수정: 검증 대신 답변 존재 여부 확인
+  const questionsValid = checkRequiredQuestionsAnswered();
   const profileImagesValid = memorialData.profileImages.length >= 5;
   const voiceFilesValid = memorialData.voiceFiles.length >= 3;
   const videoFileValid = memorialData.videoFile !== null;
@@ -775,63 +986,152 @@ function updateSubmitButton() {
     submitBtn.innerHTML = '<i class="fas fa-upload"></i> 등록하기';
     submitBtn.classList.remove('btn-disabled');
   } else {
-    submitBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> 필수 정보를 입력해주세요';
+    let missingItems = [];
+    if (!basicInfoValid) missingItems.push('기본정보');
+    if (!questionsValid) missingItems.push('필수질문');
+    if (!profileImagesValid) missingItems.push('사진');
+    if (!voiceFilesValid) missingItems.push('음성');
+    if (!videoFileValid) missingItems.push('영상');
+
+    submitBtn.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${missingItems.join(', ')} 필요`;
     submitBtn.classList.add('btn-disabled');
   }
 }
 
 /**
- * 폼 제출 핸들러
+ * 필수 질문 답변 여부 확인 (검증 없이 존재만 확인)
+ */
+function checkRequiredQuestionsAnswered() {
+  const requiredQuestions = questionsData.filter(q => q.isRequired);
+
+  for (const question of requiredQuestions) {
+    const answer = memorialData.questionAnswers.find(a => a.questionId === question.id);
+    if (!answer || !answer.answerText || answer.answerText.trim().length < question.minLength) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * ✅ 최종 검증 수행
+ */
+function performFinalValidation() {
+  const requiredQuestions = questionsData.filter(q => q.isRequired);
+
+  for (const question of requiredQuestions) {
+    const answer = memorialData.questionAnswers.find(a => a.questionId === question.id);
+    if (!answer || !answer.answerText || answer.answerText.trim().length < question.minLength) {
+      return {
+        isValid: false,
+        message: `"${question.questionText}" 질문에 최소 ${question.minLength}자 이상 답변해주세요.`
+      };
+    }
+  }
+
+  if (memorialData.profileImages.length !== 5) {
+    return {
+      isValid: false,
+      message: '프로필 사진을 정확히 5장 업로드해주세요.'
+    };
+  }
+
+  if (memorialData.voiceFiles.length !== 3) {
+    return {
+      isValid: false,
+      message: '음성 파일을 정확히 3개 업로드해주세요.'
+    };
+  }
+
+  if (!memorialData.videoFile) {
+    return {
+      isValid: false,
+      message: '영상 파일을 1개 업로드해주세요.'
+    };
+  }
+
+  return { isValid: true };
+}
+
+/**
+ * ✅ FormData 생성 (로깅 강화)
+ */
+function createFormData() {
+  const formData = new FormData();
+
+  const basicInfo = {
+    name: memorialData.name?.trim() || '',
+    nickname: memorialData.nickname?.trim() || '',
+    gender: memorialData.gender || '',
+    birthDate: memorialData.birthDate || null,
+    deathDate: memorialData.deathDate || null,
+    relationship: memorialData.relationship || '',
+    questionAnswers: memorialData.questionAnswers
+      .filter(answer => answer.answerText && answer.answerText.trim().length > 0)
+      .map(answer => ({
+        questionId: answer.questionId,
+        answerText: answer.answerText.trim()
+      }))
+  };
+
+  console.log('FormData 생성 - 기본 정보:', basicInfo);
+  console.log('FormData 생성 - 질문 답변:', basicInfo.questionAnswers);
+
+  const blob = new Blob([JSON.stringify(basicInfo)], {
+    type: 'application/json'
+  });
+  formData.append('memorialData', blob);
+
+  memorialData.profileImages.forEach((fileInfo) => {
+    formData.append('profileImages', fileInfo.file);
+  });
+
+  memorialData.voiceFiles.forEach((fileInfo) => {
+    formData.append('voiceFiles', fileInfo.file);
+  });
+
+  if (memorialData.videoFile) {
+    formData.append('videoFile', memorialData.videoFile.file);
+  }
+
+  return formData;
+}
+
+/**
+ * ✅ 폼 제출 핸들러 (로깅 강화)
  */
 async function handleFormSubmit(event) {
   event.preventDefault();
 
-  console.log('폼 제출 시작');
+  console.log('=== 폼 제출 시작 ===');
+  console.log('현재 memorialData:', memorialData);
 
   try {
-    // 유효성 검사
     if (!validateAllData()) {
       return;
     }
 
-    // 로딩 표시
+    const finalValidation = performFinalValidation();
+    if (!finalValidation.isValid) {
+      alert(finalValidation.message);
+      return;
+    }
+
     const submitBtn = document.getElementById('submitBtn');
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 등록 중...';
 
-    // FormData 생성
-    const formData = new FormData();
+    const formData = createFormData();
 
-    // 기본 정보 + 질문 답변들
-    const basicInfo = {
-      name: memorialData.name,
-      nickname: memorialData.nickname,
-      gender: memorialData.gender,
-      birthDate: memorialData.birthDate || null,
-      deathDate: memorialData.deathDate || null,
-      relationship: memorialData.relationship,
-      questionAnswers: memorialData.questionAnswers
-    };
-
-    const blob = new Blob([JSON.stringify(basicInfo)], {
-      type: 'application/json'
-    });
-    formData.append('memorialData', blob);
-
-    // 파일들 추가
-    memorialData.profileImages.forEach((fileInfo) => {
-      formData.append('profileImages', fileInfo.file);
+    console.log('전송 데이터:', {
+      basicInfo: memorialData,
+      questionAnswers: memorialData.questionAnswers.length,
+      profileImages: memorialData.profileImages.length,
+      voiceFiles: memorialData.voiceFiles.length,
+      videoFile: memorialData.videoFile ? 'Yes' : 'No'
     });
 
-    memorialData.voiceFiles.forEach((fileInfo) => {
-      formData.append('voiceFiles', fileInfo.file);
-    });
-
-    if (memorialData.videoFile) {
-      formData.append('videoFile', memorialData.videoFile.file);
-    }
-
-    // API 호출
     const result = await authFetch('/api/memorials', {
       method: 'POST',
       body: formData
@@ -858,7 +1158,6 @@ async function handleFormSubmit(event) {
       alert(error.message || '등록 중 오류가 발생했습니다. 다시 시도해주세요.');
     }
   } finally {
-    // 로딩 해제
     updateSubmitButton();
   }
 }
@@ -890,6 +1189,27 @@ function showVideoFileGuide() {
     document.body.style.overflow = 'hidden';
     modal.classList.add('show');
     modal.style.display = 'flex';
+  }
+}
+
+function selectProfileImages() {
+  const input = document.getElementById('profileImageInput');
+  if (input) {
+    input.click();
+  }
+}
+
+function selectVoiceFiles() {
+  const input = document.getElementById('voiceFileInput');
+  if (input) {
+    input.click();
+  }
+}
+
+function selectVideoFile() {
+  const input = document.getElementById('videoFileInput');
+  if (input) {
+    input.click();
   }
 }
 

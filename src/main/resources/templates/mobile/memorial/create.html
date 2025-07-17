@@ -278,7 +278,7 @@
     </form>
   </div>
 
-  <!-- 가이드 모달들 (기존과 동일) -->
+  <!-- 대표 사진 가이드 모달 -->
   <div class="modal fade" id="profileImageGuideModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
@@ -297,7 +297,55 @@
               </div>
               <p>최소 1080x1080 이상의 고화질 사진을 사용하세요.</p>
             </div>
-            <!-- 다른 가이드 내용들... -->
+
+            <div class="guide-tip">
+              <div class="tip-header">
+                <span class="tip-icon">👤</span>
+                <h6>얼굴이 선명한 사진</h6>
+              </div>
+              <p>얼굴이 정면에서 잘 보이는 사진이 좋습니다.</p>
+            </div>
+
+            <div class="guide-tip">
+              <div class="tip-header">
+                <span class="tip-icon">😊</span>
+                <h6>밝고 자연스러운 표정</h6>
+              </div>
+              <p>밝고 자연스러운 표정의 사진을 선택하세요.</p>
+            </div>
+
+            <div class="guide-tip">
+              <div class="tip-header">
+                <span class="tip-icon">🎯</span>
+                <h6>단독 사진 추천</h6>
+              </div>
+              <p>다른 사람이 함께 있지 않은 단독 사진을 선택하세요.</p>
+            </div>
+
+            <div class="file-info">
+              <h6>📂 파일 정보</h6>
+              <ul>
+                <li>JPG, PNG, HEIC 형식 지원</li>
+                <li>최대 10MB까지 업로드 가능</li>
+              </ul>
+            </div>
+
+            <div class="examples">
+              <h6>👍 좋은 예시 vs 나쁜 예시</h6>
+              <ul>
+                <li class="good">정면에서 촬영한 증명사진</li>
+                <li class="good">자연스러운 일상 사진</li>
+                <li class="good">밝은 조명의 실내외 사진</li>
+                <li class="bad">흐릿하거나 어두운 사진</li>
+                <li class="bad">측면이나 뒷모습 사진</li>
+                <li class="bad">여러 명이 함께 있는 사진</li>
+              </ul>
+            </div>
+
+            <div class="warning">
+              <h6>⚠️ 중요한 안내</h6>
+              <p>업로드된 모든 자료들은 AI 학습에 사용되며, 블록체인 기술로 안전하게 보관됩니다. 개인정보 보호를 위해 타인의 개인정보가 포함된 자료는 업로드하지 마세요.</p>
+            </div>
           </div>
         </div>
         <div class="modal-footer">
@@ -309,14 +357,166 @@
     </div>
   </div>
 
-  <!-- 음성 파일 가이드 모달 (기존과 동일) -->
+  <!-- 음성 파일 가이드 모달 -->
   <div class="modal fade" id="voiceFileGuideModal" tabindex="-1">
-    <!-- 모달 내용 생략 -->
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            🎤 목소리 파일 업로드 가이드
+          </h5>
+          <button type="button" class="btn-close" data-action="close-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="guide-content">
+            <div class="guide-tip">
+              <div class="tip-header">
+                <span class="tip-icon">🔇</span>
+                <h6>조용한 환경에서 녹음</h6>
+              </div>
+              <p>배경 소음이 없는 조용한 곳에서 녹음하세요.</p>
+            </div>
+
+            <div class="guide-tip">
+              <div class="tip-header">
+                <span class="tip-icon">💬</span>
+                <h6>자연스러운 말투</h6>
+              </div>
+              <p>평소 말하시던 자연스러운 말투로 녹음하세요.</p>
+            </div>
+
+            <div class="guide-tip">
+              <div class="tip-header">
+                <span class="tip-icon">⏱️</span>
+                <h6>적절한 길이</h6>
+              </div>
+              <p>각 파일당 30초 이상 2분 이하로 녹음해주세요.</p>
+            </div>
+
+            <div class="guide-tip">
+              <div class="tip-header">
+                <span class="tip-icon">🎭</span>
+                <h6>다양한 상황별 녹음</h6>
+              </div>
+              <p>일상 대화, 인사말, 감정 표현 등 다양한 상황의 목소리 3개를 준비하세요.</p>
+            </div>
+
+            <div class="file-info">
+              <h6>📂 파일 정보</h6>
+              <ul>
+                <li>MP3, WAV, M4A 형식 지원</li>
+                <li>각 파일 최대 20MB, 총 3개 필수</li>
+              </ul>
+            </div>
+
+            <div class="examples">
+              <h6>👍 좋은 예시 vs 나쁜 예시</h6>
+              <ul>
+                <li class="good">"안녕하세요, 사랑하는 가족들아" (인사)</li>
+                <li class="good">"오늘 날씨가 참 좋네요" (일상 대화)</li>
+                <li class="good">"건강하게 잘 지내고 있어요" (안부)</li>
+                <li class="good">웃음소리나 감탄사가 포함된 자연스러운 대화</li>
+                <li class="bad">너무 짧은 단어나 인사 (30초 미만)</li>
+                <li class="bad">배경음이 큰 환경에서 녹음</li>
+                <li class="bad">인위적이거나 어색한 말투</li>
+                <li class="bad">같은 내용을 반복한 파일들</li>
+              </ul>
+            </div>
+
+            <div class="warning">
+              <h6>⚠️ 중요한 안내</h6>
+              <p>업로드된 모든 자료들은 AI 학습에 사용되며, 정확한 AI 기능을 위한 목적으로만 사용됩니다.</p>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" data-action="select-voice-files">
+            파일 선택하기
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <!-- 영상 파일 가이드 모달 (기존과 동일) -->
+  <!-- 영상 파일 가이드 모달 -->
   <div class="modal fade" id="videoFileGuideModal" tabindex="-1">
-    <!-- 모달 내용 생략 -->
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            🎬 영상 자료 업로드 가이드
+          </h5>
+          <button type="button" class="btn-close" data-action="close-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="guide-content">
+            <div class="guide-tip">
+              <div class="tip-header">
+                <span class="tip-icon">📱</span>
+                <h6>세로 영상 권장</h6>
+              </div>
+              <p>모바일 환경에 최적화된 세로(9:16) 영상을 권장합니다.</p>
+            </div>
+
+            <div class="guide-tip">
+              <div class="tip-header">
+                <span class="tip-icon">🎥</span>
+                <h6>안정적인 촬영</h6>
+              </div>
+              <p>삼각대나 고정 장치를 사용해 흔들림 없이 촬영하세요.</p>
+            </div>
+
+            <div class="guide-tip">
+              <div class="tip-header">
+                <span class="tip-icon">⏰</span>
+                <h6>적절한 길이</h6>
+              </div>
+              <p>1분 이상 5분 이하의 영상으로 제작해주세요.</p>
+            </div>
+
+            <div class="guide-tip">
+              <div class="tip-header">
+                <span class="tip-icon">🗣️</span>
+                <h6>말하는 모습 포함</h6>
+              </div>
+              <p>자연스럽게 말하는 모습이 포함된 영상을 촬영하세요.</p>
+            </div>
+
+            <div class="file-info">
+              <h6>📂 파일 정보</h6>
+              <ul>
+                <li>MP4, MOV, AVI 형식 지원</li>
+                <li>최대 200MB, 1개 필수</li>
+              </ul>
+            </div>
+
+            <div class="examples">
+              <h6>👍 좋은 예시 vs 나쁜 예시</h6>
+              <ul>
+                <li class="good">정면에서 촬영한 인사 영상</li>
+                <li class="good">자연스러운 대화나 이야기하는 장면</li>
+                <li class="good">밝은 표정으로 말하는 모습</li>
+                <li class="good">다양한 표정과 제스처가 포함된 영상</li>
+                <li class="bad">흔들림이 심한 영상</li>
+                <li class="bad">너무 어둡거나 흐릿한 영상</li>
+                <li class="bad">말하는 모습이 없는 영상</li>
+                <li class="bad">1분 미만의 너무 짧은 영상</li>
+              </ul>
+            </div>
+
+            <div class="warning">
+              <h6>⚠️ 중요한 안내</h6>
+              <p>업로드된 모든 자료들은 AI 학습에 사용되며, 정확한 AI 기능을 위한 목적으로만 사용됩니다.</p>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" data-action="select-video-files">
+            파일 선택하기
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 
 </section>

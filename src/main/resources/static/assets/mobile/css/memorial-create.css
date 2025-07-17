@@ -1,4 +1,4 @@
-/* memorial-create.css - 메모리얼 등록 페이지 스타일 */
+/* memorial-create.css - 메모리얼 등록 페이지 스타일 (개선된 버전) */
 
 :root {
   --memorial-primary-color: #6c5ce7;
@@ -48,7 +48,7 @@
   padding: 0 var(--spacing-md);
   background: var(--bg-primary);
   min-height: 100vh;
-  text-align: left; /* 컨테이너 기본 정렬 */
+  text-align: left;
 }
 
 /* 뒤로가기 버튼 */
@@ -202,8 +202,9 @@
   color: var(--text-primary);
   background: var(--bg-primary);
   transition: var(--transition-smooth);
-  text-align: left; /* 텍스트 정렬 강제 */
-  vertical-align: top; /* textarea 수직 정렬 */
+  text-align: left;
+  vertical-align: top;
+  box-sizing: border-box;
 }
 
 .form-input:focus, .form-select:focus, .form-textarea:focus {
@@ -225,30 +226,81 @@
   cursor: pointer;
 }
 
+/* ✅ TEXTAREA 간격 제거 및 스타일 강화 */
 .form-textarea {
   resize: vertical;
   min-height: 80px;
   font-family: inherit;
-  text-align: left; /* 강제 왼쪽 정렬 */
-  vertical-align: top; /* 상단 정렬 */
-  line-height: 1.5; /* 줄 간격 */
-  word-wrap: break-word; /* 단어 줄바꿈 */
-  overflow-wrap: break-word; /* 긴 단어 줄바꿈 */
+  text-align: left !important;
+  vertical-align: top !important;
+  line-height: 1.5;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+
+  /* 간격 제거 */
+  padding-left: var(--spacing-md) !important;
+  padding-right: var(--spacing-md) !important;
+  text-indent: 0 !important;
+  margin: 0 !important;
+
+  /* 텍스트 방향 강제 */
+  direction: ltr !important;
+  unicode-bidi: embed !important;
+  white-space: pre-wrap !important;
+  word-break: break-word !important;
+  -webkit-text-align-last: left !important;
+  text-align-last: left !important;
+
+  /* 브라우저별 기본 스타일 초기화 */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
 }
 
+/* ✅ 에러 상태 스타일 강화 */
+.form-input.is-invalid,
+.form-textarea.is-invalid,
+.form-select.is-invalid {
+  border-color: var(--memorial-danger-color) !important;
+  box-shadow: 0 0 0 3px rgba(229, 62, 62, 0.15) !important;
+  background-color: rgba(229, 62, 62, 0.05) !important;
+}
+
+.form-input.is-invalid:focus,
+.form-textarea.is-invalid:focus,
+.form-select.is-invalid:focus {
+  border-color: var(--memorial-danger-color) !important;
+  box-shadow: 0 0 0 3px rgba(229, 62, 62, 0.25) !important;
+}
+
+/* ✅ 에러 메시지 스타일 강화 */
 .form-error {
   font-size: 12px;
   color: var(--memorial-danger-color);
   margin-top: var(--spacing-xs);
   display: none;
+  line-height: 1.3;
+  font-weight: 500;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: rgba(229, 62, 62, 0.1);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--memorial-danger-color);
 }
 
 .form-error.show {
   display: block;
+  animation: errorSlideIn 0.3s ease-out;
 }
 
-.form-input.is-invalid, .form-textarea.is-invalid {
-  border-color: var(--memorial-danger-color);
+@keyframes errorSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* 성별 선택 */
@@ -304,33 +356,27 @@
   transform: translateY(-1px);
 }
 
-/* 글자 수 표시 */
+/* ✅ 글자 수 표시 스타일 강화 */
 .character-count {
   font-size: 12px;
   color: var(--text-muted);
   margin-top: var(--spacing-xs);
   text-align: right;
+  font-weight: 500;
+  transition: var(--transition-smooth);
 }
 
 .character-count.warning {
   color: var(--memorial-warning-color);
+  font-weight: 600;
 }
 
 .character-count.danger {
   color: var(--memorial-danger-color);
+  font-weight: 700;
 }
 
-/* 특별히 textarea에 대한 스타일 강화 */
-textarea.form-textarea {
-  text-align: left !important;
-  direction: ltr !important; /* 텍스트 방향 강제 */
-  unicode-bidi: embed !important;
-  white-space: pre-wrap !important; /* 공백과 줄바꿈 보존 */
-  word-break: break-word !important;
-  overflow-wrap: break-word !important;
-  -webkit-text-align-last: left !important; /* 웹킷 브라우저 */
-  text-align-last: left !important; /* 마지막 줄 정렬 */
-}
+/* 질문이 없는 경우 스타일 */
 .empty-questions {
   text-align: center;
   padding: var(--spacing-xl);
@@ -730,6 +776,94 @@ textarea.form-textarea {
 .guide-tip p {
   color: var(--text-secondary);
   font-size: 13px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.file-info {
+  margin: var(--spacing-lg) 0;
+  padding: var(--spacing-md);
+  background: var(--bg-muted);
+  border-radius: var(--radius-sm);
+}
+
+.file-info h6 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 var(--spacing-sm) 0;
+}
+
+.file-info ul {
+  margin: 0;
+  padding-left: var(--spacing-lg);
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.file-info li {
+  margin-bottom: var(--spacing-xs);
+}
+
+.examples {
+  margin: var(--spacing-lg) 0;
+}
+
+.examples h6 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 var(--spacing-sm) 0;
+}
+
+.examples ul {
+  margin: 0;
+  padding-left: var(--spacing-lg);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.examples li {
+  margin-bottom: var(--spacing-xs);
+}
+
+.examples li.good {
+  color: #48bb78;
+}
+
+.examples li.good::before {
+  content: "✅ ";
+  margin-right: var(--spacing-xs);
+}
+
+.examples li.bad {
+  color: #e53e3e;
+}
+
+.examples li.bad::before {
+  content: "❌ ";
+  margin-right: var(--spacing-xs);
+}
+
+.warning {
+  background: #fef5e7;
+  border: 1px solid #f6e05e;
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-md);
+  margin-top: var(--spacing-md);
+}
+
+.warning h6 {
+  color: #d69e2e;
+  margin: 0 0 var(--spacing-xs) 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.warning p {
+  color: #975a16;
+  font-size: 12px;
   line-height: 1.4;
   margin: 0;
 }
