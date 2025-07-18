@@ -587,6 +587,11 @@
 
                 updateStatusSmoothly('연결 준비 중...');
 
+                // ✅ 페이지 진입 시 즉시 음성 안내 표시 (2초 후 자동 숨김)
+                setTimeout(() => {
+                    showInitialAudioGuide();
+                }, 500);
+
             } catch (playError) {
                 if (playError.name === 'NotAllowedError') {
                     console.log('📱 자동재생 차단됨 - 사용자 터치 대기');
@@ -601,6 +606,21 @@
             showStaticBackground();
         }
     }
+
+    function showInitialAudioGuide() {
+      console.log('🔊 초기 음성 안내 표시 (2초간)');
+
+      if (!isAudioEnabled) {
+          audioGuide.classList.add('show');        // 말풍선 표시
+          muteBtn.classList.add('pulse');          // 버튼 펄스 효과
+
+          // 2초 후 자동 숨김
+          setTimeout(() => {
+              hideAudioGuide();
+              console.log('🔊 초기 음성 안내 자동 숨김 완료');
+          }, 2000);
+      }
+  }
 
     // ========== 3. 백그라운드 세션 초기화 ==========
     async function initializeSessionInBackground() {

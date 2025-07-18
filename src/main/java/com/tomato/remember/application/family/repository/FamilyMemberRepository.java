@@ -44,7 +44,8 @@ public interface FamilyMemberRepository extends JpaRepository<FamilyMember, Long
     /**
      * 특정 메모리얼의 활성 가족 구성원 조회 (페이징)
      */
-    Page<FamilyMember> findByMemorialAndInviteStatusOrderByCreatedAtDesc(Memorial memorial, InviteStatus inviteStatus, Pageable pageable);
+    Page<FamilyMember> findByMemorialAndInviteStatusOrderByCreatedAtDesc(Memorial memorial, InviteStatus inviteStatus,
+        Pageable pageable);
 
     /**
      * 메모리얼의 활성 가족 구성원 조회
@@ -79,7 +80,33 @@ public interface FamilyMemberRepository extends JpaRepository<FamilyMember, Long
     /**
      * 특정 메모리얼과 회원의 관계 조회
      */
-    Optional<FamilyMember> findByMemorialAndMember(Memorial memorial, Member member);
+    @Query("SELECT fm FROM FamilyMember fm " +
+        "WHERE fm.memorial = :memorial " +
+        "AND fm.member = :member")
+    Optional<FamilyMember> findByMemorialAndMember(
+        @Param("memorial") Memorial memorial,
+        @Param("member") Member member);
+
+    /**
+     * 특정 메모리얼과 회원으로 가족 구성원 조회 (활성 상태만)
+     */
+    @Query("SELECT fm FROM FamilyMember fm " +
+        "WHERE fm.memorial = :memorial " +
+        "AND fm.member = :member " +
+        "AND fm.inviteStatus = 'ACCEPTED'")
+    Optional<FamilyMember> findActiveByMemorialAndMember(
+        @Param("memorial") Memorial memorial,
+        @Param("member") Member member);
+
+    /**
+     * 특정 메모리얼과 회원 ID로 가족 구성원 조회
+     */
+    @Query("SELECT fm FROM FamilyMember fm " +
+        "WHERE fm.memorial.id = :memorialId " +
+        "AND fm.member.id = :memberId")
+    Optional<FamilyMember> findByMemorialIdAndMemberId(
+        @Param("memorialId") Long memorialId,
+        @Param("memberId") Long memberId);
 
     /**
      * 특정 메모리얼과 회원의 활성 관계 조회
@@ -130,8 +157,6 @@ public interface FamilyMemberRepository extends JpaRepository<FamilyMember, Long
      */
     @Query("SELECT fm FROM FamilyMember fm WHERE fm.inviteStatus = 'PENDING' AND fm.createdAt < :expireTime")
     List<FamilyMember> findExpiredInvitations(@Param("expireTime") LocalDateTime expireTime);
-
-
 
     /**
      * 특정 소유자의 메모리얼 수 조회
@@ -198,35 +223,35 @@ public interface FamilyMemberRepository extends JpaRepository<FamilyMember, Long
      * 사용자가 접근 가능한 모든 가족 구성원 조회 (한 번의 쿼리로)
      */
     @Query("SELECT DISTINCT fm FROM FamilyMember fm " +
-            "JOIN FETCH fm.member m " +
-            "JOIN FETCH fm.memorial mem " +
-            "JOIN FETCH mem.owner owner " +
-            "WHERE (mem.owner = :currentUser " +
-            "   OR EXISTS (SELECT fm2 FROM FamilyMember fm2 " +
-            "              WHERE fm2.memorial = mem " +
-            "              AND fm2.member = :currentUser " +
-            "              AND fm2.inviteStatus = 'ACCEPTED' " +
-            "              AND fm2.memorialAccess = true)) " +
-            "ORDER BY fm.createdAt DESC")
+        "JOIN FETCH fm.member m " +
+        "JOIN FETCH fm.memorial mem " +
+        "JOIN FETCH mem.owner owner " +
+        "WHERE (mem.owner = :currentUser " +
+        "   OR EXISTS (SELECT fm2 FROM FamilyMember fm2 " +
+        "              WHERE fm2.memorial = mem " +
+        "              AND fm2.member = :currentUser " +
+        "              AND fm2.inviteStatus = 'ACCEPTED' " +
+        "              AND fm2.memorialAccess = true)) " +
+        "ORDER BY fm.createdAt DESC")
     List<FamilyMember> findAllAccessibleFamilyMembers(@Param("currentUser") Member currentUser);
 
     /**
      * 메모리얼별 가족 구성원 정보와 함께 조회
      */
     @Query("SELECT fm FROM FamilyMember fm " +
-            "JOIN FETCH fm.member m " +
-            "JOIN FETCH fm.memorial mem " +
-            "WHERE fm.memorial = :memorial " +
-            "ORDER BY fm.inviteStatus ASC, fm.createdAt DESC")
+        "JOIN FETCH fm.member m " +
+        "JOIN FETCH fm.memorial mem " +
+        "WHERE fm.memorial = :memorial " +
+        "ORDER BY fm.inviteStatus ASC, fm.createdAt DESC")
     List<FamilyMember> findByMemorialWithDetails(@Param("memorial") Memorial memorial);
 
     /**
      * 회원의 접근 가능한 메모리얼 상세 정보와 함께 조회
      */
     @Query("SELECT fm FROM FamilyMember fm " +
-            "JOIN FETCH fm.memorial mem " +
-            "JOIN FETCH mem.owner owner " +
-            "WHERE fm.member = :member AND fm.inviteStatus = 'ACCEPTED' AND fm.memorialAccess = true " +
-            "ORDER BY fm.lastAccessAt DESC NULLS LAST, fm.createdAt DESC")
+        "JOIN FETCH fm.memorial mem " +
+        "JOIN FETCH mem.owner owner " +
+        "WHERE fm.member = :member AND fm.inviteStatus = 'ACCEPTED' AND fm.memorialAccess = true " +
+        "ORDER BY fm.lastAccessAt DESC NULLS LAST, fm.createdAt DESC")
     List<FamilyMember> findAccessibleMemorialsWithDetails(@Param("member") Member member);
 }

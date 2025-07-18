@@ -13,7 +13,7 @@
     <link th:href="@{/bootstrap/css/bootstrap.css}" rel="stylesheet"/>
     <!-- Common CSS -->
     <link th:href="@{/assets/mobile/css/common.css}" rel="stylesheet"/>
-    <!-- Unified Family List CSS -->
+    <!-- Family List CSS -->
     <link th:href="@{/assets/mobile/css/family-list.css}" rel="stylesheet"/>
 </head>
 
@@ -163,13 +163,13 @@
                             <!-- 일반 가족 구성원 -->
                             <th:block th:if="${member.relationship.name() != 'SELF'}">
                                 <button th:class="'permission-btn' + (${member.permissions?.memorialAccess == true} ? ' granted' : ' denied')"
-                                        th:attr="data-member-id=${member.id}, data-real-member-id=${member.member?.id}">
+                                        th:attr="data-member-id=${member.id}">
                                     <span th:if="${member.permissions?.memorialAccess == true}">권한 설정</span>
                                     <span th:if="${member.permissions?.memorialAccess != true}">권한 없음</span>
                                 </button>
 
                                 <button class="menu-btn"
-                                        th:attr="data-member-id=${member.id}, data-real-member-id=${member.member?.id}, data-member-name=${member.member?.name ?: 'Unknown'}"
+                                        th:attr="data-member-id=${member.id}, data-member-name=${member.member?.name ?: 'Unknown'}"
                                         aria-label="더보기">
                                     <i class="fas fa-ellipsis-v"></i>
                                 </button>
@@ -198,12 +198,12 @@
 </div>
 
 <!-- 초대 모달 -->
-<div class="modal fade" id="inviteModal" tabindex="-1" aria-labelledby="inviteModalLabel" aria-hidden="true">
+<div class="modal fade" id="inviteModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="inviteModalLabel">가족 구성원 초대</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">&times;</button>
+                <h5 class="modal-title">가족 구성원 초대</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form id="inviteForm">
@@ -276,123 +276,6 @@
     </div>
 </div>
 
-<!-- 권한 설정 모달 -->
-<div class="modal fade" id="permissionModal" tabindex="-1" aria-labelledby="permissionModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="permissionModalLabel">권한 설정</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="permission-member-info clean-info">
-                  <div class="avatar-wrapper">
-                    <!-- 실제 이미지가 있다면 <img>로, 아니면 이대로 span으로도 OK -->
-                    <div class="member-avatar"><span id="permissionMemberName">?</span></div>
-                  </div>
-                  <div class="info-wrapper">
-                    <h4 class="member-name" id="permissionMemberFullName">구성원 이름</h4>
-                    <p class="member-relation" id="permissionMemberRelation">고인과의 관계</p>
-                    <p class="member-status" id="permissionMemberStatus">상태: 수락됨</p>
-                  </div>
-                </div>
-
-                <div class="permission-list">
-                    <div class="permission-item">
-                        <div class="permission-info">
-                            <div class="permission-title">
-                                <i class="fas fa-heart"></i>
-                                메모리얼 접근
-                            </div>
-                            <div class="permission-description">
-                                메모리얼 페이지 조회 및 기본 기능 사용
-                            </div>
-                        </div>
-                        <div class="permission-toggle">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="memorialAccessSwitch">
-                                <label class="form-check-label" for="memorialAccessSwitch"></label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="permission-item">
-                        <div class="permission-info">
-                            <div class="permission-title">
-                                <i class="fas fa-video"></i>
-                                화상 통화
-                            </div>
-                            <div class="permission-description">
-                                화상 통화 기능 사용
-                            </div>
-                        </div>
-                        <div class="permission-toggle">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="videoCallSwitch">
-                                <label class="form-check-label" for="videoCallSwitch"></label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
-                <button type="button" class="btn btn-primary" id="savePermissionBtn">권한 저장</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- 구성원 메뉴 모달 -->
-<!-- 구성원 메뉴 모달 -->
-<div class="modal fade" id="memberMenuModal" tabindex="-1" aria-labelledby="memberMenuModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-
-      <div class="modal-header">
-        <h5 class="modal-title" id="memberMenuModalLabel">구성원 관리</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">&times;</button>
-      </div>
-
-      <div class="modal-body">
-
-        <!-- 1) 사용자 정보 -->
-        <div class="member-menu-info clean-info">
-          <div class="avatar-wrapper">
-            <div class="member-avatar"><span id="menuMemberName">길</span></div>
-          </div>
-          <div class="info-wrapper">
-            <h4 class="member-name" id="menuMemberFullName">길동</h4>
-            <p class="member-relation" id="menuMemberRelation">고인과의 관계: 자</p>
-            <p class="member-status" id="menuMemberStatus">상태: 수락됨</p>
-          </div>
-        </div>
-
-        <!-- 2) 액션 리스트 -->
-        <ul class="member-menu-actions clean-actions">
-          <li class="action-item" id="copyInviteLinkBtn">
-            <div class="icon-wrapper"><i class="fas fa-link"></i></div>
-            <div class="text-wrapper">
-              <h5>초대 링크 복사</h5>
-              <p>초대 링크를 클립보드에 복사합니다</p>
-            </div>
-            <div class="chevron-wrapper">›</div>
-          </li>
-          <li class="action-item destructive" id="removeMemberBtn">
-            <div class="icon-wrapper"><i class="fas fa-user-times"></i></div>
-            <div class="text-wrapper">
-              <h5>구성원 제거</h5>
-              <p>가족 구성원을 제거합니다</p>
-            </div>
-            <div class="chevron-wrapper">›</div>
-          </li>
-        </ul>
-
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- Bootstrap JS -->
 <script th:src="@{/bootstrap/js/bootstrap.bundle.js}"></script>
 
@@ -436,7 +319,7 @@
     console.log('페이지 로드 완료 - 선택된 메모리얼:', window.serverData.selectedMemorial?.id, '구성원:', window.serverData.familyMembers.length);
 </script>
 
-<!-- Enhanced Family List JS -->
+<!-- Family List JS -->
 <script th:src="@{/assets/mobile/js/family-list.js}" type="module"></script>
 </body>
 </html>

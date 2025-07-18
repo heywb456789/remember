@@ -6,6 +6,7 @@ import com.tomato.remember.application.memorial.entity.Memorial;
 import com.tomato.remember.application.member.entity.Member;
 import com.tomato.remember.application.family.entity.FamilyMember;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -61,6 +62,14 @@ public interface MemorialAnswerRepository extends JpaRepository<MemorialAnswer, 
         "AND ma.isComplete = true")
     long countCompletedAnswersByMemorialAndFamilyMember(@Param("memorial") Memorial memorial,
         @Param("familyMember") FamilyMember familyMember);
+
+    /**
+     * 가족 구성원별 답변 삭제 (일괄 삭제)
+     */
+    @Modifying
+    @Query("DELETE FROM MemorialAnswer ma " +
+        "WHERE ma.familyMember = :familyMember")
+    void deleteAllByFamilyMember(@Param("familyMember") FamilyMember familyMember);
 
     /**
      * 특정 메모리얼과 가족 구성원의 특정 질문 답변 조회

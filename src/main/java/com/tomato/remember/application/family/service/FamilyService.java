@@ -11,10 +11,13 @@ import com.tomato.remember.application.family.dto.FamilyQuestionAnswerDTO;
 import com.tomato.remember.application.family.dto.FamilySearchCondition;
 import com.tomato.remember.application.family.dto.MemorialSummaryResponse;
 import com.tomato.remember.application.family.dto.FamilyPermissionRequest;
+import com.tomato.remember.application.family.entity.FamilyInviteToken;
 import com.tomato.remember.application.family.entity.FamilyMember;
+import com.tomato.remember.application.family.repository.FamilyInviteTokenRepository;
 import com.tomato.remember.application.family.repository.FamilyMemberRepository;
 import com.tomato.remember.application.member.code.Relationship;
 import com.tomato.remember.application.member.entity.Member;
+import com.tomato.remember.application.member.repository.MemberRepository;
 import com.tomato.remember.application.memorial.entity.Memorial;
 import com.tomato.remember.application.memorial.entity.MemorialAnswer;
 import com.tomato.remember.application.memorial.entity.MemorialQuestion;
@@ -25,9 +28,11 @@ import com.tomato.remember.application.memorial.service.MemorialService;
 import com.tomato.remember.common.dto.ListDTO;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -49,12 +54,17 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class FamilyService {
 
+    @Value("${spring.mail.domain:https://app.tomatoremember.com}")
+    private String appDomain;
+
+    private final MemberRepository memberRepository;
     private final FamilyMemberRepository familyMemberRepository;
     private final MemorialRepository memorialRepository;
     private final MemorialService memorialService;
     private final FamilyInviteService familyInviteService;
     private final MemorialQuestionRepository memorialQuestionRepository;
     private final MemorialAnswerRepository memorialAnswerRepository;
+    private final FamilyInviteTokenRepository familyInviteTokenRepository;
 
     // ===== SSR 전용 메서드 =====
 
@@ -802,56 +812,219 @@ public class FamilyService {
      * 가족 구성원 권한 수정
      */
     @Transactional
-    public void updateMemberPermissions(Member member, Long memberId, FamilyPermissionRequest request) {
-        log.info("가족 구성원 권한 수정 - 사용자: {}, 구성원: {}, 요청: {}",
-            member.getId(), memberId, request);
+    public void updateFamilyMemberPermissions(Member currentUser, Long memorialId, Long memberId,
+        FamilyPermissionRequest request) {
+        log.info("가족 구성원 권한 수정 - 사용자: {}, 메모리얼: {}, 회원: {}, 권한: {}",
+            currentUser.getId(), memorialId, memberId, request.getSummary());
 
-        // 가족 구성원 조회 및 권한 확인
-        FamilyMember familyMember = familyMemberRepository.findById(memberId)
-            .orElseThrow(() -> new IllegalArgumentException("가족 구성원을 찾을 수 없습니다."));
+        // 1. 메모리얼 조회 및 소유자 권한 확인
+        Memorial memorial = memorialRepository.findById(memorialId)
+            .orElseThrow(() -> new IllegalArgumentException("메모리얼을 찾을 수 없습니다."));
 
-        // 소유자 권한 확인
-        if (! familyMember.getMemorial().getOwner().equals(member)) {
-            throw new IllegalArgumentException("권한이 없습니다.");
+        // 2. 소유자 권한 확인 (안전한 ID 비교)
+        if (! Objects.equals(memorial.getOwner().getId(), currentUser.getId())) {
+            log.warn("권한 없음 - 메모리얼 소유자: {}, 현재 사용자: {}",
+                memorial.getOwner().getId(), currentUser.getId());
+            throw new SecurityException("메모리얼 소유자만 권한을 수정할 수 있습니다.");
         }
 
-        // 자기 자신은 권한 수정 불가
-        if (familyMember.getMember().equals(member)) {
+        // 3. 대상 회원 조회
+        Member targetMember = memberRepository.findById(memberId)
+            .orElseThrow(() -> new IllegalArgumentException("회원을 찾을 수 없습니다."));
+
+        // 4. 자기 자신은 권한 수정 불가 (ID 비교)
+        if (Objects.equals(targetMember.getId(), currentUser.getId())) {
             throw new IllegalArgumentException("자기 자신의 권한은 수정할 수 없습니다.");
         }
 
-        // 권한 수정
+        // 5. 해당 메모리얼의 가족 구성원 조회
+        FamilyMember familyMember = familyMemberRepository.findByMemorialAndMember(memorial, targetMember)
+            .orElseThrow(() -> new IllegalArgumentException("해당 메모리얼의 가족 구성원이 아닙니다."));
+
+        // 6. 소유자 관계는 권한 수정 불가 (이중 체크)
+        if (familyMember.getRelationship() == Relationship.SELF) {
+            throw new IllegalArgumentException("메모리얼 소유자의 권한은 수정할 수 없습니다.");
+        }
+
+        // 7. 활성 상태 확인
+        if (! familyMember.isActive()) {
+            throw new IllegalArgumentException("활성 상태인 가족 구성원만 권한을 수정할 수 있습니다.");
+        }
+
+        // 8. 권한 변경 사항 확인
+        if (! request.hasChanges(familyMember.getMemorialAccess(), familyMember.getVideoCallAccess())) {
+            throw new IllegalArgumentException("변경할 권한이 없습니다.");
+        }
+
+        // 9. 권한 업데이트
         familyMember.updateMemorialAccess(request.getMemorialAccess());
         familyMember.updateVideoCallAccess(request.getVideoCallAccess());
 
-        log.info("가족 구성원 권한 수정 완료 - 구성원: {}", memberId);
+        familyMemberRepository.save(familyMember);
+
+        log.info("가족 구성원 권한 수정 완료 - 메모리얼: {}, 회원: {}, 메모리얼접근: {}, 영상통화: {}",
+            memorialId, memberId, request.getMemorialAccess(), request.getVideoCallAccess());
     }
+
 
     /**
      * 가족 구성원 삭제
      */
     @Transactional
-    public void removeFamilyMember(Member member, Long memberId) {
-        log.info("가족 구성원 삭제 - 사용자: {}, 구성원: {}", member.getId(), memberId);
+    public String removeFamilyMember(Member currentUser, Long memorialId, Long memberId) {
+        log.info("가족 구성원 제거 시작 - 사용자: {}, 메모리얼: {}, 회원: {}",
+            currentUser.getId(), memorialId, memberId);
 
-        // 가족 구성원 조회 및 권한 확인
-        FamilyMember familyMember = familyMemberRepository.findById(memberId)
-            .orElseThrow(() -> new IllegalArgumentException("가족 구성원을 찾을 수 없습니다."));
+        // 1. 메모리얼 조회
+        Memorial memorial = memorialRepository.findById(memorialId)
+            .orElseThrow(() -> new IllegalArgumentException("메모리얼을 찾을 수 없습니다."));
 
-        // 소유자 권한 확인
-        if (! familyMember.getMemorial().getOwner().equals(member)) {
-            throw new IllegalArgumentException("권한이 없습니다.");
+        // 2. 소유자 권한 확인 (안전한 ID 비교)
+        if (! Objects.equals(memorial.getOwner().getId(), currentUser.getId())) {
+            log.warn("권한 없음 - 메모리얼 소유자: {}, 현재 사용자: {}",
+                memorial.getOwner().getId(), currentUser.getId());
+            throw new SecurityException("메모리얼 소유자만 가족 구성원을 제거할 수 있습니다.");
         }
 
-        // 자기 자신은 삭제 불가
-        if (familyMember.getMember().equals(member)) {
-            throw new IllegalArgumentException("자기 자신은 삭제할 수 없습니다.");
+        // 3. 대상 회원 조회
+        Member targetMember = memberRepository.findById(memberId)
+            .orElseThrow(() -> new IllegalArgumentException("회원을 찾을 수 없습니다."));
+
+        // 4. 자기 자신은 제거 불가 (ID 비교)
+        if (Objects.equals(targetMember.getId(), currentUser.getId())) {
+            throw new IllegalArgumentException("자기 자신은 제거할 수 없습니다.");
         }
 
-        // 가족 구성원 삭제
+        // 5. 해당 메모리얼의 가족 구성원 조회
+        FamilyMember familyMember = familyMemberRepository.findByMemorialAndMember(memorial, targetMember)
+            .orElseThrow(() -> new IllegalArgumentException("해당 메모리얼의 가족 구성원이 아닙니다."));
+
+        // 6. 소유자 관계는 제거 불가 (이중 체크)
+        if (familyMember.getRelationship() == Relationship.SELF) {
+            throw new IllegalArgumentException("메모리얼 소유자는 제거할 수 없습니다.");
+        }
+
+        String memberName = familyMember.getMemberName();
+
+        // 7. 관련 데이터 삭제 (참조 무결성 유지)
+        // 7-1. MemorialAnswer 삭제
+        List<MemorialAnswer> answers = memorialAnswerRepository.findByMemorialAndFamilyMember(memorial, familyMember);
+        if (! answers.isEmpty()) {
+            memorialAnswerRepository.deleteAll(answers);
+            log.info("가족 구성원 답변 삭제 완료 - 메모리얼: {}, 회원: {}, 답변 수: {}",
+                memorialId, memberId, answers.size());
+        }
+
+        // 7-2. FamilyInviteToken은 히스토리로 유지 (물리적 삭제 안함)
+        // 토큰 상태만 업데이트
+        String contact = targetMember.getEmail();
+        if (contact == null || contact.trim().isEmpty()) {
+            contact = targetMember.getPhoneNumber();
+        }
+
+        if (contact != null && ! contact.trim().isEmpty()) {
+            List<FamilyInviteToken> tokens = familyInviteTokenRepository.findByMemorialAndContactOrderByCreatedAtDesc(
+                memorial, contact);
+
+            for (FamilyInviteToken token : tokens) {
+                if (token.getStatus() == InviteStatus.ACCEPTED) {
+                    token.cancel(); // 상태만 변경
+                }
+            }
+
+            if (! tokens.isEmpty()) {
+                familyInviteTokenRepository.saveAll(tokens);
+                log.info("초대 토큰 상태 업데이트 완료 - 메모리얼: {}, 회원: {}, 토큰 수: {}",
+                    memorialId, memberId, tokens.size());
+            }
+        }
+
+        // 7. 가족 구성원 삭제
         familyMemberRepository.delete(familyMember);
 
-        log.info("가족 구성원 삭제 완료 - 구성원: {}", memberId);
+        log.info("가족 구성원 제거 완료 - 메모리얼: {}, 회원: {}, 이름: {}",
+            memorialId, memberId, memberName);
+
+        return memberName;
+    }
+
+    /**
+     * 초대 링크 생성
+     */
+    public String generateInviteLink(Member currentUser, Long memorialId, Long memberId) {
+        log.info("초대 링크 생성 - 사용자: {}, 메모리얼: {}, 회원: {}",
+            currentUser.getId(), memorialId, memberId);
+
+        // 1. 메모리얼 조회 및 소유자 권한 확인
+        Memorial memorial = memorialRepository.findById(memorialId)
+            .orElseThrow(() -> new IllegalArgumentException("메모리얼을 찾을 수 없습니다."));
+
+        // 2. 소유자 권한 확인 (안전한 ID 비교)
+        if (! Objects.equals(memorial.getOwner().getId(), currentUser.getId())) {
+            log.warn("권한 없음 - 메모리얼 소유자: {}, 현재 사용자: {}",
+                memorial.getOwner().getId(), currentUser.getId());
+            throw new SecurityException("메모리얼 소유자만 초대 링크를 생성할 수 있습니다.");
+        }
+
+        // 2. 대상 회원 조회
+        Member targetMember = memberRepository.findById(memberId)
+            .orElseThrow(() -> new IllegalArgumentException("회원을 찾을 수 없습니다."));
+
+        // 3. 해당 메모리얼의 가족 구성원 조회 (권한 확인용)
+        FamilyMember familyMember = familyMemberRepository.findByMemorialAndMember(memorial, targetMember)
+            .orElseThrow(() -> new IllegalArgumentException("해당 메모리얼의 가족 구성원이 아닙니다."));
+
+        // 4. 연락처 정보 확인
+        String contact = targetMember.getEmail();
+        if (contact == null || contact.trim().isEmpty()) {
+            contact = targetMember.getPhoneNumber();
+        }
+
+        if (contact == null || contact.trim().isEmpty()) {
+            throw new IllegalArgumentException("가족 구성원의 연락처 정보가 없습니다.");
+        }
+
+        // 5. 기존 활성 토큰 확인
+        List<FamilyInviteToken> existingTokens = familyInviteTokenRepository
+            .findPendingTokensByMemorialAndContact(memorial, contact, LocalDateTime.now());
+
+        if (! existingTokens.isEmpty()) {
+            // 기존 토큰 반환
+            FamilyInviteToken existingToken = existingTokens.get(0);
+            String inviteLink = createInviteLink(existingToken.getToken());
+
+            log.info("기존 초대 토큰 사용 - 토큰: {}, 메모리얼: {}, 회원: {}",
+                existingToken.getToken().substring(0, 8) + "...", memorialId, memberId);
+
+            return inviteLink;
+        }
+
+        // 6. 새 초대 토큰 생성
+        FamilyInviteToken inviteToken = FamilyInviteToken.createInviteToken(
+            memorial,
+            currentUser,
+            familyMember.getRelationship(),
+            contact.contains("@") ? "email" : "sms",
+            contact,
+            String.format("%s님이 %s 메모리얼에 초대했습니다.",
+                currentUser.getName(), memorial.getName())
+        );
+
+        familyInviteTokenRepository.save(inviteToken);
+
+        String inviteLink = createInviteLink(inviteToken.getToken());
+
+        log.info("새 초대 토큰 생성 완료 - 토큰: {}, 메모리얼: {}, 회원: {}",
+            inviteToken.getToken().substring(0, 8) + "...", memorialId, memberId);
+
+        return inviteLink;
+    }
+
+    /**
+     * 초대 링크 URL 생성
+     */
+    private String createInviteLink(String token) {
+        return appDomain + "/mobile/family/invite/" + token;
     }
 
     /**
@@ -896,7 +1069,7 @@ public class FamilyService {
                 .orElseThrow(() -> new SecurityException("해당 메모리얼의 가족 구성원이 아닙니다."));
 
             // 3. 가족 구성원의 질문 조회
-            List<MemorialQuestion> familQuestions= memorialQuestionRepository.findActiveQuestions();
+            List<MemorialQuestion> familQuestions = memorialQuestionRepository.findActiveQuestions();
 
             // 3. 가족 구성원의 답변 조회
             List<MemorialAnswer> familyAnswers = memorialAnswerRepository
@@ -914,7 +1087,8 @@ public class FamilyService {
             log.info("가족 구성원 고인 상세 정보 조회 완료 - 메모리얼: {}, 답변수: {}, 완성도: {}%",
                 memorialId, familyAnswers.size(), completionPercent);
 
-            return FamilyInfoResponseDTO.forView(memorial, familyMember, familQuestions, familyAnswers, completionPercent);
+            return FamilyInfoResponseDTO.forView(memorial, familyMember, familQuestions, familyAnswers,
+                completionPercent);
 
         } catch (Exception e) {
             log.error("가족 구성원 고인 상세 정보 조회 실패 - 메모리얼: {}", memorialId, e);
@@ -1163,4 +1337,7 @@ public class FamilyService {
         }
     }
 
+    @Transactional
+    public void deleteFamilyMemberByMemorialId(Long memberId, Member member, Long memorialId) {
+    }
 }

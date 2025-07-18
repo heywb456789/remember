@@ -16,6 +16,12 @@ let currentLoading = null;
 //     }
 //   };
 // }
+document.querySelectorAll('.menu-link.disabled').forEach(link => {
+      link.addEventListener('click', function(e) {
+          e.preventDefault();
+          showToast('준비 중인 페이지입니다.', 'warning');
+      });
+  });
 
 // 새로 추가할 함수
 export function hideLoading() {

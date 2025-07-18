@@ -40,9 +40,20 @@ public interface FamilyInviteTokenRepository extends JpaRepository<FamilyInviteT
      */
     @Query("SELECT t FROM FamilyInviteToken t WHERE t.memorial = :memorial AND t.contact = :contact AND t.status = 'PENDING' AND t.expiresAt > :now")
     List<FamilyInviteToken> findPendingTokensByMemorialAndContact(
-            @Param("memorial") Memorial memorial,
-            @Param("contact") String contact,
-            @Param("now") LocalDateTime now);
+        @Param("memorial") Memorial memorial,
+        @Param("contact") String contact,
+        @Param("now") LocalDateTime now);
+
+    /**
+     * 특정 메모리얼과 연락처의 모든 토큰 조회 (히스토리 조회용)
+     */
+    @Query("SELECT fit FROM FamilyInviteToken fit " +
+        "WHERE fit.memorial = :memorial " +
+        "AND fit.contact = :contact " +
+        "ORDER BY fit.createdAt DESC")
+    List<FamilyInviteToken> findByMemorialAndContactOrderByCreatedAtDesc(
+        @Param("memorial") Memorial memorial,
+        @Param("contact") String contact);
 
     /**
      * 특정 초대자의 토큰 목록 조회
@@ -68,7 +79,8 @@ public interface FamilyInviteTokenRepository extends JpaRepository<FamilyInviteT
      * 특정 기간 내의 토큰 목록 조회
      */
     @Query("SELECT t FROM FamilyInviteToken t WHERE t.createdAt BETWEEN :startDate AND :endDate ORDER BY t.createdAt DESC")
-    List<FamilyInviteToken> findByDateRange(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
+    List<FamilyInviteToken> findByDateRange(@Param("startDate") LocalDateTime startDate,
+        @Param("endDate") LocalDateTime endDate);
 
     /**
      * 특정 초대자의 대기 중인 토큰 개수
