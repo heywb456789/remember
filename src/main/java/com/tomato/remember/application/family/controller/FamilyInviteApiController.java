@@ -15,10 +15,7 @@ import jakarta.validation.Valid;
 import java.util.Map;
 
 /**
- * 가족 초대 API 컨트롤러
- * - 초대 발송 처리
- * - SMS 앱 연동 데이터 제공
- * - sessionStorage 기반 초대 토큰 처리
+ * 가족 초대 API 컨트롤러 - SMS 앱 연동 강화 버전
  */
 @Slf4j
 @RestController
@@ -29,7 +26,7 @@ public class FamilyInviteApiController {
     private final FamilyInviteService familyInviteService;
 
     /**
-     * 가족 구성원 초대 발송
+     * 가족 구성원 초대 발송 - SMS 정보 포함한 응답
      * POST /api/family/invite
      */
     @PostMapping
@@ -44,27 +41,25 @@ public class FamilyInviteApiController {
                 maskContact(request.getContact()));
 
         try {
-            String result = familyInviteService.sendFamilyInvite(currentUser.getMember(), request);
+            // 초대 발송 처리 - SMS 정보 포함한 응답 받기
+            Map<String, Object> result = familyInviteService.sendFamilyInvite(currentUser.getMember(), request);
 
-            // 응답 데이터 구성
-            Map<String, Object> responseData = Map.of(
-                    "message", result,
-                    "method", request.getMethod(),
-                    "contact", maskContact(request.getContact()),
-                    "memorialId", request.getMemorialId(),
-                    "relationship", request.getRelationship().getDisplayName()
-            );
+            // 추가 정보 포함
+            result.put("memorialId", request.getMemorialId());
+            result.put("relationship", request.getRelationship().getDisplayName());
+            result.put("timestamp", System.currentTimeMillis());
 
-            log.info("가족 구성원 초대 발송 API 완료 - 사용자: {}, 메모리얼: {}, 방법: {}",
+            log.info("가족 구성원 초대 발송 API 완료 - 사용자: {}, 메모리얼: {}, 방법: {}, 성공: {}",
                     currentUser.getMember().getId(),
                     request.getMemorialId(),
-                    request.getMethod());
+                    request.getMethod(),
+                    result.get("success"));
 
-            return ResponseDTO.ok(responseData);
+            return ResponseDTO.ok(result);
 
         } catch (IllegalArgumentException e) {
             log.warn("가족 구성원 초대 발송 실패 - 잘못된 요청: {}", e.getMessage());
-            throw new APIException(e.getMessage(),ResponseStatus.BAD_REQUEST);
+            throw new APIException(e.getMessage(), ResponseStatus.BAD_REQUEST);
         } catch (Exception e) {
             log.error("가족 구성원 초대 발송 실패 - 사용자: {}, 메모리얼: {}",
                     currentUser.getMember().getId(), request.getMemorialId(), e);
@@ -73,7 +68,37 @@ public class FamilyInviteApiController {
     }
 
     /**
-     * 초대 토큰 처리 API (sessionStorage 기반)
+     * SMS 앱 실행 URL 생성 (추가 API)
+     * GET /api/family/invite/sms-url/{token}
+     */
+    @GetMapping("/sms-url/{token}")
+    public ResponseDTO<Map<String, Object>> createSmsUrl(@PathVariable String token) {
+        log.info("SMS 앱 실행 URL 생성 API 요청 - 토큰: {}", token.substring(0, 8) + "...");
+
+        try {
+            String smsUrl = familyInviteService.createSmsAppUrl(token);
+
+            Map<String, Object> result = Map.of(
+                    "smsUrl", smsUrl,
+                    "success", true,
+                    "message", "SMS 앱 실행 URL이 생성되었습니다."
+            );
+
+            log.info("SMS 앱 실행 URL 생성 API 완료 - 토큰: {}", token.substring(0, 8) + "...");
+
+            return ResponseDTO.ok(result);
+
+        } catch (IllegalArgumentException e) {
+            log.warn("SMS 앱 실행 URL 생성 실패 - 잘못된 요청: {}", e.getMessage());
+            throw new APIException(e.getMessage(), ResponseStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            log.error("SMS 앱 실행 URL 생성 실패 - 토큰: {}", token.substring(0, 8) + "...", e);
+            throw new APIException("SMS 앱 실행 URL 생성 중 오류가 발생했습니다.", ResponseStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * 초대 토큰 처리 API
      * POST /api/family/invite/process
      */
     @PostMapping("/process")
@@ -179,54 +204,48 @@ public class FamilyInviteApiController {
     }
 
     /**
-     * 초대 발송 테스트 (개발용)
-     * POST /api/family/invite/test
+     * SMS 앱 실행 테스트 (개발용)
+     * POST /api/family/invite/test-sms
      */
-    @PostMapping("/test")
-    public ResponseDTO<Map<String, Object>> testInvite(
-            @RequestParam String method,
-            @RequestParam String contact,
+    @PostMapping("/test-sms")
+    public ResponseDTO<Map<String, Object>> testSmsApp(
+            @RequestParam String phoneNumber,
+            @RequestParam(required = false) String message,
             @AuthenticationPrincipal MemberUserDetails currentUser) {
 
-        log.info("초대 발송 테스트 API 요청 - 사용자: {}, 방법: {}, 연락처: {}",
-                currentUser.getMember().getId(), method, maskContact(contact));
+        log.info("SMS 앱 실행 테스트 API 요청 - 사용자: {}, 전화번호: {}",
+                currentUser.getMember().getId(), maskContact(phoneNumber));
 
         try {
-            Map<String, Object> responseData;
+            // 기본 테스트 메시지
+            String testMessage = message != null ? message : "[토마토리멤버] 테스트 메시지입니다.";
 
-            if ("email".equals(method)) {
-                // 이메일 발송 테스트
-                responseData = Map.of(
-                        "message", "이메일 발송 테스트는 실제 초대를 통해 확인해 주세요.",
-                        "method", method,
-                        "contact", maskContact(contact),
-                        "status", "ready"
-                );
-            } else if ("sms".equals(method)) {
-                // SMS 테스트
-                responseData = Map.of(
-                        "message", "SMS 테스트 준비 완료",
-                        "method", method,
-                        "contact", maskContact(contact),
-                        "smsUrl", "sms:" + contact.replaceAll("[^0-9]", "") + "?body=테스트 메시지입니다.",
-                        "status", "ready"
-                );
-            } else {
-                throw new IllegalArgumentException("지원하지 않는 방법입니다.");
-            }
+            // 전화번호 정리
+            String cleanPhoneNumber = phoneNumber.replaceAll("[^0-9]", "");
 
-            log.info("초대 발송 테스트 API 완료 - 사용자: {}, 방법: {}",
-                    currentUser.getMember().getId(), method);
+            // SMS URL 생성
+            String smsUrl = String.format("sms:%s?body=%s",
+                    cleanPhoneNumber,
+                    java.net.URLEncoder.encode(testMessage, java.nio.charset.StandardCharsets.UTF_8));
+
+            Map<String, Object> responseData = Map.of(
+                    "success", true,
+                    "message", "SMS 앱 실행 테스트 준비 완료",
+                    "phoneNumber", maskContact(phoneNumber),
+                    "smsUrl", smsUrl,
+                    "testMessage", testMessage,
+                    "messageLength", testMessage.length()
+            );
+
+            log.info("SMS 앱 실행 테스트 API 완료 - 사용자: {}, 전화번호: {}",
+                    currentUser.getMember().getId(), maskContact(phoneNumber));
 
             return ResponseDTO.ok(responseData);
 
-        } catch (IllegalArgumentException e) {
-            log.warn("초대 발송 테스트 실패 - 잘못된 요청: {}", e.getMessage());
-            throw new APIException(ResponseStatus.BAD_REQUEST);
         } catch (Exception e) {
-            log.error("초대 발송 테스트 실패 - 사용자: {}, 방법: {}",
-                    currentUser.getMember().getId(), method, e);
-            throw new APIException(ResponseStatus.INTERNAL_SERVER_ERROR);
+            log.error("SMS 앱 실행 테스트 실패 - 사용자: {}, 전화번호: {}",
+                    currentUser.getMember().getId(), maskContact(phoneNumber), e);
+            throw new APIException("SMS 앱 실행 테스트 중 오류가 발생했습니다.", ResponseStatus.INTERNAL_SERVER_ERROR);
         }
     }
 

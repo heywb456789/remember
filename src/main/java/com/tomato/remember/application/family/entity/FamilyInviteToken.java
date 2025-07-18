@@ -252,6 +252,11 @@ public class FamilyInviteToken extends Audit {
         return UUID.randomUUID().toString().replace("-", "") + 
                System.currentTimeMillis();
     }
+
+    public void updateInviteMessage(String newMessage) {
+        this.inviteMessage = newMessage;
+        log.info("초대 메시지 업데이트 - 토큰: {}", token.substring(0, 8) + "...");
+    }
     
     // ===== 유틸리티 메서드 =====
     
