@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>토마토리멤버 - 디지털 추모 서비스</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .onboarding-container {
+            width: 100%;
+            max-width: 360px;
+            height: 100vh;
+            max-height: 640px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .slide {
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            padding: 60px 30px 140px 30px;
+            text-align: center;
+            position: relative;
+            overflow-y: auto;
+        }
+
+        .slide.active {
+            display: flex;
+        }
+
+        .slide-icon {
+            width: 100px;
+            height: 100px;
+            margin-bottom: 25px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 45px;
+            color: white;
+            background: linear-gradient(135deg, #ff6b6b, #ffa500);
+            box-shadow: 0 10px 30px rgba(255, 107, 107, 0.3);
+        }
+
+        .slide-icon.second {
+            background: linear-gradient(135deg, #4ecdc4, #44a08d);
+        }
+
+        .slide-icon.third {
+            background: linear-gradient(135deg, #4ecdc4, #44a08d);
+        }
+
+        .slide-icon.fourth {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        .slide h2 {
+            font-size: 22px;
+            color: #333;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .slide p {
+            font-size: 15px;
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 25px;
+        }
+
+        .highlight {
+            color: #ff6b6b;
+            font-weight: 600;
+        }
+
+        .slide-indicators {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+        }
+
+        .indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ddd;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .indicator.active {
+            background: #ff6b6b;
+        }
+
+        .next-btn {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #ff6b6b, #ffa500);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);
+        }
+
+        .next-btn:hover {
+            transform: translateX(-50%) translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
+        }
+
+        .start-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .start-btn:hover {
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .features {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 15px;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            text-align: left;
+        }
+
+        .feature-icon {
+            width: 30px;
+            height: 30px;
+            background: #ff6b6b;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .feature-text {
+            font-size: 14px;
+            color: #555;
+        }
+
+        .logo {
+            position: absolute;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 20px;
+            font-weight: 700;
+            color: #ff6b6b;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .price-info {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            padding: 15px;
+            border-radius: 15px;
+            margin-top: 15px;
+            border: 2px solid #ff6b6b;
+        }
+
+        .price-info h3 {
+            color: #ff6b6b;
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .price-info p {
+            color: #333;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="onboarding-container">
+        <div class="logo">토마토리멤버</div>
+        
+        <!-- 슬라이드 1: 서비스 소개 -->
+        <div class="slide active fade-in">
+            <div class="slide-icon">🕊️</div>
+            <h2>영원한 추모 공간</h2>
+            <p><span class="highlight">AI 기술</span>을 활용한<br>디지털 추모 서비스로<br>사랑하는 분과 다시 만나보세요</p>
+            <div class="features">
+                <div class="feature-item">
+                    <div class="feature-icon">🎥</div>
+                    <div class="feature-text">실시간 영상통화로 추모</div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">🔒</div>
+                    <div class="feature-text">안전하고 영구적인 보관</div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">🏠</div>
+                    <div class="feature-text">디지털 추모 공간</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 슬라이드 2: AI 영상통화 -->
+        <div class="slide fade-in">
+            <div class="slide-icon second">📱</div>
+            <h2>AI 영상통화</h2>
+            <p>업로드한 정보를 바탕으로<br>AI가 고인을 재현하여<br><span class="highlight">자연스러운 대화</span>를 나눌 수 있습니다</p>
+            <div class="features">
+                <div class="feature-item">
+                    <div class="feature-icon">📸</div>
+                    <div class="feature-text">사진/영상으로 고인 생성</div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">💬</div>
+                    <div class="feature-text">자연스러운 대화 및 표정 구현</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 슬라이드 3: 가족과 함께 -->
+        <div class="slide fade-in">
+            <div class="slide-icon third">👪</div>
+            <h2>가족과 함께</h2>
+            <p><span class="highlight">온 가족이 함께</span><br>소중한 분을 추모할 수 있는<br>따뜻한 디지털 공간입니다</p>
+            <div class="features">
+                <div class="feature-item">
+                    <div class="feature-icon">🤝</div>
+                    <div class="feature-text">가족 구성원 초대 및 공유</div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">📞</div>
+                    <div class="feature-text">함께 영상통화 참여</div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">💭</div>
+                    <div class="feature-text">추억과 이야기 나누기</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 슬라이드 4: 시작하기 -->
+        <div class="slide fade-in">
+            <div class="slide-icon fourth">✨</div>
+            <h2>지금 시작하세요</h2>
+            <p>토마토리멤버와 함께<br><span class="highlight">소중한 추억</span>을<br>영원히 간직하세요</p>
+            <div class="features">
+                <div class="feature-item">
+                    <div class="feature-icon">💝</div>
+                    <div class="feature-text">언제든지 만날 수 있는 디지털 공간</div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">🔒</div>
+                    <div class="feature-text">안전하고 영구적인 메모리 보관</div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">❤️</div>
+                    <div class="feature-text">가족과 함께하는 따뜻한 추모</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 인디케이터 -->
+        <div class="slide-indicators">
+            <div class="indicator active" data-slide="0"></div>
+            <div class="indicator" data-slide="1"></div>
+            <div class="indicator" data-slide="2"></div>
+            <div class="indicator" data-slide="3"></div>
+        </div>
+
+        <!-- 다음 버튼 -->
+        <button class="next-btn" onclick="nextSlide()">다음</button>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const indicators = document.querySelectorAll('.indicator');
+        const nextBtn = document.querySelector('.next-btn');
+
+        function showSlide(n) {
+            slides[currentSlide].classList.remove('active');
+            indicators[currentSlide].classList.remove('active');
+            
+            currentSlide = n;
+            
+            slides[currentSlide].classList.add('active');
+            indicators[currentSlide].classList.add('active');
+            
+            // 마지막 슬라이드에서 버튼 텍스트 변경
+            if (currentSlide === slides.length - 1) {
+                nextBtn.textContent = '시작하기';
+                nextBtn.classList.add('start-btn');
+            } else {
+                nextBtn.textContent = '다음';
+                nextBtn.classList.remove('start-btn');
+            }
+        }
+
+        function nextSlide() {
+            if (currentSlide < slides.length - 1) {
+                showSlide(currentSlide + 1);
+            } else {
+                // 마지막 슬라이드에서 시작하기 버튼 클릭시
+                completeOnboarding();
+
+            }
+        }
+
+        function completeOnboarding() {
+            console.log('🎉 온보딩 완료');
+
+            // ✅ 온보딩 완료 상태 저장
+            const onboardingData = {
+                completed: true,
+                completedAt: new Date().toISOString(),
+                version: '1.0',
+                skipped: false,
+                deviceInfo: {
+                    userAgent: navigator.userAgent,
+                    platform: navigator.platform,
+                    language: navigator.language
+                }
+            };
+
+            try {
+                localStorage.setItem('onboarding_completed', JSON.stringify(onboardingData));
+                console.log('✅ 온보딩 완료 상태 저장:', onboardingData);
+
+                // 완료 이벤트 발생
+                window.dispatchEvent(new CustomEvent('onboardingCompleted', {
+                    detail: onboardingData
+                }));
+
+            } catch (error) {
+                console.error('온보딩 완료 상태 저장 오류:', error);
+            }
+
+            // 홈으로 이동
+            alert('토마토리멤버에 오신 것을 환영합니다!\n로그인 화면으로 이동합니다.');
+            setTimeout(() => {
+                window.location.href = '/mobile/home';
+            }, 200);
+        }
+
+        // 인디케이터 클릭 이벤트
+        indicators.forEach((indicator, index) => {
+            indicator.addEventListener('click', () => {
+                showSlide(index);
+            });
+        });
+
+        // 스와이프 기능 (터치 디바이스용)
+        let startX = 0;
+        let endX = 0;
+
+        document.addEventListener('touchstart', (e) => {
+            startX = e.changedTouches[0].screenX;
+        });
+
+        document.addEventListener('touchend', (e) => {
+            endX = e.changedTouches[0].screenX;
+            handleSwipe();
+        });
+
+        function handleSwipe() {
+            if (startX - endX > 50 && currentSlide < slides.length - 1) {
+                // 왼쪽 스와이프 (다음 슬라이드)
+                nextSlide();
+            } else if (endX - startX > 50 && currentSlide > 0) {
+                // 오른쪽 스와이프 (이전 슬라이드)
+                showSlide(currentSlide - 1);
+            }
+        }
+
+        // 키보드 네비게이션
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                nextSlide();
+            } else if (e.key === 'ArrowLeft' && currentSlide > 0) {
+                showSlide(currentSlide - 1);
+            }
+        });
+    </script>
+</body>
+</html>

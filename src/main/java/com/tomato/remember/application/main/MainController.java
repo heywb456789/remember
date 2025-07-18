@@ -45,6 +45,11 @@ public class MainController {
         return "mobile/call/video-call-sample";
     }
 
+    @GetMapping("/mobile/onboarding")
+    public String onboarding() {
+        return "mobile/main/tomato_remember_onboarding";
+    }
+
     /**
      * 메인 홈페이지
      * 로그인 전: 서비스 소개 + 안내 페이지

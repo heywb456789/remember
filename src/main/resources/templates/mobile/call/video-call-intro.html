@@ -439,7 +439,28 @@
 
         // 메인 화면으로 이동
         function goToMainScreen() {
-            window.location.href = '/mobile/home';
+            const hasOnboarding = hasCompletedOnboarding();
+            const redirectPath = hasOnboarding ? '/mobile/home' : '/mobile/onboarding';
+
+            console.log('🔄 페이지 리다이렉트:', {
+                hasCompletedOnboarding: hasOnboarding,
+                redirectPath: redirectPath
+            });
+
+            window.location.href = redirectPath;
+        }
+
+        function hasCompletedOnboarding() {
+            try {
+                const onboardingData = localStorage.getItem('onboarding_completed');
+                if (!onboardingData) return false;
+
+                const data = JSON.parse(onboardingData);
+                return data.completed === true;
+            } catch (error) {
+                console.error('온보딩 상태 확인 오류:', error);
+                return false;
+            }
         }
 
         // 영상통화 페이지로 이동
