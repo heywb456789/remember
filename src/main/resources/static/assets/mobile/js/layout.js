@@ -849,6 +849,17 @@ window.addEventListener('beforeunload', () => {
   destroyLayout();
 });
 
+window.APP_CONFIG = window.APP_CONFIG || {};
+window.APP_CONFIG.appNavigation = {
+  apiUrl: 'https://api.otongtong.net/v1/api/etc/app/menu_list',
+  params: {
+    app_type: 'newstong',
+    nation_code: 'KR',
+    device: 'android',
+    mode: 'dev'  // 운영환경에서는 'prod'로 변경
+  }
+};
+
 // 모듈 익스포트 (필요한 경우)
 export {
   initializeLayout,

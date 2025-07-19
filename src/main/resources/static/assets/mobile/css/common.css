@@ -736,3 +736,183 @@ textarea:focus {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--border-dark);
 }
+
+/* 하단 앱 네비게이션 */
+.mobile-app-nav {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 375px;
+  background: white;
+  border-top: 1px solid #f0f0f0;
+  box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.1);
+  z-index: 1020;
+  padding: 12px 0 20px;
+  transition: transform 0.3s ease;
+}
+
+.app-nav-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.app-nav-scroll {
+  display: flex;
+  gap: 16px;
+  padding: 8px 20px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.app-nav-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.app-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 60px;
+  text-decoration: none;
+  color: #666;
+  transition: all var(--transition-smooth, 0.3s ease);
+  padding: 8px 4px;
+  border-radius: 12px;
+  position: relative;
+}
+
+.app-nav-item:hover {
+  color: var(--primary-color, #ff6b35);
+  background: rgba(255, 107, 53, 0.1);
+  text-decoration: none;
+  transform: translateY(-2px);
+}
+
+.app-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  margin-bottom: 6px;
+  object-fit: cover;
+  border: 1px solid #f0f0f0;
+  background: white;
+  transition: all var(--transition-smooth, 0.3s ease);
+}
+
+.app-nav-item:hover .app-icon {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.app-name {
+  font-size: 10px;
+  font-weight: 500;
+  text-align: center;
+  line-height: 1.2;
+  max-width: 60px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 스크롤 인디케이터 */
+.scroll-indicator {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 2px;
+  background: #e2e8f0;
+  border-radius: 1px;
+  overflow: hidden;
+}
+
+.scroll-indicator-bar {
+  height: 100%;
+  background: var(--primary-color, #ff6b35);
+  border-radius: 1px;
+  transition: transform 0.3s ease;
+  transform: translateX(-100%);
+}
+
+/* 로딩 및 에러 상태 */
+.app-nav-loading, .app-nav-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  color: #666;
+  font-size: 12px;
+  gap: 8px;
+}
+
+.app-nav-loading .loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #f0f0f0;
+  border-top: 2px solid var(--primary-color, #ff6b35);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.app-nav-error {
+  flex-direction: column;
+  gap: 12px;
+}
+
+.retry-btn {
+  background: var(--primary-color, #ff6b35);
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: var(--transition-smooth, 0.3s ease);
+}
+
+.retry-btn:hover {
+  background: #e55a2b;
+  transform: translateY(-1px);
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 반응형 */
+@media (max-width: 375px) {
+  .mobile-app-nav {
+    max-width: 100vw;
+  }
+
+  .app-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .app-name {
+    font-size: 9px;
+  }
+
+  .app-nav-item {
+    min-width: 50px;
+  }
+
+  .app-nav-scroll {
+    padding: 8px 16px;
+    gap: 12px;
+  }
+}
+
+@media (min-width: 768px) {
+  .mobile-app-nav {
+    max-width: 768px;
+  }
+}

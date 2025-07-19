@@ -16,6 +16,202 @@ let currentLoading = null;
 //     }
 //   };
 // }
+
+const DEFAULT_APP_DATA = {
+  "result": true,
+  "menuList": [
+    {
+      "menu_icon": "https://api.otongtong.net/file/menu/icon/stocktong.png",
+      "menu_name": "증권통",
+      "android_package_name": "semaphore.stockclient",
+      "android_scheme_name": "stocktong",
+      "ios_scheme_name": "iPodStockApp",
+      "app_store_url": "https://itunes.apple.com/kr/app/id363974275?mt=8",
+      "youtube_type": "N",
+      "youtube_url": "",
+      "web_url": ""
+    },
+    {
+      "menu_icon": "https://api.otongtong.net/file/menu/icon/tongtong.png",
+      "menu_name": "통통",
+      "android_package_name": "tomato.solution.tongtong",
+      "android_scheme_name": "tongtong",
+      "ios_scheme_name": "tongtongiOS",
+      "app_store_url": "https://itunes.apple.com/kr/app/id982895719?mt=8",
+      "youtube_type": "N",
+      "youtube_url": "",
+      "web_url": ""
+    },
+    {
+      "menu_icon": "https://api.otongtong.net/file/menu/icon/news_book.png",
+      "menu_name": "뉴스북",
+      "android_package_name": "news_book",
+      "android_scheme_name": "news_book",
+      "ios_scheme_name": "news_book",
+      "app_store_url": "news_book",
+      "youtube_type": "N",
+      "youtube_url": "",
+      "web_url": ""
+    },
+    {
+      "menu_icon": "https://api.otongtong.net/file/menu/icon/news_rhythm.png",
+      "menu_name": "뉴스리듬",
+      "android_package_name": "news_rhythm",
+      "android_scheme_name": "news_rhythm",
+      "ios_scheme_name": "news_rhythm",
+      "app_store_url": "news_rhythm",
+      "youtube_type": "N",
+      "youtube_url": "",
+      "web_url": ""
+    },
+    {
+      "menu_icon": "https://api.otongtong.net/file/menu/icon/news_in_cider1.png",
+      "menu_name": "뉴스인사이다",
+      "android_package_name": "news_in_cider",
+      "android_scheme_name": "news_in_cider",
+      "ios_scheme_name": "news_in_cider",
+      "app_store_url": "news_in_cider",
+      "youtube_type": "N",
+      "youtube_url": "",
+      "web_url": ""
+    },
+    {
+      "menu_icon": "https://api.otongtong.net/file/menu/icon/news_rhythm_total.png",
+      "menu_name": "뉴스리듬 종합",
+      "android_package_name": "news_rhythm_total",
+      "android_scheme_name": "news_rhythm_total",
+      "ios_scheme_name": "news_rhythm_total",
+      "app_store_url": "news_rhythm_total",
+      "youtube_type": "N",
+      "youtube_url": "",
+      "web_url": ""
+    },
+    {
+      "menu_icon": "https://api.otongtong.net/file/menu/icon/mastong.png",
+      "menu_name": "맛통",
+      "android_package_name": "com.tongtong.mastong",
+      "android_scheme_name": "mastong",
+      "ios_scheme_name": "mastong",
+      "app_store_url": "https://itunes.apple.com/kr/app/id1488614420?mt=8",
+      "youtube_type": "N",
+      "youtube_url": "",
+      "web_url": ""
+    },
+    {
+      "menu_icon": "https://api.otongtong.net/file/menu/icon/tickettong.png",
+      "menu_name": "티켓통",
+      "android_package_name": "com.etomato.ttticket",
+      "android_scheme_name": "ttticket",
+      "ios_scheme_name": "tongtongticket",
+      "app_store_url": "https://itunes.apple.com/kr/app/id1577341224?mt=8",
+      "youtube_type": "N",
+      "youtube_url": "",
+      "web_url": ""
+    },
+    {
+      "menu_icon": "https://api.otongtong.net/file/menu/icon/tongtongmarket.png",
+      "menu_name": "통통마켓",
+      "android_package_name": "com.tomatohub.tongtongmarket",
+      "android_scheme_name": "tongtongmarket",
+      "ios_scheme_name": "tongtongmarket",
+      "app_store_url": "https://itunes.apple.com/kr/app/id1539259482?mt=8",
+      "youtube_type": "N",
+      "youtube_url": "",
+      "web_url": ""
+    },
+    {
+      "menu_icon": "https://api.otongtong.net/file/menu/icon/tongtongmall.png",
+      "menu_name": "통통몰",
+      "android_package_name": "com.tongtong.tongtongmall1",
+      "android_scheme_name": "tongtongmall",
+      "ios_scheme_name": "tongtongmall",
+      "app_store_url": "https://itunes.apple.com/kr/app/id1471587538?mt=8",
+      "youtube_type": "N",
+      "youtube_url": "",
+      "web_url": ""
+    },
+    {
+      "menu_icon": "https://api.otongtong.net/file/menu/icon/tujaclub.png",
+      "menu_name": "투자클럽",
+      "android_package_name": "com.etomato.etomatoapp",
+      "android_scheme_name": "investclub",
+      "ios_scheme_name": "eTomatoApp",
+      "app_store_url": "https://itunes.apple.com/kr/app/id1059953565?mt=8",
+      "youtube_type": "N",
+      "youtube_url": "",
+      "web_url": ""
+    },
+    {
+      "menu_icon": "https://api.otongtong.net/file/menu/icon/tomatopass.png",
+      "menu_name": "합격통",
+      "android_package_name": "com.etomato.tomatopass",
+      "android_scheme_name": "passtong",
+      "ios_scheme_name": "passtong",
+      "app_store_url": "https://itunes.apple.com/kr/app/id1120510279?mt=8",
+      "youtube_type": "N",
+      "youtube_url": "",
+      "web_url": ""
+    },
+    {
+      "menu_icon": "https://api.otongtong.net/file/menu/icon/jiptong_old.png",
+      "menu_name": "집통",
+      "android_package_name": "com.tomatosol.rtomato",
+      "android_scheme_name": "jiptong",
+      "ios_scheme_name": "jiptong",
+      "app_store_url": "https://itunes.apple.com/kr/app/id932212601?mt=8",
+      "youtube_type": "N",
+      "youtube_url": "",
+      "web_url": ""
+    },
+    {
+      "menu_icon": "https://api.otongtong.net/file/menu/icon/ourchildren.png",
+      "menu_name": "우리아이재단",
+      "android_package_name": "",
+      "android_scheme_name": "",
+      "ios_scheme_name": "",
+      "app_store_url": "",
+      "youtube_type": "N",
+      "youtube_url": "",
+      "web_url": "https://ourchildren.or.kr/w_web.php"
+    },
+    {
+      "menu_icon": "https://api.otongtong.net/file/menu/icon/tongtong_wallet_app.png",
+      "menu_name": "통통지갑",
+      "android_package_name": "com.tongtong.wallet",
+      "android_scheme_name": "tongtongwallet",
+      "ios_scheme_name": "tongtongwallet",
+      "app_store_url": "https://apps.apple.com/kr/app/id1618695778?mt=8",
+      "youtube_type": "N",
+      "youtube_url": "",
+      "web_url": ""
+    },
+    {
+      "menu_icon": "https://api.otongtong.net/file/menu/icon/searchtong.png",
+      "menu_name": "서치통",
+      "android_package_name": "com.etomato.searchtong",
+      "android_scheme_name": "searchtong",
+      "ios_scheme_name": "searchtong",
+      "app_store_url": "https://itunes.apple.com/kr/app/id1608817437?mt=8",
+      "youtube_type": "N",
+      "youtube_url": "",
+      "web_url": ""
+    },
+    {
+      "menu_icon": "https://api.otongtong.net/file/menu/icon/newstomato.png",
+      "menu_name": "뉴스토마토",
+      "android_package_name": "com.tomato.solution.newstong",
+      "android_scheme_name": "newstomato",
+      "ios_scheme_name": "tomatoPrime",
+      "app_store_url": "https://itunes.apple.com/kr/app/id1023633406?mt=8",
+      "youtube_type": "N",
+      "youtube_url": "",
+      "web_url": ""
+    }
+  ],
+  "code": 200
+};
+
+
 document.querySelectorAll('.menu-link.disabled').forEach(link => {
       link.addEventListener('click', function(e) {
           e.preventDefault();
@@ -840,3 +1036,231 @@ if (!document.getElementById('common-dynamic-styles')) {
   styleSheet.textContent = commonStyles;
   document.head.appendChild(styleSheet);
 }
+//################ 하단바
+function isMobile() {
+  return window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
+// 앱 실행 함수
+function tryOpenApp(appScheme, fallbackUrl, appName) {
+  console.log(`🚀 ${appName} 앱 실행 시도:`, { appScheme, fallbackUrl });
+
+  if (!isMobile()) {
+    // PC에서는 웹 URL로 직접 이동
+    if (fallbackUrl) {
+      window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
+    }
+    return;
+  }
+
+  if (!appScheme) {
+    // 앱 스키마가 없으면 웹 URL로 이동
+    if (fallbackUrl) {
+      window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
+    }
+    return;
+  }
+
+  // 모바일에서 앱 스키마 시도
+  const startTime = Date.now();
+  const iframe = document.createElement('iframe');
+  iframe.style.cssText = 'position:absolute;top:-9999px;left:-9999px;width:1px;height:1px;';
+  iframe.src = appScheme + '://';
+  document.body.appendChild(iframe);
+
+  // 2초 후 폴백 처리
+  setTimeout(() => {
+    try {
+      document.body.removeChild(iframe);
+    } catch(e) {}
+
+    // 앱이 실행되지 않았다면 폴백 URL로 이동
+    if (Date.now() - startTime < 2500) {
+      if (fallbackUrl) {
+        window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
+      }
+    }
+  }, 2000);
+
+  // 페이지가 숨겨지면 앱이 실행된 것으로 간주
+  const handleVisibilityChange = () => {
+    if (document.hidden) {
+      console.log(`✅ ${appName} 앱이 실행되었습니다`);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }
+  };
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+
+  // 3초 후 이벤트 리스너 제거
+  setTimeout(() => {
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, 3000);
+}
+
+// 앱 클릭 핸들러
+function handleAppClick(app) {
+  const appName = app.menu_name;
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const appScheme = isIOS ? app.ios_scheme_name : app.android_scheme_name;
+
+  let fallbackUrl = app.web_url;
+  if (!fallbackUrl && isMobile()) {
+    fallbackUrl = isIOS ? app.app_store_url : `https://play.google.com/store/apps/details?id=${app.android_package_name}`;
+  }
+
+  tryOpenApp(appScheme, fallbackUrl, appName);
+
+  // 기존 showToast 함수 활용 (common.js에서 import)
+  if (window.showToast) {
+    window.showToast(`${appName} 앱으로 이동합니다`, 'info', 2000);
+  }
+}
+
+// 앱 네비게이션 렌더링
+function renderAppNavigation(apps) {
+  const container = document.getElementById('appNavScroll');
+  const loading = document.getElementById('appNavLoading');
+  const scrollIndicator = document.getElementById('scrollIndicator');
+
+  if (!container) return;
+
+  // 로딩 숨김
+  loading.style.display = 'none';
+  container.style.display = 'flex';
+
+  // 앱 아이템들 생성
+  container.innerHTML = apps.map(app => {
+    const encodedApp = JSON.stringify(app).replace(/"/g, '&quot;');
+    return `
+      <a href="#" class="app-nav-item" onclick="handleAppClick(${encodedApp}); return false;" 
+         title="${app.menu_name}" data-app="${app.menu_name}">
+        <img src="${app.menu_icon}" alt="${app.menu_name}" class="app-icon" 
+             onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzYiIGhlaWdodD0iMzYiIHZpZXdCb3g9IjAgMCAzNiAzNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjM2IiBoZWlnaHQ9IjM2IiByeD0iOCIgZmlsbD0iI0Y4RjlGQSIvPgo8cGF0aCBkPSJNMTggMjZDMjIuNDE4MiAyNiAyNiAyMi40MTgyIDI2IDE4QzI2IDEzLjU4MTggMjIuNDE4MiAxMCAxOCAxMEMxMy41ODE4IDEwIDEwIDEzLjU4MTggMTAgMThDMTAgMjIuNDE4MiAxMy41ODE4IDI2IDE4IDI2WiIgZmlsbD0iI0U5RUNFRCI+PC9wYXRoPgo8cGF0aCBkPSJNMTUuNSAxNS41SDE4VjIwLjVNMTggMTMuNUgxOC4wMDc1IiBzdHJva2U9IiM2NzY3NjciIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+Cg=='">
+        <span class="app-name">${app.menu_name}</span>
+      </a>
+    `;
+  }).join('');
+
+  // 스크롤 인디케이터 표시 (5개 이상일 때만)
+  if (apps.length > 5) {
+    scrollIndicator.style.display = 'block';
+    setupScrollIndicator();
+  }
+
+  console.log(`✅ 앱 네비게이션 렌더링 완료: ${apps.length}개 앱`);
+}
+
+// 스크롤 인디케이터 설정
+function setupScrollIndicator() {
+  const scrollContainer = document.getElementById('appNavScroll');
+  const indicatorBar = document.getElementById('scrollIndicatorBar');
+
+  if (!scrollContainer || !indicatorBar) return;
+
+  scrollContainer.addEventListener('scroll', () => {
+    const scrollLeft = scrollContainer.scrollLeft;
+    const maxScroll = scrollContainer.scrollWidth - scrollContainer.clientWidth;
+    const scrollPercentage = maxScroll > 0 ? scrollLeft / maxScroll : 0;
+
+    indicatorBar.style.transform = `translateX(${scrollPercentage * 100 - 100}%)`;
+  });
+}
+
+// API 호출 및 데이터 로드
+async function loadAppNavigation() {
+  const config = window.APP_CONFIG.appNavigation;
+
+  try {
+    console.log('🌐 API 호출 시도...');
+    const response = await fetch(config.apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams(config.params)
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (data.result && data.menuList && Array.isArray(data.menuList)) {
+      console.log(`✅ API 성공: ${data.menuList.length}개 앱 로드됨`);
+      renderAppNavigation(data.menuList);
+      return;
+    } else {
+      throw new Error('잘못된 API 응답 형식');
+    }
+  } catch (error) {
+    console.warn('⚠️ API 호출 실패, 기본 데이터 사용:', error.message);
+
+    // API 실패 시 기본 데이터 사용
+    if (DEFAULT_APP_DATA.result && DEFAULT_APP_DATA.menuList) {
+      console.log(`🔄 기본 데이터 사용: ${DEFAULT_APP_DATA.menuList.length}개 앱`);
+      renderAppNavigation(DEFAULT_APP_DATA.menuList);
+
+      // 사용자에게 알림 (너무 강하지 않게)
+      if (window.showToast) {
+        window.showToast('앱 목록을 불러왔습니다', 'info', 2000);
+      }
+      return;
+    }
+
+    // 모든 것이 실패한 경우만 에러 표시
+    showAppNavigationError();
+  }
+}
+
+// 에러 상태 표시
+function showAppNavigationError() {
+  console.error('❌ 앱 네비게이션 완전 실패');
+
+  const loading = document.getElementById('appNavLoading');
+  const errorDiv = document.getElementById('appNavError');
+
+  if (loading) loading.style.display = 'none';
+  if (errorDiv) errorDiv.style.display = 'flex';
+
+  if (window.showToast) {
+    window.showToast('앱 목록을 불러올 수 없습니다', 'error', 3000);
+  }
+}
+
+// 앱 네비게이션 초기화
+function initializeAppNavigation() {
+  console.log('🔧 앱 네비게이션 초기화');
+
+  const navElement = document.getElementById('mobileAppNav');
+  if (!navElement) {
+    console.log('📱 앱 네비게이션 요소가 없어서 초기화하지 않습니다');
+    return;
+  }
+
+  loadAppNavigation();
+}
+
+// 전역 함수로 등록
+window.handleAppClick = handleAppClick;
+window.initializeAppNavigation = initializeAppNavigation;
+
+// 기존 layout.js의 초기화와 통합
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('📱 앱 네비게이션 DOM 로드 완료');
+  initializeAppNavigation();
+});
+
+// 페이지 가시성 변경 시 재초기화 (옵션)
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    const navElement = document.getElementById('mobileAppNav');
+    const scrollContainer = document.getElementById('appNavScroll');
+
+    // 앱 목록이 비어있다면 재시도
+    if (navElement && scrollContainer && scrollContainer.children.length === 0) {
+      console.log('👁️ 페이지 포커스 복원 - 앱 네비게이션 재시도');
+      initializeAppNavigation();
+    }
+  }
+});
