@@ -609,7 +609,7 @@
 <!-- 상태 표시 -->
 <div class="status-indicator">
   <span class="status-dot"></span>
-  <span id="statusText">초기화 중...</span>
+  <span id="statusText">권한 요청 중...</span>
 </div>
 
 <!-- 세션 정보 표시 -->
@@ -710,241 +710,63 @@
   const SESSION_STORAGE_KEY = 'videoCallSession';
   const SESSION_TTL = 3 * 60 * 60 * 1000; // 3시간
 
-  // ========== 브라우저 및 OS 감지 (먼저 설정) ==========
-  function getBrowserInfo() {
-    const userAgent = navigator.userAgent;
-    const isIOS = /iPad|iPhone|iPod/.test(userAgent);
-    const isAndroid = /Android/.test(userAgent);
-    const isSafari = /^((?!chrome|android).)*safari/i.test(userAgent);
-    const isChrome = /Chrome/.test(userAgent);
-    const isFirefox = /Firefox/.test(userAgent);
-
-    return {
-      isIOS,
-      isAndroid,
-      isSafari,
-      isChrome,
-      isFirefox,
-      isIOSSafari: isIOS && isSafari,
-      isAndroidChrome: isAndroid && isChrome,
-      platform: isIOS ? 'iOS' : (isAndroid ? 'Android' : 'Desktop')
+  function saveSession(sessionKey, contactName) {
+    const sessionData = {
+      sessionKey,
+      contactName,
+      createdAt: Date.now(),
+      lastActivity: Date.now()
     };
+    sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sessionData));
+    console.log('💾 세션 저장됨:', sessionData);
+    updateSessionInfoDisplay(sessionData);
   }
 
-  function getVideoSettings() {
-    const browser = getBrowserInfo();
+  function loadSession() {
+    const saved = sessionStorage.getItem(SESSION_STORAGE_KEY);
+    if (!saved) {
+      console.log('📂 저장된 세션 없음');
+      return null;
+    }
 
-    if (browser.isIOSSafari) {
-      return {
-        transitionType: 'INSTANT',
-        loadTimeout: 10000,
-        volumeTransition: 'SAFE'
-      };
+    const session = JSON.parse(saved);
+    const age = Date.now() - session.createdAt;
+
+    if (age > SESSION_TTL) {
+      sessionStorage.removeItem(SESSION_STORAGE_KEY);
+      console.log('⏰ 세션 만료됨 (3시간 초과):', Math.round(age / 1000 / 60 / 60), '시간');
+      return null;
+    }
+
+    console.log('📂 기존 세션 로드됨:', session, '(나이:', Math.round(age / 1000 / 60), '분)');
+    return session;
+  }
+
+  function updateSessionActivity() {
+    const saved = sessionStorage.getItem(SESSION_STORAGE_KEY);
+    if (saved) {
+      const session = JSON.parse(saved);
+      session.lastActivity = Date.now();
+      sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
+    }
+  }
+
+  function updateSessionInfoDisplay(sessionData) {
+    if (sessionData) {
+      const shortKey = sessionData.sessionKey.substring(sessionData.sessionKey.length - 8);
+      const age = Math.round((Date.now() - sessionData.createdAt) / 1000 / 60);
+      sessionId.textContent = `세션: ${shortKey} (${age}분)`;
+      sessionInfo.style.display = 'block';
     } else {
-      return {
-        transitionType: 'SMOOTH',
-        loadTimeout: 10000,
-        volumeTransition: 'SMOOTH'
-      };
+      sessionInfo.style.display = 'none';
     }
   }
 
-  // 전역 설정 변수 (먼저 설정)
-  const BROWSER_INFO = getBrowserInfo();
-  const VIDEO_SETTINGS = getVideoSettings();
-
-  console.log('🔧 브라우저 정보:', BROWSER_INFO);
-  console.log('⚙️ 비디오 설정:', VIDEO_SETTINGS);
-
-  // ========== 🆕 권한 확인 시스템 ==========
-
-  async function checkExistingPermissions() {
-    console.log('🔍 기존 권한 확인 시작');
-
-    try {
-      // 1단계: 저장된 권한 상태 확인 (빠른 확인)
-      const storedStatus = getStoredPermissionStatus();
-      if (storedStatus === true) {
-        console.log('💾 저장된 권한 확인 - 빠른 검증 진행');
-
-        // 빠른 검증: 실제로 스트림 획득 가능한지 확인
-        const quickTest = await quickMediaTest();
-        if (quickTest) {
-          console.log('✅ 빠른 검증 성공 - 권한 있음');
-          return true;
-        } else {
-          console.log('❌ 빠른 검증 실패 - 상세 확인 진행');
-          // 저장된 상태 제거
-          localStorage.removeItem('mediaPermissionStatus');
-        }
-      }
-
-      // 2단계: Permissions API 확인 (Chrome, Firefox)
-      if (navigator.permissions) {
-        const permissionResult = await checkPermissionsAPI();
-        if (permissionResult !== null) {
-          return permissionResult;
-        }
-      }
-
-      // 3단계: getUserMedia 테스트 (Safari 등)
-      return await testMediaAccess();
-
-    } catch (error) {
-      console.error('권한 확인 중 오류:', error);
-      return false;
-    }
-  }
-
-  async function quickMediaTest() {
-    try {
-      console.log('⚡ 빠른 미디어 테스트');
-
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 320, height: 240 },
-        audio: true
-      });
-
-      // 즉시 정리
-      stream.getTracks().forEach(track => track.stop());
-      console.log('⚡ 빠른 테스트 성공');
-
-      return true;
-    } catch (error) {
-      console.log('⚡ 빠른 테스트 실패:', error.name);
-      return false;
-    }
-  }
-
-  async function checkPermissionsAPI() {
-    try {
-      console.log('🔍 Permissions API 확인');
-
-      const [cameraPermission, micPermission] = await Promise.all([
-        navigator.permissions.query({ name: 'camera' }),
-        navigator.permissions.query({ name: 'microphone' })
-      ]);
-
-      console.log('📷 카메라 권한:', cameraPermission.state);
-      console.log('🎤 마이크 권한:', micPermission.state);
-
-      const hasPermissions = cameraPermission.state === 'granted' &&
-              micPermission.state === 'granted';
-
-      if (hasPermissions) {
-        updatePermissionStorage(true);
-        return true;
-      } else if (cameraPermission.state === 'denied' || micPermission.state === 'denied') {
-        updatePermissionStorage(false);
-        return false;
-      }
-
-      // prompt 상태는 null 반환 (getUserMedia 테스트 필요)
-      return null;
-
-    } catch (error) {
-      console.log('⚠️ Permissions API 지원하지 않음:', error.message);
-      return null;
-    }
-  }
-
-  async function testMediaAccess() {
-    try {
-      console.log('🎥 미디어 접근 테스트 시작');
-
-      const constraints = {
-        video: { width: 640, height: 480 },
-        audio: true
-      };
-
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      console.log('✅ 미디어 접근 성공 - 권한 있음');
-
-      // 🔧 중요: 즉시 스트림 정리
-      stream.getTracks().forEach(track => {
-        track.stop();
-        console.log('🧹 트랙 정리:', track.kind);
-      });
-
-      // 권한 상태 저장
-      updatePermissionStorage(true);
-      cameraPermissionGranted = true;
-      microphonePermissionGranted = true;
-
-      return true;
-
-    } catch (error) {
-      console.log('❌ 미디어 접근 실패:', error.name);
-
-      if (error.name === 'NotAllowedError') {
-        console.log('🚫 권한 거부됨');
-        updatePermissionStorage(false);
-        return false;
-      } else if (error.name === 'NotFoundError') {
-        console.log('📷 미디어 장치 없음');
-        return false;
-      } else {
-        console.log('⚠️ 기타 오류 - 권한 요청 필요');
-        return false;
-      }
-    }
-  }
-
-  function updatePermissionStorage(hasPermission) {
-    try {
-      const permissionData = {
-        camera: hasPermission,
-        microphone: hasPermission,
-        timestamp: Date.now(),
-        userAgent: navigator.userAgent.substring(0, 100) // 브라우저 변경 감지용
-      };
-
-      localStorage.setItem('mediaPermissionStatus', JSON.stringify(permissionData));
-      console.log('💾 권한 상태 저장:', hasPermission);
-
-    } catch (error) {
-      console.warn('권한 상태 저장 실패:', error);
-    }
-  }
-
-  function getStoredPermissionStatus() {
-    try {
-      const stored = localStorage.getItem('mediaPermissionStatus');
-      if (!stored) return null;
-
-      const data = JSON.parse(stored);
-      const age = Date.now() - data.timestamp;
-      const maxAge = 24 * 60 * 60 * 1000; // 24시간
-
-      // 24시간 이후 또는 브라우저 변경시 무효화
-      if (age > maxAge || !data.userAgent ||
-              !navigator.userAgent.includes(data.userAgent.substring(0, 50))) {
-        localStorage.removeItem('mediaPermissionStatus');
-        return null;
-      }
-
-      return data.camera && data.microphone;
-
-    } catch (error) {
-      console.warn('저장된 권한 상태 확인 실패:', error);
-      return null;
-    }
-  }
-
-  // ========== 🔧 수정된 requestPermissions 함수 ==========
+  // ========== 권한 요청 시스템 (OS별 최적화) ==========
 
   async function requestPermissions() {
     if (permissionRequestInProgress) {
       console.log('⏳ 권한 요청이 이미 진행 중');
-      return;
-    }
-
-    // 🆕 추가: 권한 사전 확인
-    const hasExistingPermissions = await checkExistingPermissions();
-    if (hasExistingPermissions) {
-      console.log('✅ 기존 권한 확인됨 - 모달 스킵');
-      hidePermissionModal();
-      await initializeVideoCallAfterPermission();
       return;
     }
 
@@ -1012,9 +834,6 @@
       cameraPermissionGranted = true;
       microphonePermissionGranted = true;
 
-      // 권한 상태 저장
-      updatePermissionStorage(true);
-
       // 카메라 설정
       setupCamera();
 
@@ -1026,176 +845,158 @@
 
     } catch (error) {
       console.error('❌ 권한 요청 실패:', error);
-      updatePermissionStorage(false); // 실패 상태 저장
       handlePermissionError(error);
     } finally {
       permissionRequestInProgress = false;
     }
   }
 
-  // ========== SessionStorage 관리 ==========
+  // ========== 음소거 기능 (OS별 최적화) ==========
 
-  function saveSession(sessionKey, contactName) {
-    const sessionData = {
-      sessionKey,
-      contactName,
-      createdAt: Date.now(),
-      lastActivity: Date.now()
-    };
-    sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sessionData));
-    console.log('💾 세션 저장됨:', sessionData);
-    updateSessionInfoDisplay(sessionData);
-  }
-
-  function loadSession() {
-    const saved = sessionStorage.getItem(SESSION_STORAGE_KEY);
-    if (!saved) {
-      console.log('📂 저장된 세션 없음');
-      return null;
-    }
-
-    const session = JSON.parse(saved);
-    const age = Date.now() - session.createdAt;
-
-    if (age > SESSION_TTL) {
-      sessionStorage.removeItem(SESSION_STORAGE_KEY);
-      console.log('⏰ 세션 만료됨 (3시간 초과):', Math.round(age / 1000 / 60 / 60), '시간');
-      return null;
-    }
-
-    console.log('📂 기존 세션 로드됨:', session, '(나이:', Math.round(age / 1000 / 60), '분)');
-    return session;
-  }
-
-  function updateSessionActivity() {
-    const saved = sessionStorage.getItem(SESSION_STORAGE_KEY);
-    if (saved) {
-      const session = JSON.parse(saved);
-      session.lastActivity = Date.now();
-      sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
-    }
-  }
-
-  function updateSessionInfoDisplay(sessionData) {
-    if (sessionData) {
-      const shortKey = sessionData.sessionKey.substring(sessionData.sessionKey.length - 8);
-      const age = Math.round((Date.now() - sessionData.createdAt) / 1000 / 60);
-      sessionId.textContent = `세션: ${shortKey} (${age}분)`;
-      sessionInfo.style.display = 'block';
-    } else {
-      sessionInfo.style.display = 'none';
-    }
-  }
-
-  // ========== 영상통화 초기화 (권한 후) ==========
-
-  async function initializeVideoCallAfterPermission() {
+  async function enableAudio() {
     try {
-      console.log('🚀 권한 획득 후 영상통화 초기화 시작');
+      console.log('🔊 오디오 활성화 시작');
+      console.log('📱 플랫폼:', BROWSER_INFO.platform, '전환 방식:', VIDEO_SETTINGS.volumeTransition);
 
-      // 🆕 추가: 실제 스트림이 없는 경우 다시 획득
-      if (!userMediaStream) {
-        console.log('📷 사용자 미디어 스트림 획득');
-        userMediaStream = await navigator.mediaDevices.getUserMedia({
-          video: { width: { ideal: 1920 }, height: { ideal: 1080 } },
-          audio: { echoCancellation: true, noiseSuppression: true }
-        });
-        setupCamera();
+      if (BROWSER_INFO.isIOSSafari && VIDEO_SETTINGS.volumeTransition === 'SAFE') {
+        console.log('🍎 iOS Safari 안전 오디오 활성화');
+
+        // iOS Safari 안전 모드
+        mainVideo.muted = false;
+        mainVideo.volume = 0.1;
+
+        // 현재 재생 상태 확인
+        const wasPlaying = !mainVideo.paused;
+        const currentTime = mainVideo.currentTime;
+
+        if (wasPlaying) {
+          try {
+            await mainVideo.play();
+            console.log('🔊 iOS 오디오 재생 성공');
+          } catch (playError) {
+            console.warn('⚠️ iOS 오디오 재생 실패:', playError);
+          }
+        }
+
+        // 볼륨 정상 설정
+        mainVideo.volume = 0.8;
+
+      } else {
+        console.log('🤖 Android/Desktop 부드러운 오디오 활성화');
+
+        // Android/Desktop 부드러운 모드
+        mainVideo.muted = false;
+        mainVideo.volume = 0.01;
+        await mainVideo.play();
+        mainVideo.volume = 0.8;
       }
 
-      // iOS Safari 상태 모니터링 시작
+      isAudioEnabled = true;
+      muteIcon.textContent = '🔊';
+      muteBtn.classList.add('active');
+      muteBtn.classList.remove('pulse');
+
+      hideAudioGuide();
+      showSuccessMessage('음성이 활성화되었습니다!');
+      console.log('✅ 오디오 활성화 완료');
+
+    } catch (error) {
+      console.error('오디오 활성화 실패:', error);
+      showErrorMessage('음성 활성화에 실패했습니다.');
+    }
+  }
+
+  // ========== 초기 영상 설정 (OS별 최적화) ==========
+
+  async function startWaitingVideoImmediately() {
+    try {
+      const waitingVideoUrl = 'https://aicut.newstomato.com/remember/static/waiting_kt.mp4';
+
+      console.log('🎬 대기 영상 시작:', waitingVideoUrl);
+      console.log('📱 플랫폼:', BROWSER_INFO.platform);
+
+      mainVideo.src = waitingVideoUrl;
+      mainVideo.loop = true;
+      mainVideo.muted = true;
+      mainVideo.autoplay = true;
+      mainVideo.playsInline = true;
+      mainVideo.style.display = 'block';
+
+      // OS별 초기 설정
       if (BROWSER_INFO.isIOSSafari) {
-        monitorIOSVideoState();
+        console.log('🍎 iOS Safari 초기 설정');
+        mainVideo.preload = 'auto';
+        mainVideo.removeAttribute('crossorigin');
+      } else {
+        console.log('🤖 Android/Desktop 초기 설정');
+        mainVideo.preload = 'metadata';
       }
 
-      // 1. 기존 세션 확인
-      const existingSession = loadSession();
+      setupVideoEventListeners();
 
-      if (existingSession) {
-        console.log('📱 기존 세션 발견:', existingSession);
+      try {
+        console.log('🎬 대기 영상 재생 시도...');
+        await mainVideo.play();
+        console.log('✅ 대기 영상 재생 성공');
+        currentVideoState = 'WAITING';
+        waitingVideoPreloaded = true;
+        updateStatusSmoothly('연결 준비 중...');
 
-        const isValid = await validateSessionOnServer(existingSession.sessionKey);
-        console.log('🔍 서버 세션 유효성:', isValid);
+        // 음성 안내 표시
+        setTimeout(() => {
+          if (!isAudioEnabled) {
+            showInitialAudioGuide();
+          }
+        }, 1000);
 
-        if (isValid) {
-          console.log('✅ 기존 세션 재사용');
-          sessionKey = existingSession.sessionKey;
-          updateSessionInfoDisplay(existingSession);
-
-          await startWaitingVideoImmediately();
-          connectSSE();
-          updateSessionActivity();
-          updateStatusSmoothly(`${existingSession.contactName}와 재연결 중...`);
-          return;
+      } catch (playError) {
+        console.error('대기 영상 재생 실패:', playError);
+        if (playError.name === 'NotAllowedError') {
+          console.log('📱 자동재생 차단됨');
+          showTouchToPlayGuide();
         } else {
-          console.log('❌ 기존 세션 무효 - 새로 생성');
-          sessionStorage.removeItem(SESSION_STORAGE_KEY);
+          throw playError;
         }
       }
 
-      // 2. 새 세션 생성
-      console.log('🆕 새 세션 생성');
-      await createNewSession();
-
     } catch (error) {
-      console.error('❌ 영상통화 초기화 오류:', error);
-
-      // iOS Safari 초기화 실패 시 폴백
-      if (BROWSER_INFO.isIOSSafari) {
-        console.log('🆘 iOS Safari 초기화 실패 - 폴백 모드');
-        await fallbackToWaitingVideoOnly();
-      } else {
-        handleInitializationError(error);
-      }
+      console.error('즉시 재생 실패:', error);
+      showStaticBackground();
     }
   }
 
-  async function createNewSession() {
+  async function startWaitingVideoOnly() {
     try {
-      // 1. 즉시 대기 영상 시작
-      await startWaitingVideoImmediately();
+      const waitingVideoUrl = 'https://aicut.newstomato.com/remember/static/waiting_kt.mp4';
 
-      // 2. 백그라운드에서 세션 생성
-      await initializeSessionInBackground();
+      console.log('🎬 체험 모드 영상 시작:', waitingVideoUrl);
+      console.log('📱 플랫폼:', BROWSER_INFO.platform);
 
-      console.log('✅ 새 세션 생성 완료');
+      mainVideo.src = waitingVideoUrl;
+      mainVideo.loop = true;
+      mainVideo.muted = true;
+      mainVideo.autoplay = true;
+      mainVideo.playsInline = true;
+      mainVideo.style.display = 'block';
 
-    } catch (error) {
-      console.error('새 세션 생성 오류:', error);
-      handleInitializationError(error);
-    }
-  }
-
-  // ========== 권한 없이 초기화 ==========
-
-  async function initializeWithoutPermission() {
-    console.log('🎬 권한 없이 영상통화 초기화');
-
-    // iOS Safari 상태 모니터링 시작
-    if (BROWSER_INFO.isIOSSafari) {
-      monitorIOSVideoState();
-    }
-
-    // 대기 영상만 실행
-    try {
-      await startWaitingVideoOnly();
-      updateStatusSmoothly('체험 모드');
-
-      // 체험 모드임을 알리는 메시지
-      setTimeout(() => {
-        showInfoMessage('체험 모드로 실행 중입니다.\n녹화 기능은 권한이 필요합니다.');
-      }, 2000);
-
-    } catch (error) {
-      console.error('체험 모드 초기화 실패:', error);
-
-      // iOS Safari 실패 시 폴백
+      // OS별 설정
       if (BROWSER_INFO.isIOSSafari) {
-        console.log('🆘 iOS Safari 체험 모드 실패 - 폴백');
-        await fallbackToWaitingVideoOnly();
+        mainVideo.preload = 'auto';
+        mainVideo.removeAttribute('crossorigin');
       } else {
-        showStaticBackground();
+        mainVideo.preload = 'metadata';
       }
+
+      setupVideoEventListeners();
+
+      console.log('🎬 체험 모드 영상 재생 시도...');
+      await mainVideo.play();
+      console.log('✅ 체험 모드 영상 재생 성공');
+      currentVideoState = 'WAITING';
+
+    } catch (error) {
+      console.error('체험 모드 영상 재생 실패:', error);
+      showStaticBackground();
     }
   }
 
@@ -1254,61 +1055,129 @@
     window.location.href = redirectPath;
   }
 
-  // ========== 🔧 수정된 DOM 로드 이벤트 ==========
+  async function initializeWithoutPermission() {
+    console.log('🎬 권한 없이 영상통화 초기화');
 
-  document.addEventListener('DOMContentLoaded', async function () {
-    console.log('📄 DOM 로드 완료');
+    // 대기 영상만 실행
+    try {
+      await startWaitingVideoOnly();
+      updateStatusSmoothly('체험 모드');
 
-    // 🆕 수정: 권한 사전 확인 후 모달 표시 여부 결정
-    updateStatusSmoothly('권한 확인 중...');
-
-    const hasPermissions = await checkExistingPermissions();
-
-    if (hasPermissions) {
-      console.log('🚀 기존 권한으로 자동 초기화');
-      await initializeVideoCallAfterPermission();
-    } else {
-      console.log('🔐 권한 요청 모달 표시');
+      // 체험 모드임을 알리는 메시지
       setTimeout(() => {
-        showPermissionModal();
-      }, 500);
-    }
-  });
+        showInfoMessage('체험 모드로 실행 중입니다.\n녹화 기능은 권한이 필요합니다.');
+      }, 2000);
 
-  // ========== 나머지 모든 기능들 (그대로 유지) ==========
+    } catch (error) {
+      console.error('체험 모드 초기화 실패:', error);
+      showStaticBackground();
+    }
+  }
+
+  // ========== 영상통화 초기화 (권한 후) ==========
+
+  async function initializeVideoCallAfterPermission() {
+    try {
+      console.log('🚀 권한 획득 후 영상통화 초기화 시작');
+
+      // 1. 기존 세션 확인
+      const existingSession = loadSession();
+
+      if (existingSession) {
+        console.log('📱 기존 세션 발견:', existingSession);
+
+        const isValid = await validateSessionOnServer(existingSession.sessionKey);
+        console.log('🔍 서버 세션 유효성:', isValid);
+
+        if (isValid) {
+          console.log('✅ 기존 세션 재사용');
+          sessionKey = existingSession.sessionKey;
+          updateSessionInfoDisplay(existingSession);
+
+          await startWaitingVideoImmediately();
+          connectSSE();
+          updateSessionActivity();
+          updateStatusSmoothly(`${existingSession.contactName}와 재연결 중...`);
+          return;
+        } else {
+          console.log('❌ 기존 세션 무효 - 새로 생성');
+          sessionStorage.removeItem(SESSION_STORAGE_KEY);
+        }
+      }
+
+      // 2. 새 세션 생성
+      console.log('🆕 새 세션 생성');
+      await createNewSession();
+
+    } catch (error) {
+      console.error('❌ 영상통화 초기화 오류:', error);
+      handleInitializationError(error);
+    }
+  }
+
+  async function createNewSession() {
+    try {
+      // 1. 즉시 대기 영상 시작
+      await startWaitingVideoImmediately();
+
+      // 2. 백그라운드에서 세션 생성
+      await initializeSessionInBackground();
+
+      console.log('✅ 새 세션 생성 완료');
+
+    } catch (error) {
+      console.error('새 세션 생성 오류:', error);
+      handleInitializationError(error);
+    }
+  }
 
   async function startWaitingVideoImmediately() {
     try {
       const waitingVideoUrl = 'https://aicut.newstomato.com/remember/static/waiting_kt.mp4';
 
-      console.log('🎬 대기 영상 시작 (MVP 방식):', waitingVideoUrl);
+      console.log('🎬 대기 영상 즉시 시작:', waitingVideoUrl);
 
+      mainVideo.src = waitingVideoUrl;
+      mainVideo.loop = true;
+      mainVideo.muted = true;
+      mainVideo.autoplay = true;
+      mainVideo.playsInline = true;
       mainVideo.style.display = 'block';
-      mainVideo.style.opacity = '1';
 
-      // MVP 방식으로 대기 영상 시작
-      await playVideoSimple(waitingVideoUrl, true);
+      // iOS Safari에서 중요: crossOrigin 설정 제거
+      mainVideo.removeAttribute('crossorigin');
 
-      currentVideoState = 'WAITING';
-      waitingVideoPreloaded = true;
-      updateStatusSmoothly('연결 준비 중...');
+      setupVideoEventListeners();
 
-      // 음성 안내 표시
-      setTimeout(() => {
-        if (!isAudioEnabled) {
-          showInitialAudioGuide();
+      // iOS Safari에서 사용자 제스처 컨텍스트 내에서 재생
+      try {
+        console.log('🎬 대기 영상 재생 시도...');
+        await mainVideo.play();
+        console.log('✅ 대기 영상 재생 성공');
+        currentVideoState = 'WAITING';
+        waitingVideoPreloaded = true;
+        updateStatusSmoothly('연결 준비 중...');
+
+        // 음성 안내 표시
+        setTimeout(() => {
+          if (!isAudioEnabled) {
+            showInitialAudioGuide();
+          }
+        }, 1000);
+
+      } catch (playError) {
+        console.error('대기 영상 재생 실패:', playError);
+        if (playError.name === 'NotAllowedError') {
+          console.log('📱 자동재생 차단됨');
+          showTouchToPlayGuide();
+        } else {
+          throw playError;
         }
-      }, 1000);
+      }
 
     } catch (error) {
       console.error('즉시 재생 실패:', error);
-
-      if (error.name === 'NotAllowedError') {
-        console.log('📱 자동재생 차단됨');
-        showTouchToPlayGuide();
-      } else {
-        showStaticBackground();
-      }
+      showStaticBackground();
     }
   }
 
@@ -1316,82 +1185,29 @@
     try {
       const waitingVideoUrl = 'https://aicut.newstomato.com/remember/static/waiting_kt.mp4';
 
-      console.log('🎬 체험 모드 영상 시작 (MVP 방식):', waitingVideoUrl);
+      console.log('🎬 체험 모드 영상 시작:', waitingVideoUrl);
 
+      mainVideo.src = waitingVideoUrl;
+      mainVideo.loop = true;
+      mainVideo.muted = true;
+      mainVideo.autoplay = true;
+      mainVideo.playsInline = true;
       mainVideo.style.display = 'block';
-      mainVideo.style.opacity = '1';
 
-      // MVP 방식으로 체험 모드 시작
-      await playVideoSimple(waitingVideoUrl, true);
+      // iOS Safari에서 중요: crossOrigin 설정 제거
+      mainVideo.removeAttribute('crossorigin');
 
-      currentVideoState = 'WAITING';
+      setupVideoEventListeners();
+
+      console.log('🎬 체험 모드 영상 재생 시도...');
+      await mainVideo.play();
       console.log('✅ 체험 모드 영상 재생 성공');
+      currentVideoState = 'WAITING';
 
     } catch (error) {
       console.error('체험 모드 영상 재생 실패:', error);
       showStaticBackground();
     }
-  }
-
-  // MVP 방식 단순 비디오 재생
-  async function playVideoSimple(videoUrl, loop = true) {
-    return new Promise((resolve, reject) => {
-      console.log('🎬 단순 비디오 재생:', videoUrl);
-
-      // 기본 설정
-      mainVideo.src = videoUrl;
-      mainVideo.loop = loop;
-      mainVideo.muted = !isAudioEnabled;
-      mainVideo.playsInline = true;
-
-      if (isAudioEnabled) {
-        mainVideo.volume = 0.8;
-      }
-
-      // 단순한 이벤트 처리 (MVP 방식)
-      const onLoadedMetadata = () => {
-        console.log('✅ 비디오 로딩 완료');
-        cleanup();
-        mainVideo.play()
-                .then(() => {
-                  console.log('✅ 비디오 재생 성공');
-                  resolve();
-                })
-                .catch(reject);
-      };
-
-      const onError = (error) => {
-        console.error('❌ 비디오 로딩 실패:', error);
-        cleanup();
-        reject(error);
-      };
-
-      const cleanup = () => {
-        mainVideo.removeEventListener('loadedmetadata', onLoadedMetadata);
-        mainVideo.removeEventListener('error', onError);
-        if (timeout) clearTimeout(timeout);
-      };
-
-      // 이벤트 등록
-      mainVideo.addEventListener('loadedmetadata', onLoadedMetadata);
-      mainVideo.addEventListener('error', onError);
-
-      // 타임아웃 설정 (10초)
-      const timeout = setTimeout(() => {
-        console.warn('⏰ 비디오 로딩 타임아웃');
-        cleanup();
-        // 타임아웃 시에도 재생 시도
-        mainVideo.play()
-                .then(() => {
-                  console.log('✅ 타임아웃 후 재생 성공');
-                  resolve();
-                })
-                .catch(reject);
-      }, 10000);
-
-      // 로딩 시작
-      mainVideo.load();
-    });
   }
 
   function showInitialAudioGuide() {
@@ -1440,16 +1256,13 @@
         updateStatusSmoothly('연결 준비 중...');
       } catch (e) {
         console.error('수동 재생 실패:', e);
-        guide.remove();
-        showStaticBackground();
       }
     };
 
     document.querySelector('.main-video-container').appendChild(guide);
   }
 
-  // ========== 여기서부터는 모든 기존 함수들이 그대로 유지됩니다 ==========
-  // (세션 관리, SSE 연결, 녹화, 음소거, 영상 재생, 유틸리티 등)
+  // ========== 세션 관리 ==========
 
   async function initializeSessionInBackground() {
     try {
@@ -1518,8 +1331,7 @@
     }
   }
 
-  // ========== 모든 기존 함수들 그대로 유지 ==========
-  // SSE, 녹화, 음소거, 영상 재생, 유틸리티 등...
+  // ========== SSE 연결 ==========
 
   function connectSSE() {
     if (!sessionKey) {
@@ -1821,7 +1633,182 @@
     }
   }
 
-  // ========== 영상 재생 (MVP 방식) ==========
+  // ========== OS별 초기값 설정 (단순화) ==========
+
+  // 브라우저 및 OS 감지
+  function getBrowserInfo() {
+    const userAgent = navigator.userAgent;
+    const isIOS = /iPad|iPhone|iPod/.test(userAgent);
+    const isAndroid = /Android/.test(userAgent);
+    const isSafari = /^((?!chrome|android).)*safari/i.test(userAgent);
+    const isChrome = /Chrome/.test(userAgent);
+    const isFirefox = /Firefox/.test(userAgent);
+
+    return {
+      isIOS,
+      isAndroid,
+      isSafari,
+      isChrome,
+      isFirefox,
+      isIOSSafari: isIOS && isSafari,
+      isAndroidChrome: isAndroid && isChrome,
+      platform: isIOS ? 'iOS' : (isAndroid ? 'Android' : 'Desktop')
+    };
+  }
+
+  // OS별 비디오 설정 (단순화)
+  function getVideoSettings() {
+    const browser = getBrowserInfo();
+
+    if (browser.isIOSSafari) {
+      // iOS Safari: 즉시 전환 (깜빡임 최소화)
+      return {
+        transitionType: 'INSTANT',
+        loadTimeout: 10000,
+        volumeTransition: 'SAFE'
+      };
+    } else {
+      // Android/Desktop: 부드러운 전환
+      return {
+        transitionType: 'SMOOTH',
+        loadTimeout: 10000,
+        volumeTransition: 'SMOOTH'
+      };
+    }
+  }
+
+  // 전역 설정 변수
+  const VIDEO_SETTINGS = getVideoSettings();
+  const BROWSER_INFO = getBrowserInfo();
+
+  console.log('🔧 브라우저 정보:', BROWSER_INFO);
+  console.log('⚙️ 비디오 설정 (단순화):', VIDEO_SETTINGS);
+
+  // ========== 터치로 재생 가이드 (단순화) ==========
+
+  function showTouchToPlayGuide() {
+    const guide = document.createElement('div');
+    guide.id = 'touchGuide';
+    guide.style.cssText = `
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 24px;
+            border-radius: 16px;
+            text-align: center;
+            z-index: 200;
+            font-size: 16px;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            animation: pulseGlow 2s ease-in-out infinite;
+        `;
+    guide.innerHTML = `
+            <div style="font-size: 48px; margin-bottom: 16px;">🎬</div>
+            <div style="font-weight: 600; margin-bottom: 8px;">화면을 터치해주세요</div>
+            <div style="font-size: 14px; opacity: 0.8;">영상을 시작하려면 터치가 필요합니다</div>
+        `;
+
+    guide.onclick = async () => {
+      try {
+        await mainVideo.play();
+        guide.remove();
+        console.log('✅ 사용자 터치로 재생 시작');
+        updateStatusSmoothly('연결 준비 중...');
+      } catch (e) {
+        console.error('수동 재생 실패:', e);
+        guide.remove();
+        showStaticBackground();
+      }
+    };
+
+    document.querySelector('.main-video-container').appendChild(guide);
+  }
+
+  // ========== 음소거 기능 (단순화) ==========
+
+  async function enableAudio() {
+    try {
+      console.log('🔊 오디오 활성화 시작');
+
+      // 단순하게 음소거 해제
+      mainVideo.muted = false;
+
+      if (BROWSER_INFO.isIOSSafari) {
+        // iOS Safari: 안전한 볼륨 설정
+        mainVideo.volume = 0.1;
+
+        // 재생 중이면 재생 상태 유지
+        if (!mainVideo.paused) {
+          try {
+            await mainVideo.play();
+          } catch (playError) {
+            console.warn('⚠️ iOS 오디오 재생 실패:', playError);
+          }
+        }
+
+        // 볼륨 정상 설정
+        mainVideo.volume = 0.8;
+
+      } else {
+        // Android/Desktop: 부드러운 볼륨 설정
+        mainVideo.volume = 0.01;
+
+        // 재생 중이면 재생 상태 유지
+        if (!mainVideo.paused) {
+          await mainVideo.play();
+        }
+
+        mainVideo.volume = 0.8;
+      }
+
+      isAudioEnabled = true;
+      muteIcon.textContent = '🔊';
+      muteBtn.classList.add('active');
+      muteBtn.classList.remove('pulse');
+
+      hideAudioGuide();
+      showSuccessMessage('음성이 활성화되었습니다!');
+      console.log('✅ 오디오 활성화 완료');
+
+    } catch (error) {
+      console.error('오디오 활성화 실패:', error);
+      showErrorMessage('음성 활성화에 실패했습니다.');
+    }
+  }
+
+  // ========== 비디오 이벤트 설정 (단순화) ==========
+
+  function setupVideoEventListeners() {
+    // 단순한 오류 처리만
+    mainVideo.addEventListener('error', (e) => {
+      console.error('비디오 오류:', e);
+      if (currentVideoState === 'WAITING') {
+        showStaticBackground();
+      }
+    });
+
+    // 기본 이벤트들
+    mainVideo.addEventListener('loadstart', () => {
+      console.log('🔄 비디오 로딩 시작');
+    });
+
+    mainVideo.addEventListener('canplay', () => {
+      console.log('▶️ 비디오 재생 준비 완료');
+    });
+
+    mainVideo.addEventListener('play', () => {
+      console.log('▶️ 비디오 재생 시작');
+    });
+
+    mainVideo.addEventListener('pause', () => {
+      console.log('⏸️ 비디오 일시정지');
+    });
+  }
+
+  // ========== 영상 재생 (MVP 방식으로 단순화) ==========
 
   async function playResponseVideo(videoUrl) {
     if (videoTransitionInProgress) {
@@ -1869,9 +1856,70 @@
     }
   }
 
+  // MVP 방식 단순 비디오 재생
+  async function playVideoSimple(videoUrl, loop = true) {
+    return new Promise((resolve, reject) => {
+      console.log('🎬 단순 비디오 재생:', videoUrl);
+
+      // 기본 설정
+      mainVideo.src = videoUrl;
+      mainVideo.loop = loop;
+      mainVideo.muted = !isAudioEnabled;
+      mainVideo.playsInline = true;
+
+      if (isAudioEnabled) {
+        mainVideo.volume = 0.8;
+      }
+
+      // 단순한 이벤트 처리 (MVP 방식)
+      const onLoadedMetadata = () => {
+        console.log('✅ 비디오 로딩 완료');
+        cleanup();
+        mainVideo.play()
+                .then(() => {
+                  console.log('✅ 비디오 재생 성공');
+                  resolve();
+                })
+                .catch(reject);
+      };
+
+      const onError = (error) => {
+        console.error('❌ 비디오 로딩 실패:', error);
+        cleanup();
+        reject(error);
+      };
+
+      const cleanup = () => {
+        mainVideo.removeEventListener('loadedmetadata', onLoadedMetadata);
+        mainVideo.removeEventListener('error', onError);
+        if (timeout) clearTimeout(timeout);
+      };
+
+      // 이벤트 등록
+      mainVideo.addEventListener('loadedmetadata', onLoadedMetadata);
+      mainVideo.addEventListener('error', onError);
+
+      // 타임아웃 설정 (10초)
+      const timeout = setTimeout(() => {
+        console.warn('⏰ 비디오 로딩 타임아웃');
+        cleanup();
+        // 타임아웃 시에도 재생 시도
+        mainVideo.play()
+                .then(() => {
+                  console.log('✅ 타임아웃 후 재생 성공');
+                  resolve();
+                })
+                .catch(reject);
+      }, 10000);
+
+      // 로딩 시작
+      mainVideo.load();
+    });
+  }
+
   // 부드러운 페이드 아웃
   async function fadeOutVideo() {
-    if (VIDEO_SETTINGS.transitionType !== 'SMOOTH') return;
+    if (!VIDEO_SETTINGS.transitionType === 'SMOOTH') return;
 
     console.log('🌅 비디오 페이드 아웃');
 
@@ -1887,7 +1935,7 @@
 
   // 부드러운 페이드 인
   async function fadeInVideo() {
-    if (VIDEO_SETTINGS.transitionType !== 'SMOOTH') return;
+    if (!VIDEO_SETTINGS.transitionType === 'SMOOTH') return;
 
     console.log('🌄 비디오 페이드 인');
 
@@ -1935,7 +1983,634 @@
     }
   }
 
-  // ========== 음소거 기능 ==========
+  // 초기 대기 영상 시작 (MVP 방식)
+  async function startWaitingVideoImmediately() {
+    try {
+      const waitingVideoUrl = 'https://aicut.newstomato.com/remember/static/waiting_kt.mp4';
+
+      console.log('🎬 대기 영상 시작 (MVP 방식):', waitingVideoUrl);
+
+      mainVideo.style.display = 'block';
+      mainVideo.style.opacity = '1';
+
+      // MVP 방식으로 대기 영상 시작
+      await playVideoSimple(waitingVideoUrl, true);
+
+      currentVideoState = 'WAITING';
+      waitingVideoPreloaded = true;
+      updateStatusSmoothly('연결 준비 중...');
+
+      // 음성 안내 표시
+      setTimeout(() => {
+        if (!isAudioEnabled) {
+          showInitialAudioGuide();
+        }
+      }, 1000);
+
+    } catch (error) {
+      console.error('즉시 재생 실패:', error);
+
+      if (error.name === 'NotAllowedError') {
+        console.log('📱 자동재생 차단됨');
+        showTouchToPlayGuide();
+      } else {
+        showStaticBackground();
+      }
+    }
+  }
+
+  // 체험 모드 대기 영상 (MVP 방식)
+  async function startWaitingVideoOnly() {
+    try {
+      const waitingVideoUrl = 'https://aicut.newstomato.com/remember/static/waiting_kt.mp4';
+
+      console.log('🎬 체험 모드 영상 시작 (MVP 방식):', waitingVideoUrl);
+
+      mainVideo.style.display = 'block';
+      mainVideo.style.opacity = '1';
+
+      // MVP 방식으로 체험 모드 시작
+      await playVideoSimple(waitingVideoUrl, true);
+
+      currentVideoState = 'WAITING';
+      console.log('✅ 체험 모드 영상 재생 성공');
+
+    } catch (error) {
+      console.error('체험 모드 영상 재생 실패:', error);
+      showStaticBackground();
+    }
+  }
+
+  // 오류 처리 (MVP 방식)
+  async function handleResponseVideoError(error) {
+    console.error('응답 영상 오류:', error);
+
+    if (error.name === 'NotAllowedError') {
+      console.log('🔊 자동재생 차단 - 음성 안내 표시');
+      showAudioGuide();
+    }
+
+    // 오류 발생 시 대기 영상으로 복귀 (MVP 방식)
+    try {
+      console.log('🔄 오류 복구: 대기 영상으로 복귀');
+      await returnToWaitingVideo();
+      console.log('✅ 오류 복구 완료');
+
+    } catch (recoveryError) {
+      console.error('❌ 오류 복구 실패:', recoveryError);
+
+      // 최후의 수단: 직접 대기 영상 설정
+      const waitingVideoUrl = 'https://aicut.newstomato.com/remember/static/waiting_kt.mp4';
+      mainVideo.src = waitingVideoUrl;
+      mainVideo.loop = true;
+      mainVideo.muted = true;
+      mainVideo.style.opacity = '1';
+
+      try {
+        await mainVideo.play();
+        currentVideoState = 'WAITING';
+        updateStatusSmoothly('대기 중');
+      } catch (finalError) {
+        console.error('❌ 최후의 복구도 실패:', finalError);
+        showStaticBackground();
+      }
+    }
+  }
+
+  // ========== 초기화 시 iOS Safari 상태 모니터링 시작 ==========
+
+  async function initializeVideoCallAfterPermission() {
+    try {
+      console.log('🚀 권한 획득 후 영상통화 초기화 시작');
+
+      // iOS Safari 상태 모니터링 시작
+      if (BROWSER_INFO.isIOSSafari) {
+        monitorIOSVideoState();
+      }
+
+      // 1. 기존 세션 확인
+      const existingSession = loadSession();
+
+      if (existingSession) {
+        console.log('📱 기존 세션 발견:', existingSession);
+
+        const isValid = await validateSessionOnServer(existingSession.sessionKey);
+        console.log('🔍 서버 세션 유효성:', isValid);
+
+        if (isValid) {
+          console.log('✅ 기존 세션 재사용');
+          sessionKey = existingSession.sessionKey;
+          updateSessionInfoDisplay(existingSession);
+
+          await startWaitingVideoImmediately();
+          connectSSE();
+          updateSessionActivity();
+          updateStatusSmoothly(`${existingSession.contactName}와 재연결 중...`);
+          return;
+        } else {
+          console.log('❌ 기존 세션 무효 - 새로 생성');
+          sessionStorage.removeItem(SESSION_STORAGE_KEY);
+        }
+      }
+
+      // 2. 새 세션 생성
+      console.log('🆕 새 세션 생성');
+      await createNewSession();
+
+    } catch (error) {
+      console.error('❌ 영상통화 초기화 오류:', error);
+
+      // iOS Safari 초기화 실패 시 폴백
+      if (BROWSER_INFO.isIOSSafari) {
+        console.log('🆘 iOS Safari 초기화 실패 - 폴백 모드');
+        await fallbackToWaitingVideoOnly();
+      } else {
+        handleInitializationError(error);
+      }
+    }
+  }
+
+  // ========== 권한 없이 초기화 시에도 iOS Safari 모니터링 ==========
+
+  async function initializeWithoutPermission() {
+    console.log('🎬 권한 없이 영상통화 초기화');
+
+    // iOS Safari 상태 모니터링 시작
+    if (BROWSER_INFO.isIOSSafari) {
+      monitorIOSVideoState();
+    }
+
+    // 대기 영상만 실행
+    try {
+      await startWaitingVideoOnly();
+      updateStatusSmoothly('체험 모드');
+
+      // 체험 모드임을 알리는 메시지
+      setTimeout(() => {
+        showInfoMessage('체험 모드로 실행 중입니다.\n녹화 기능은 권한이 필요합니다.');
+      }, 2000);
+
+    } catch (error) {
+      console.error('체험 모드 초기화 실패:', error);
+
+      // iOS Safari 실패 시 폴백
+      if (BROWSER_INFO.isIOSSafari) {
+        console.log('🆘 iOS Safari 체험 모드 실패 - 폴백');
+        await fallbackToWaitingVideoOnly();
+      } else {
+        showStaticBackground();
+      }
+    }
+  }
+
+  // iOS Safari 전용: SRC 교체 방식
+  async function playResponseVideoSrcReplace(videoUrl) {
+    console.log('🍎 iOS Safari SRC 교체 모드 시작');
+
+    // 현재 상태 저장
+    const originalSrc = mainVideo.src;
+    const originalLoop = mainVideo.loop;
+    const originalMuted = mainVideo.muted;
+
+    try {
+      // 응답 영상 설정
+      mainVideo.src = videoUrl;
+      mainVideo.loop = false;
+      mainVideo.muted = !isAudioEnabled;
+      mainVideo.currentTime = 0;
+      mainVideo.playsInline = true;
+
+      if (isAudioEnabled) {
+        mainVideo.volume = 0.8;
+      }
+
+      // 로딩 대기
+      await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('iOS 영상 로딩 타임아웃'));
+        }, VIDEO_SETTINGS.loadTimeout);
+
+        const events = ['loadeddata', 'canplay'];
+        let resolved = false;
+
+        const handleLoad = () => {
+          if (!resolved) {
+            resolved = true;
+            clearTimeout(timeout);
+            events.forEach(event => {
+              mainVideo.removeEventListener(event, handleLoad);
+            });
+            resolve();
+          }
+        };
+
+        events.forEach(event => {
+          mainVideo.addEventListener(event, handleLoad);
+        });
+
+        mainVideo.load();
+      });
+
+      // 재생 시작
+      await mainVideo.play();
+
+      currentVideoState = 'RESPONSE';
+      console.log('✅ iOS Safari 응답 영상 재생 성공');
+
+      if (!isAudioEnabled) {
+        showAudioGuide();
+      }
+
+      // 종료 이벤트
+      const onVideoEnded = async () => {
+        mainVideo.removeEventListener('ended', onVideoEnded);
+        await returnToWaitingVideoSrcReplace(originalSrc, originalLoop, originalMuted);
+      };
+
+      mainVideo.addEventListener('ended', onVideoEnded);
+
+    } catch (error) {
+      console.error('❌ iOS Safari 응답 영상 실패:', error);
+      throw error;
+    }
+  }
+
+  // Android/Desktop: 오버레이 방식 (기존 부드러운 전환)
+  async function playResponseVideoOverlay(videoUrl) {
+    console.log('🤖 Android/Desktop 오버레이 모드 시작');
+
+    try {
+      // 응답 영상 요소 생성
+      const responseVideo = document.createElement('video');
+      responseVideo.style.cssText = `
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
+                background: #000;
+                opacity: 0;
+                transition: opacity 0.5s ease;
+                z-index: 10;
+            `;
+
+      responseVideo.src = videoUrl;
+      responseVideo.loop = false;
+      responseVideo.muted = !isAudioEnabled;
+      responseVideo.preload = VIDEO_SETTINGS.preloadStrategy;
+      responseVideo.playsInline = true;
+
+      if (isAudioEnabled) {
+        responseVideo.volume = 0.8;
+      }
+
+      document.querySelector('.main-video-container').appendChild(responseVideo);
+
+      // 로딩 대기
+      await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('Android 영상 로딩 타임아웃'));
+        }, VIDEO_SETTINGS.loadTimeout);
+
+        responseVideo.addEventListener('canplaythrough', () => {
+          clearTimeout(timeout);
+          resolve();
+        }, {once: true});
+
+        responseVideo.addEventListener('error', (e) => {
+          clearTimeout(timeout);
+          reject(e);
+        }, {once: true});
+      });
+
+      // 재생 시작
+      await responseVideo.play();
+
+      // 부드러운 전환 효과
+      if (VIDEO_SETTINGS.transitionType === 'SMOOTH') {
+        responseVideo.style.opacity = '1';
+        mainVideo.style.opacity = '0.2';
+      } else {
+        responseVideo.style.opacity = '1';
+        mainVideo.style.opacity = '0';
+      }
+
+      currentVideoState = 'RESPONSE';
+      console.log('✅ Android/Desktop 응답 영상 재생 성공');
+
+      if (!isAudioEnabled) {
+        showAudioGuide();
+      }
+
+      // 종료 이벤트
+      responseVideo.addEventListener('ended', async () => {
+        console.log('🔄 Android/Desktop 응답 영상 종료');
+        await returnToWaitingVideoOverlay(responseVideo);
+      }, {once: true});
+
+    } catch (error) {
+      console.error('❌ Android/Desktop 응답 영상 실패:', error);
+      throw error;
+    }
+  }
+
+  // ========== iOS Safari 디버깅 및 폴백 전략 ==========
+
+  // iOS Safari 상태 모니터링
+  function monitorIOSVideoState() {
+    if (!BROWSER_INFO.isIOSSafari) return;
+
+    console.log('🍎 iOS Safari 상태 모니터링 시작');
+
+    setInterval(() => {
+      const state = {
+        src: mainVideo.src,
+        currentTime: mainVideo.currentTime,
+        duration: mainVideo.duration,
+        paused: mainVideo.paused,
+        ended: mainVideo.ended,
+        readyState: mainVideo.readyState,
+        networkState: mainVideo.networkState,
+        error: mainVideo.error
+      };
+
+      console.log('📊 iOS Safari 비디오 상태:', state);
+
+      // 비정상 상태 감지 및 복구
+      if (currentVideoState === 'RESPONSE' && mainVideo.paused && !mainVideo.ended) {
+        console.warn('⚠️ iOS Safari 비정상 상태 감지 - 복구 시도');
+
+        setTimeout(async () => {
+          try {
+            await mainVideo.play();
+            console.log('✅ iOS Safari 비정상 상태 복구 성공');
+          } catch (error) {
+            console.error('❌ iOS Safari 비정상 상태 복구 실패:', error);
+          }
+        }, 500);
+      }
+
+    }, 5000); // 5초마다 상태 체크
+  }
+
+  // iOS Safari 폴백: 대기 영상만 재생
+  async function fallbackToWaitingVideoOnly() {
+    console.log('🆘 iOS Safari 폴백: 대기 영상만 재생');
+
+    try {
+      const waitingVideoUrl = 'https://aicut.newstomato.com/remember/static/waiting_kt.mp4';
+
+      // 완전 초기화
+      mainVideo.pause();
+      mainVideo.removeAttribute('src');
+      mainVideo.load();
+
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      mainVideo.src = waitingVideoUrl;
+      mainVideo.loop = true;
+      mainVideo.muted = true;
+      mainVideo.playsInline = true;
+      mainVideo.autoplay = false;
+
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      await mainVideo.play();
+
+      currentVideoState = 'WAITING';
+      updateStatusSmoothly('대기 중 (iOS 모드)');
+
+      // 응답 영상 재생 비활성화
+      window.disableResponseVideo = true;
+
+      console.log('✅ iOS Safari 폴백 완료');
+
+      // 사용자에게 알림
+      showInfoMessage('iOS Safari에서 일부 기능이 제한됩니다.\n대기 영상만 재생됩니다.');
+
+    } catch (error) {
+      console.error('❌ iOS Safari 폴백 실패:', error);
+      showStaticBackground();
+    }
+  }
+
+  // iOS Safari 응답 영상 재생 (폴백 포함)
+  async function playResponseVideoSrcReplaceWithFallback(videoUrl) {
+    console.log('🍎 iOS Safari 응답 영상 재생 (폴백 포함)');
+
+    // 이미 폴백 모드인 경우 스킵
+    if (window.disableResponseVideo) {
+      console.log('⏭️ iOS Safari 폴백 모드 - 응답 영상 스킵');
+      showInfoMessage('응답 영상을 받았지만 iOS Safari 제한으로 인해 재생할 수 없습니다.');
+      return;
+    }
+
+    try {
+      // 첫 번째 시도: 기존 방법
+      await playResponseVideoSrcReplace(videoUrl);
+
+    } catch (error) {
+      console.error('❌ iOS Safari 첫 번째 시도 실패:', error);
+
+      try {
+        // 두 번째 시도: 더 간단한 방법
+        console.log('🔄 iOS Safari 두 번째 시도');
+        await playResponseVideoSimpleIOS(videoUrl);
+
+      } catch (secondError) {
+        console.error('❌ iOS Safari 두 번째 시도 실패:', secondError);
+
+        // 세 번째 시도: 폴백 모드
+        console.log('🆘 iOS Safari 폴백 모드 활성화');
+        await fallbackToWaitingVideoOnly();
+
+        throw secondError;
+      }
+    }
+  }
+
+  // iOS Safari 단순 재생 시도
+  async function playResponseVideoSimpleIOS(videoUrl) {
+    console.log('🍎 iOS Safari 단순 재생 시도');
+
+    try {
+      // 매우 단순한 접근
+      mainVideo.src = videoUrl;
+      mainVideo.loop = false;
+      mainVideo.muted = !isAudioEnabled;
+      mainVideo.playsInline = true;
+
+      if (isAudioEnabled) {
+        mainVideo.volume = 0.8;
+      }
+
+      // 로딩 없이 바로 재생 시도
+      console.log('🚀 iOS Safari 즉시 재생 시도');
+      await mainVideo.play();
+
+      currentVideoState = 'RESPONSE';
+      console.log('✅ iOS Safari 단순 재생 성공');
+
+      if (!isAudioEnabled) {
+        showAudioGuide();
+      }
+
+      // 종료 이벤트
+      const onVideoEnded = async () => {
+        console.log('🔄 iOS Safari 단순 재생 종료');
+        mainVideo.removeEventListener('ended', onVideoEnded);
+
+        // 단순 복귀
+        try {
+          const waitingVideoUrl = 'https://aicut.newstomato.com/remember/static/waiting_kt.mp4';
+          mainVideo.src = waitingVideoUrl;
+          mainVideo.loop = true;
+          mainVideo.muted = true;
+          await mainVideo.play();
+
+          currentVideoState = 'WAITING';
+          updateStatusSmoothly('대기 중');
+
+        } catch (returnError) {
+          console.error('❌ iOS Safari 단순 복귀 실패:', returnError);
+          await emergencyRecoveryIOS();
+        }
+      };
+
+      mainVideo.addEventListener('ended', onVideoEnded);
+
+    } catch (error) {
+      console.error('❌ iOS Safari 단순 재생 실패:', error);
+      throw error;
+    }
+  }
+
+  // Android/Desktop 대기 영상 복귀 (부드러운 전환)
+  async function returnToWaitingVideoOverlay(responseVideo) {
+    try {
+      console.log('🤖 Android/Desktop 대기 영상 복귀');
+
+      currentVideoState = 'TRANSITIONING';
+
+      // 부드러운 전환 효과
+      if (VIDEO_SETTINGS.transitionType === 'SMOOTH') {
+        mainVideo.style.transition = 'opacity 0.5s ease';
+        mainVideo.style.opacity = '1';
+        responseVideo.style.opacity = '0';
+
+        // 전환 완료 후 정리
+        setTimeout(() => {
+          if (responseVideo.parentNode) {
+            responseVideo.parentNode.removeChild(responseVideo);
+          }
+        }, 500);
+      } else {
+        // 즉시 전환
+        mainVideo.style.opacity = '1';
+        if (responseVideo.parentNode) {
+          responseVideo.parentNode.removeChild(responseVideo);
+        }
+      }
+
+      currentVideoState = 'WAITING';
+      updateStatusSmoothly('대기 중');
+      console.log('✅ Android/Desktop 대기 영상 복귀 완료');
+
+    } catch (error) {
+      console.error('❌ Android/Desktop 대기 영상 복귀 실패:', error);
+      if (responseVideo.parentNode) {
+        responseVideo.parentNode.removeChild(responseVideo);
+      }
+      currentVideoState = 'WAITING';
+      mainVideo.style.opacity = '1';
+      updateStatusSmoothly('대기 중');
+    }
+  }
+
+  async function returnToWaitingVideoDirectly(originalSrc, originalLoop, originalMuted) {
+    try {
+      console.log('🔄 대기 영상으로 직접 복귀 시작');
+      console.log('📝 복귀할 영상 정보:', {
+        originalSrc: originalSrc,
+        originalLoop: originalLoop,
+        originalMuted: originalMuted
+      });
+
+      currentVideoState = 'TRANSITIONING';
+
+      // 대기 영상으로 설정 복원
+      mainVideo.src = originalSrc;
+      mainVideo.loop = originalLoop;
+      mainVideo.muted = originalMuted;
+      mainVideo.currentTime = 0;
+
+      console.log('🔄 대기 영상 로딩 시작...');
+
+      // 대기 영상 로딩 대기
+      await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          console.error('⏰ 대기 영상 로딩 타임아웃');
+          reject(new Error('대기 영상 로딩 타임아웃'));
+        }, 10000);
+
+        const onCanPlay = () => {
+          console.log('✅ 대기 영상 로딩 완료');
+          clearTimeout(timeout);
+          mainVideo.removeEventListener('canplay', onCanPlay);
+          mainVideo.removeEventListener('error', onError);
+          resolve();
+        };
+
+        const onError = (e) => {
+          console.error('❌ 대기 영상 로딩 오류:', e);
+          clearTimeout(timeout);
+          mainVideo.removeEventListener('canplay', onCanPlay);
+          mainVideo.removeEventListener('error', onError);
+          reject(e);
+        };
+
+        mainVideo.addEventListener('canplay', onCanPlay);
+        mainVideo.addEventListener('error', onError);
+
+        // 로딩 시작
+        mainVideo.load();
+      });
+
+      console.log('🎬 대기 영상 재생 시작...');
+
+      // 대기 영상 재생
+      await mainVideo.play();
+
+      console.log('✅ 대기 영상 재생 성공');
+
+      currentVideoState = 'WAITING';
+      updateStatusSmoothly('대기 중');
+
+      console.log('✅ 대기 영상으로 복귀 완료');
+
+    } catch (error) {
+      console.error('대기 영상 복귀 오류:', error);
+
+      // 실패 시 폴백
+      currentVideoState = 'WAITING';
+      updateStatusSmoothly('대기 중');
+
+      // 대기 영상 재시도
+      setTimeout(async () => {
+        try {
+          console.log('🔄 대기 영상 재시도...');
+          await mainVideo.play();
+          console.log('✅ 대기 영상 재시도 성공');
+        } catch (retryError) {
+          console.error('❌ 대기 영상 재시도 실패:', retryError);
+          showStaticBackground();
+        }
+      }, 1000);
+    }
+  }
+
+  // ========== 음소거 기능 (iOS Safari 최적화) ==========
 
   async function toggleMute() {
     updateSessionActivity();
@@ -1956,19 +2631,44 @@
     try {
       console.log('🔊 오디오 활성화 시작');
 
-      // 단순하게 음소거 해제
-      mainVideo.muted = false;
+      // iOS Safari에서 안정적인 오디오 활성화
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
-      if (BROWSER_INFO.isIOSSafari) {
-        // iOS Safari: 안전한 볼륨 설정
+      if (isIOS && isSafari) {
+        console.log('🍎 iOS Safari 오디오 활성화');
+
+        // iOS Safari에서는 사용자 제스처 시점에 unmute 해야 함
+        mainVideo.muted = false;
+
+        // 볼륨을 낮게 설정한 후 재생
         mainVideo.volume = 0.1;
 
-        // 재생 중이면 재생 상태 유지
-        if (!mainVideo.paused) {
+        // 현재 재생 중인 영상의 재생 상태 확인
+        const wasPlaying = !mainVideo.paused;
+        const currentTime = mainVideo.currentTime;
+
+        console.log('📝 현재 재생 상태:', { wasPlaying, currentTime });
+
+        if (wasPlaying) {
+          // 재생 중이면 일시정지 후 다시 재생
           try {
             await mainVideo.play();
+            console.log('🔊 iOS 오디오 재생 성공');
           } catch (playError) {
             console.warn('⚠️ iOS 오디오 재생 실패:', playError);
+          }
+        } else {
+          // 정지 상태면 짧게 재생 후 일시정지
+          try {
+            await mainVideo.play();
+            setTimeout(() => {
+              mainVideo.pause();
+              mainVideo.currentTime = currentTime;
+            }, 100);
+            console.log('🔊 iOS 오디오 테스트 재생 성공');
+          } catch (playError) {
+            console.warn('⚠️ iOS 오디오 테스트 재생 실패:', playError);
           }
         }
 
@@ -1976,14 +2676,12 @@
         mainVideo.volume = 0.8;
 
       } else {
-        // Android/Desktop: 부드러운 볼륨 설정
+        console.log('🤖 일반 브라우저 오디오 활성화');
+
+        // 일반 브라우저 처리
+        mainVideo.muted = false;
         mainVideo.volume = 0.01;
-
-        // 재생 중이면 재생 상태 유지
-        if (!mainVideo.paused) {
-          await mainVideo.play();
-        }
-
+        await mainVideo.play();
         mainVideo.volume = 0.8;
       }
 
@@ -2101,29 +2799,23 @@
   // ========== 비디오 이벤트 및 오류 처리 ==========
 
   function setupVideoEventListeners() {
-    // 단순한 오류 처리만
     mainVideo.addEventListener('error', (e) => {
-      console.error('비디오 오류:', e);
+      console.error('대기 영상 오류:', e);
       if (currentVideoState === 'WAITING') {
         showStaticBackground();
       }
     });
 
-    // 기본 이벤트들
-    mainVideo.addEventListener('loadstart', () => {
-      console.log('🔄 비디오 로딩 시작');
+    mainVideo.addEventListener('stalled', () => {
+      console.warn('대기 영상 로딩 지연');
+    });
+
+    mainVideo.addEventListener('waiting', () => {
+      console.log('대기 영상 버퍼링 중...');
     });
 
     mainVideo.addEventListener('canplay', () => {
-      console.log('▶️ 비디오 재생 준비 완료');
-    });
-
-    mainVideo.addEventListener('play', () => {
-      console.log('▶️ 비디오 재생 시작');
-    });
-
-    mainVideo.addEventListener('pause', () => {
-      console.log('⏸️ 비디오 일시정지');
+      console.log('대기 영상 재생 준비 완료');
     });
   }
 
@@ -2194,84 +2886,6 @@
       currentVideoState = 'WAITING';
       mainVideo.style.opacity = '1';
       updateStatusSmoothly('대기 중');
-      showStaticBackground();
-    }
-  }
-
-  // ========== iOS Safari 폴백 ==========
-
-  function monitorIOSVideoState() {
-    if (!BROWSER_INFO.isIOSSafari) return;
-
-    console.log('🍎 iOS Safari 상태 모니터링 시작');
-
-    setInterval(() => {
-      const state = {
-        src: mainVideo.src,
-        currentTime: mainVideo.currentTime,
-        duration: mainVideo.duration,
-        paused: mainVideo.paused,
-        ended: mainVideo.ended,
-        readyState: mainVideo.readyState,
-        networkState: mainVideo.networkState,
-        error: mainVideo.error
-      };
-
-      console.log('📊 iOS Safari 비디오 상태:', state);
-
-      // 비정상 상태 감지 및 복구
-      if (currentVideoState === 'RESPONSE' && mainVideo.paused && !mainVideo.ended) {
-        console.warn('⚠️ iOS Safari 비정상 상태 감지 - 복구 시도');
-
-        setTimeout(async () => {
-          try {
-            await mainVideo.play();
-            console.log('✅ iOS Safari 비정상 상태 복구 성공');
-          } catch (error) {
-            console.error('❌ iOS Safari 비정상 상태 복구 실패:', error);
-          }
-        }, 500);
-      }
-
-    }, 5000); // 5초마다 상태 체크
-  }
-
-  async function fallbackToWaitingVideoOnly() {
-    console.log('🆘 iOS Safari 폴백: 대기 영상만 재생');
-
-    try {
-      const waitingVideoUrl = 'https://aicut.newstomato.com/remember/static/waiting_kt.mp4';
-
-      // 완전 초기화
-      mainVideo.pause();
-      mainVideo.removeAttribute('src');
-      mainVideo.load();
-
-      await new Promise(resolve => setTimeout(resolve, 300));
-
-      mainVideo.src = waitingVideoUrl;
-      mainVideo.loop = true;
-      mainVideo.muted = true;
-      mainVideo.playsInline = true;
-      mainVideo.autoplay = false;
-
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      await mainVideo.play();
-
-      currentVideoState = 'WAITING';
-      updateStatusSmoothly('대기 중 (iOS 모드)');
-
-      // 응답 영상 재생 비활성화
-      window.disableResponseVideo = true;
-
-      console.log('✅ iOS Safari 폴백 완료');
-
-      // 사용자에게 알림
-      showInfoMessage('iOS Safari에서 일부 기능이 제한됩니다.\n대기 영상만 재생됩니다.');
-
-    } catch (error) {
-      console.error('❌ iOS Safari 폴백 실패:', error);
       showStaticBackground();
     }
   }
@@ -2427,6 +3041,12 @@
   // 페이지 로드 이벤트
   window.addEventListener('load', function () {
     console.log('🌐 페이지 로드 완료');
+    setTimeout(() => {
+      if (!cameraPermissionGranted && !microphonePermissionGranted) {
+        console.log('🔄 백업 초기화 실행');
+        showPermissionModal();
+      }
+    }, 500);
   });
 
   // 페이지 언로드 이벤트
@@ -2444,6 +3064,17 @@
       console.log('🔄 페이지 캐시에서 복원됨 - 전체 새로고침 필요');
       window.location.reload();
     }
+  });
+
+  // ========== 자동 실행 코드 ==========
+
+  document.addEventListener('DOMContentLoaded', function () {
+    console.log('📄 DOM 로드 완료');
+
+    // 페이지 진입 시 즉시 권한 요청 모달 표시
+    setTimeout(() => {
+      showPermissionModal();
+    }, 500);
   });
 
   console.log('🎬 권한 요청 기능이 포함된 영상통화 시스템 로드 완료');
