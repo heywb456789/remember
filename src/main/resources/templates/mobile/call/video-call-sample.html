@@ -809,9 +809,16 @@
       stream.getTracks().forEach(track => track.stop());
       console.log('⚡ 빠른 테스트 성공');
 
+      // 🆕 권한 상태 변수 업데이트
+      cameraPermissionGranted = true;
+      microphonePermissionGranted = true;
+
       return true;
     } catch (error) {
       console.log('⚡ 빠른 테스트 실패:', error.name);
+      // 🆕 권한 상태 변수 업데이트
+      cameraPermissionGranted = false;
+      microphonePermissionGranted = false;
       return false;
     }
   }
@@ -833,9 +840,15 @@
 
       if (hasPermissions) {
         updatePermissionStorage(true);
+        // 🆕 권한 상태 변수 업데이트
+        cameraPermissionGranted = true;
+        microphonePermissionGranted = true;
         return true;
       } else if (cameraPermission.state === 'denied' || micPermission.state === 'denied') {
         updatePermissionStorage(false);
+        // 🆕 권한 상태 변수 업데이트
+        cameraPermissionGranted = false;
+        microphonePermissionGranted = false;
         return false;
       }
 
@@ -866,7 +879,7 @@
         console.log('🧹 트랙 정리:', track.kind);
       });
 
-      // 권한 상태 저장
+      // 🆕 권한 상태 변수 업데이트
       updatePermissionStorage(true);
       cameraPermissionGranted = true;
       microphonePermissionGranted = true;
@@ -879,6 +892,8 @@
       if (error.name === 'NotAllowedError') {
         console.log('🚫 권한 거부됨');
         updatePermissionStorage(false);
+        cameraPermissionGranted = false;
+        microphonePermissionGranted = false;
         return false;
       } else if (error.name === 'NotFoundError') {
         console.log('📷 미디어 장치 없음');
@@ -1714,9 +1729,29 @@
   async function toggleRecording() {
     updateSessionActivity();
 
+    // 🔧 수정: 권한 상태 재확인 및 스트림 획득
     if (!cameraPermissionGranted || !userMediaStream) {
-      showInfoMessage('녹화 기능을 사용하려면 카메라 권한이 필요합니다.');
-      return;
+      console.log('🎥 녹화를 위한 권한/스트림 확인');
+
+      try {
+        // 권한이 있지만 스트림이 없는 경우 스트림 획득
+        if (cameraPermissionGranted && !userMediaStream) {
+          console.log('📷 녹화용 스트림 획득');
+          userMediaStream = await navigator.mediaDevices.getUserMedia({
+            video: { width: { ideal: 1920 }, height: { ideal: 1080 } },
+            audio: { echoCancellation: true, noiseSuppression: true }
+          });
+          setupCamera();
+        } else {
+          // 권한이 없는 경우
+          showInfoMessage('녹화 기능을 사용하려면 카메라 권한이 필요합니다.');
+          return;
+        }
+      } catch (error) {
+        console.error('녹화용 스트림 획득 실패:', error);
+        showErrorMessage('카메라에 접근할 수 없습니다. 권한을 확인해주세요.');
+        return;
+      }
     }
 
     if (!isRecording) {
