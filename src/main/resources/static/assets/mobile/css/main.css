@@ -1,4 +1,4 @@
-/* main.css - 토마토리멤버 메인 페이지 스타일 (원래 간격 복원) */
+/* main.css - 토마토리멤버 메인 페이지 스타일 (완벽한 복원) */
 
 /* 기본 변수 */
 :root {
@@ -50,7 +50,7 @@
   min-height: 100vh;
 }
 
-/* 환영 메시지 - 원래대로 */
+/* 환영 메시지 */
 .welcome-message {
   padding: var(--spacing-lg) 0;
   text-align: center;
@@ -71,12 +71,12 @@
   margin-bottom: var(--spacing-lg);
 }
 
-/* 로그인 전: 디지털 추모 공간 카드 - 원래대로 */
+/* 로그인 전: 디지털 추모 공간 카드 */
 .memorial-intro-card {
   background: var(--memorial-gradient);
   border-radius: var(--radius-lg);
-  padding: var(--spacing-lg);
-  margin-bottom: var(--spacing-lg);
+  padding: var(--spacing-xl);
+  margin-bottom: var(--spacing-xl);
   position: relative;
   overflow: hidden;
   box-shadow: var(--shadow-lg);
@@ -101,7 +101,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto var(--spacing-md);
+  margin: 0 auto var(--spacing-lg);
   position: relative;
   z-index: 2;
 }
@@ -115,7 +115,7 @@
   font-size: 20px;
   font-weight: 700;
   color: white;
-  margin-bottom: var(--spacing-xs);
+  margin-bottom: var(--spacing-sm);
   position: relative;
   z-index: 2;
   text-align: center;
@@ -124,8 +124,8 @@
 .memorial-intro-subtitle {
   font-size: 14px;
   color: rgba(255,255,255,0.9);
-  margin-bottom: var(--spacing-lg);
-  line-height: 1.5;
+  margin-bottom: var(--spacing-xl);
+  line-height: 1.6;
   position: relative;
   z-index: 2;
   text-align: center;
@@ -135,7 +135,7 @@
   background: white;
   color: #6c5ce7;
   border: none;
-  padding: 12px 24px;
+  padding: 14px 28px;
   border-radius: var(--radius-sm);
   font-size: 14px;
   font-weight: 600;
@@ -143,7 +143,6 @@
   transition: var(--transition-smooth);
   position: relative;
   z-index: 2;
-  /* 버튼 가운데 정렬 추가 */
   display: block;
   margin: 0 auto;
 }
@@ -153,42 +152,9 @@
   box-shadow: var(--shadow-md);
 }
 
-/* 로그인 후: 메모리얼 등록 버튼 - 원래대로 */
-.add-memorial-section {
-  margin-bottom: var(--spacing-lg);
-}
-
-.add-memorial-btn {
-  width: 100%;
-  background: var(--memorial-gradient);
-  color: white;
-  border: none;
-  padding: 14px var(--spacing-lg);
-  border-radius: var(--radius-sm);
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: var(--transition-smooth);
-  text-decoration: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-xs);
-  box-shadow: var(--shadow-md);
-  min-height: 48px;
-}
-
-.add-memorial-btn:hover {
-  background: linear-gradient(135deg, #5a4fcf 0%, #6c5ce7 100%);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-lg);
-  color: white;
-  text-decoration: none;
-}
-
-/* 서비스 안내 섹션 - 버튼과의 간격 추가 */
+/* 서비스 안내 섹션 */
 .service-intro {
-  margin-top: var(--spacing-xl); /* 위쪽 여백 추가 */
+  margin-top: var(--spacing-xl);
   margin-bottom: var(--spacing-lg);
 }
 
@@ -196,7 +162,7 @@
   font-size: 16px;
   font-weight: 700;
   color: var(--text-primary);
-  margin-bottom: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
@@ -206,64 +172,19 @@
   color: #6c5ce7;
 }
 
-.service-item {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm) 0;
-  border-bottom: 1px solid var(--border-light);
-}
-
-.service-item:last-child {
-  border-bottom: none;
-}
-
-.service-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: #e8f5e8;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.service-icon i {
-  color: #27ae60;
-  font-size: 16px;
-}
-
-.service-content {
-  flex: 1;
-}
-
-.service-content h4 {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 4px;
-}
-
-.service-content p {
-  font-size: 12px;
-  color: var(--text-muted);
-  line-height: 1.4;
-  margin: 0;
-}
-
-/* 추가 서비스 카드들 - 카드 내부 여백만 증가 */
+/* 🎯 핵심 수정: 추가 서비스 카드들 - 두 번째 이미지와 동일하게 */
 .additional-services {
-  margin-top: var(--spacing-xl); /* 위쪽 여백 추가 */
-  margin-bottom: var(--spacing-lg);
+  margin-top: var(--spacing-xl);
+  margin-bottom: var(--spacing-xl);
 }
 
 .service-card {
   background: white;
   border: 1px solid var(--border-light);
   border-radius: var(--radius-md);
-  padding: var(--spacing-lg) var(--spacing-md); /* 상하 패딩만 증가 */
-  margin-bottom: var(--spacing-sm); /* 카드 간격은 원래대로 */
+  /* 🔧 카드 내부 패딩을 적절하게 조정 - 두 번째 이미지와 동일 */
+  padding: 20px 16px; /* 상하 20px, 좌우 16px */
+  margin-bottom: var(--spacing-md); /* 16px */
   box-shadow: var(--shadow-sm);
   transition: var(--transition-smooth);
 }
@@ -280,8 +201,8 @@
 .service-card-header {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-xs); /* 원래대로 복원 */
+  gap: var(--spacing-sm); /* 12px */
+  margin-bottom: var(--spacing-xs); /* 8px - 제목과 설명 사이 간격 줄임 */
 }
 
 .service-card-icon {
@@ -316,19 +237,20 @@
   font-weight: 600;
   color: var(--text-primary);
   margin: 0;
+  line-height: 1.3; /* 줄간격 조정 */
 }
 
 .service-card-description {
-  font-size: 12px; /* 원래대로 복원 */
+  font-size: 12px;
   color: var(--text-muted);
-  line-height: 1.4; /* 원래대로 복원 */
-  margin: 0;
+  line-height: 1.4;
+  margin: 4px 0 0 0; /* 상단 여백만 4px */
 }
 
-/* 3개월 무료체험 시작하기 버튼 - 위쪽 여백 추가 */
+/* 3개월 무료체험 시작하기 버튼 */
 .free-trial-section {
-  margin-top: var(--spacing-xl); /* 위쪽 여백 추가 */
-  margin-bottom: var(--spacing-lg);
+  margin-top: var(--spacing-xl);
+  margin-bottom: var(--spacing-xl);
 }
 
 .free-trial-btn {
@@ -336,7 +258,7 @@
   background: var(--secondary-gradient);
   color: white;
   border: none;
-  padding: 14px var(--spacing-lg);
+  padding: 16px var(--spacing-lg);
   border-radius: var(--radius-sm);
   font-size: 14px;
   font-weight: 600;
@@ -350,7 +272,7 @@
   box-shadow: var(--shadow-md);
   position: relative;
   overflow: hidden;
-  min-height: 48px;
+  min-height: 52px;
 }
 
 .free-trial-btn::before {
@@ -379,31 +301,64 @@
   font-size: 16px;
 }
 
-/* 약관 및 푸터 영역 - 원래대로 */
+/* 로그인 후: 메모리얼 등록 버튼 */
+.add-memorial-section {
+  margin-bottom: var(--spacing-xl);
+}
+
+.add-memorial-btn {
+  width: 100%;
+  background: var(--memorial-gradient);
+  color: white;
+  border: none;
+  padding: 16px var(--spacing-lg);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  box-shadow: var(--shadow-md);
+  min-height: 52px;
+}
+
+.add-memorial-btn:hover {
+  background: linear-gradient(135deg, #5a4fcf 0%, #6c5ce7 100%);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-lg);
+  color: white;
+  text-decoration: none;
+}
+
+/* 약관 및 푸터 영역 */
 .terms-footer-section {
   margin-top: var(--spacing-xl);
-  padding-top: var(--spacing-lg);
+  padding-top: var(--spacing-xl);
   border-top: 1px solid var(--border-light);
 }
 
 .terms-links {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--spacing-md);
+  gap: var(--spacing-lg);
   justify-content: center;
-  margin-bottom: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
 }
 
 .terms-link {
   font-size: 12px;
   color: var(--text-muted);
   text-decoration: none;
-  padding: var(--spacing-xs) var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
   border-radius: var(--radius-sm);
   transition: var(--transition-smooth);
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
 }
 
 .terms-link:hover {
@@ -413,28 +368,28 @@
 }
 
 .terms-link i {
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .footer-info {
   text-align: center;
-  padding: var(--spacing-md) 0;
+  padding: var(--spacing-lg) 0;
   background: var(--bg-secondary);
   border-radius: var(--radius-md);
-  margin-bottom: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
 }
 
 .company-info {
   font-size: 11px;
   color: var(--text-muted);
-  line-height: 1.5;
-  margin-bottom: var(--spacing-sm);
+  line-height: 1.6;
+  margin-bottom: var(--spacing-md);
 }
 
 .contact-info {
   font-size: 10px;
   color: var(--text-light);
-  margin-bottom: var(--spacing-xs);
+  margin-bottom: var(--spacing-sm);
 }
 
 .copyright {
@@ -444,9 +399,9 @@
   font-weight: 500;
 }
 
-/* 메모리얼 목록 섹션 - 원래대로 */
+/* 메모리얼 목록 섹션 */
 .memorial-list-section {
-  margin-bottom: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
 }
 
 .memorial-list-container {
@@ -455,7 +410,7 @@
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   border-radius: var(--radius-md);
   overflow: hidden;
-  padding: var(--spacing-md);
+  padding: var(--spacing-lg);
 }
 
 .memorial-list {
@@ -467,15 +422,15 @@
 .memorial-item {
   display: flex;
   align-items: center;
-  padding: var(--spacing-md);
+  padding: var(--spacing-lg);
   background: white;
   border-radius: var(--radius-md);
-  margin-bottom: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
   cursor: pointer;
   transition: var(--transition-smooth);
-  height: 64px;
-  min-height: 64px;
-  max-height: 64px;
+  height: 72px;
+  min-height: 72px;
+  max-height: 72px;
   border: 1px solid #e2e8f0;
 }
 
@@ -490,8 +445,8 @@
 }
 
 .memorial-avatar {
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   background: var(--bg-muted);
   display: flex;
@@ -499,7 +454,7 @@
   justify-content: center;
   flex-shrink: 0;
   overflow: hidden;
-  margin-right: var(--spacing-md);
+  margin-right: var(--spacing-lg);
   border: 2px solid var(--border-light);
 }
 
@@ -510,7 +465,7 @@
 }
 
 .memorial-avatar .memorial-icon {
-  font-size: 20px;
+  font-size: 22px;
 }
 
 .memorial-avatar .memorial-emoji {
@@ -522,7 +477,7 @@
 }
 
 .memorial-avatar .emoji {
-  font-size: 24px;
+  font-size: 26px;
   line-height: 1;
 }
 
@@ -535,7 +490,7 @@
   font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 2px;
+  margin-bottom: 4px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -549,69 +504,50 @@
   text-overflow: ellipsis;
 }
 
-/* 화살표 제거 */
-.memorial-arrow {
-  display: none;
-}
-
-.more-info {
-  padding: var(--spacing-sm) var(--spacing-md);
-  background: var(--bg-secondary);
-  font-size: 12px;
-  color: var(--text-muted);
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  border-top: 1px solid var(--border-light);
-}
-
-.more-info i {
-  color: #6c5ce7;
-}
-
-/* 빈 상태 - 원래대로 */
+/* 빈 상태 */
 .empty-state {
   text-align: center;
-  padding: 40px var(--spacing-lg);
+  padding: 50px var(--spacing-lg);
   background: var(--bg-secondary);
   border-radius: var(--radius-md);
-  margin: var(--spacing-lg) 0;
+  margin: var(--spacing-xl) 0;
 }
 
 .empty-state .empty-icon {
-  width: 60px;
-  height: 60px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
   background: rgba(108, 92, 231, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto var(--spacing-md);
+  margin: 0 auto var(--spacing-lg);
 }
 
 .empty-state .empty-icon i {
-  font-size: 24px;
+  font-size: 26px;
   color: #6c5ce7;
 }
 
 .empty-state h3 {
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: var(--spacing-xs);
+  margin-bottom: var(--spacing-sm);
 }
 
 .empty-state p {
   font-size: 14px;
   color: var(--text-muted);
-  margin-bottom: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+  line-height: 1.5;
 }
 
 .empty-state .btn {
   background: var(--memorial-gradient);
   color: white;
   border: none;
-  padding: var(--spacing-sm) var(--spacing-lg);
+  padding: var(--spacing-md) var(--spacing-xl);
   border-radius: var(--radius-sm);
   font-size: 14px;
   font-weight: 600;
@@ -620,7 +556,7 @@
   text-decoration: none;
   display: inline-flex;
   align-items: center;
-  gap: var(--spacing-xs);
+  gap: var(--spacing-sm);
 }
 
 .empty-state .btn:hover {
@@ -630,9 +566,9 @@
   text-decoration: none;
 }
 
-/* 하단 영상통화 버튼 - 원래대로 */
+/* 하단 영상통화 버튼 */
 .bottom-actions {
-  margin-top: var(--spacing-lg);
+  margin-top: var(--spacing-xl);
   padding-bottom: var(--spacing-xl);
 }
 
@@ -641,7 +577,7 @@
   background: var(--secondary-gradient);
   color: white;
   border: none;
-  padding: 14px var(--spacing-lg);
+  padding: 16px var(--spacing-lg);
   border-radius: var(--radius-sm);
   font-size: 14px;
   font-weight: 600;
@@ -650,10 +586,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--spacing-xs);
+  gap: var(--spacing-sm);
   box-shadow: var(--shadow-md);
-  margin: var(--spacing-lg) 0;
-  min-height: 48px;
+  margin: var(--spacing-xl) 0;
+  min-height: 52px;
 }
 
 .video-call-btn:hover:not(:disabled) {
@@ -675,7 +611,7 @@
   font-size: 16px;
 }
 
-/* 로딩 스켈레톤 - 원래대로 */
+/* 로딩 스켈레톤 */
 .loading-skeleton {
   display: flex;
   flex-direction: column;
@@ -738,7 +674,7 @@
   }
 }
 
-/* 에러 상태 - 원래대로 */
+/* 에러 상태 */
 .error-state {
   text-align: center;
   padding: 40px var(--spacing-lg);
@@ -799,9 +735,52 @@
   text-decoration: none;
 }
 
-/* PC에서 버튼 레이아웃 개선 - 원래대로 */
+/* 반응형 디자인 */
+@media (max-width: 375px) {
+  .container {
+    padding: 0 var(--spacing-sm);
+  }
+
+  .welcome-text {
+    font-size: 16px;
+  }
+
+  .memorial-intro-title {
+    font-size: 18px;
+  }
+
+  .memorial-item {
+    padding: var(--spacing-md);
+    height: 68px;
+    min-height: 68px;
+    max-height: 68px;
+  }
+
+  .memorial-avatar {
+    width: 48px;
+    height: 48px;
+    margin-right: var(--spacing-md);
+  }
+
+  /* 작은 화면에서 카드 패딩 조정 */
+  .service-card {
+    padding: 16px 12px;
+  }
+}
+
+@media (min-width: 768px) {
+  .container {
+    max-width: 768px;
+    padding: 0 var(--spacing-lg);
+  }
+
+  .memorial-list {
+    max-height: 320px;
+  }
+}
+
+/* PC에서 버튼 레이아웃 개선 */
 @media (min-width: 1024px) {
-  /* 메모리얼 카드를 그리드로 배치 */
   .memorial-intro-card {
     display: grid;
     grid-template-columns: auto 1fr auto;
@@ -825,7 +804,6 @@
     padding: 12px 24px;
   }
 
-  /* 메모리얼 리스트 그리드 */
   .memorial-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -838,7 +816,6 @@
     margin-bottom: 0;
   }
 
-  /* 버튼 그리드 */
   .bottom-actions {
     display: flex;
     gap: 16px;
@@ -852,48 +829,16 @@
     min-height: 48px;
   }
 
-  /* 메모리얼 등록 버튼도 PC에서 동일한 높이 */
   .add-memorial-btn {
     min-height: 48px;
   }
 
-  /* 무료체험 버튼도 PC에서 동일한 높이 */
   .free-trial-btn {
     min-height: 48px;
   }
 }
 
-/* 반응형 디자인 - 원래대로 */
-@media (max-width: 375px) {
-  .container {
-    padding: 0 var(--spacing-sm);
-  }
-
-  .welcome-text {
-    font-size: 16px;
-  }
-
-  .memorial-intro-title {
-    font-size: 18px;
-  }
-
-  .memorial-item {
-    padding: var(--spacing-sm);
-  }
-}
-
-@media (min-width: 768px) {
-  .container {
-    max-width: 768px;
-    padding: 0 var(--spacing-lg);
-  }
-
-  .memorial-list {
-    max-height: 320px;
-  }
-}
-
-/* 애니메이션 - 원래대로 */
+/* 애니메이션 */
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -917,7 +862,7 @@
 .memorial-item:nth-child(4) { animation-delay: 0.3s; }
 .memorial-item:nth-child(5) { animation-delay: 0.4s; }
 
-/* 접근성 개선 - 원래대로 */
+/* 접근성 개선 */
 .memorial-item:focus,
 .new-memorial-btn:focus,
 .add-memorial-btn:focus,
@@ -926,7 +871,7 @@
   outline-offset: 2px;
 }
 
-/* 스크롤바 스타일링 - 원래대로 */
+/* 스크롤바 스타일링 */
 .memorial-list::-webkit-scrollbar {
   width: 4px;
 }
