@@ -1,6 +1,6 @@
-/* ===== 개선된 완전 반응형 레이아웃 CSS ===== */
+/* ===== 토마토리멤버 완전 반응형 레이아웃 CSS - 최종 완성본 ===== */
 
-/* 기본 변수 (기존 유지하면서 PC 변수 추가) */
+/* 기본 변수 정의 */
 :root {
   --primary-color: #ff6b35;
   --primary-gradient: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
@@ -14,6 +14,11 @@
   --shadow-heavy: 0 8px 32px rgba(0, 0, 0, 0.15);
   --border-radius: 12px;
   --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
 }
 
 /* ===== PC 전용 사이드바 ===== */
@@ -32,7 +37,7 @@
 }
 
 .sidebar-header {
-  padding: var(--spacing-lg, 24px);
+  padding: var(--spacing-lg);
   border-bottom: 1px solid #f0f0f0;
 }
 
@@ -85,16 +90,18 @@
   text-align: center;
 }
 
-/* ===== 기본 레이아웃 (모바일 우선) ===== */
+/* ===== 기본 레이아웃 - 콘텐츠 잘림 방지 ===== */
 .mobile-layout {
   font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
   background: #f0f0f0;
   min-height: 100vh;
-  padding-top: var(--header-height-mobile);
-  padding-bottom: var(--nav-height-mobile);
+  /* 🔧 콘텐츠 잘림 방지: 헤더/앱네비 영역 확보 */
+  padding-top: calc(var(--header-height-mobile) + 10px) !important;
+  padding-bottom: calc(var(--nav-height-mobile) + 10px) !important;
   line-height: 1.6;
   color: #333;
   transition: var(--transition-smooth);
+  margin: 0 !important;
 }
 
 /* ===== 헤더 ===== */
@@ -102,7 +109,7 @@
   background: white;
   box-shadow: var(--shadow-light);
   border-bottom: 1px solid #f0f0f0;
-  z-index: 1030;
+  z-index: 1030 !important;
   padding: 0;
   height: var(--header-height-mobile);
   position: fixed;
@@ -148,6 +155,21 @@
   color: var(--primary-color);
   letter-spacing: -0.5px;
   line-height: 1;
+}
+
+/* PC에서 헤더 사용자 정보 */
+.header-user-info {
+  color: #4a5568;
+  font-size: 14px;
+}
+
+.user-greeting {
+  font-weight: 500;
+}
+
+.user-avatar-small {
+  object-fit: cover;
+  border: 2px solid #e2e8f0;
 }
 
 /* 햄버거 메뉴 버튼 */
@@ -204,57 +226,78 @@
   transform: rotate(-45deg) translate(7px, -6px);
 }
 
-/* ===== 메인 컨텐츠 ===== */
+/* ===== 메인 컨텐츠 - 잘림 방지 및 스크롤 최적화 ===== */
 .mobile-main {
-  min-height: calc(100vh - var(--header-height-mobile) - var(--nav-height-mobile));
-  padding: 0;
+  min-height: calc(100vh - var(--header-height-mobile) - var(--nav-height-mobile) - 20px);
+  /* 🔧 콘텐츠 여백 확보 */
+  padding: 15px 0 20px 0;
   max-width: 375px;
   margin: 0 auto;
   background: white;
   transition: var(--transition-smooth);
+  margin-bottom: 0 !important;
+  /* 🔧 스크롤 최적화 */
+  overflow-y: auto;
+  scroll-behavior: smooth;
 }
 
-/* ===== 기본 레이아웃 (앱 네비게이션만) ===== */
-.mobile-layout {
-  font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
-  background: #f0f0f0;
-  min-height: 100vh;
-  padding-top: var(--header-height-mobile);
-  padding-bottom: var(--nav-height-mobile);
-  line-height: 1.6;
-  color: #333;
-  transition: var(--transition-smooth);
-}
-
-/* ===== 메인 컨텐츠 ===== */
-.mobile-main {
-  min-height: calc(100vh - var(--header-height-mobile) - var(--nav-height-mobile));
-  padding: 0;
+/* ===== 컨테이너 여백 조정 ===== */
+.container {
   max-width: 375px;
   margin: 0 auto;
+  padding: 0 var(--spacing-md);
   background: white;
-  transition: var(--transition-smooth);
+  min-height: calc(100vh - 140px);
+  margin-bottom: 0 !important;
+  /* 🔧 하단 여백 확보 */
+  padding-bottom: 20px !important;
 }
 
-/* ===== 앱 네비게이션 스타일 (단일 하단바) ===== */
+/* 🔧 페이지 마지막 요소 특별 처리 */
+.container > *:last-child,
+.mobile-main > *:last-child,
+.logged-in-only > *:last-child,
+.logged-out-only > *:last-child {
+  margin-bottom: 40px !important;
+}
+
+/* 🔧 특정 요소들 하단 여백 확보 */
+.bottom-actions,
+.free-trial-section,
+.terms-footer-section,
+.memorial-intro-card,
+.service-card,
+.additional-services {
+  margin-bottom: 30px !important;
+  padding-bottom: 0 !important;
+}
+
+/* ===== 앱 네비게이션 - 완전 하단 고정 ===== */
 .mobile-app-nav {
-  position: fixed;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100%;
-  max-width: 375px;
+  /* 🔧 완전 하단 고정 */
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  max-width: none !important;
   background: white;
   border-top: 1px solid #f0f0f0;
   box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.1);
-  z-index: 1020;
+  z-index: 1020 !important;
   padding: 12px 0 20px;
   transition: var(--transition-smooth);
+  /* 🔧 모든 마진과 트랜스폼 제거 */
+  margin: 0 !important;
+  transform: none !important;
 }
 
 .app-nav-container {
   position: relative;
   overflow: hidden;
+  max-width: 375px;
+  margin: 0 auto;
+  padding: 0 !important;
 }
 
 .app-nav-scroll {
@@ -265,6 +308,7 @@
   scroll-behavior: smooth;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  margin: 0 !important;
 }
 
 .app-nav-scroll::-webkit-scrollbar {
@@ -380,98 +424,123 @@
   transform: translateX(-100%);
 }
 
-/* ===== PC 반응형 스타일 (개선된 버전) ===== */
-@media (min-width: 1024px) {
-  /* PC에서 사이드바 표시 */
-  .pc-sidebar {
-    display: block;
-  }
+/* ===== 채팅 FAB 버튼 - 완전 표시 ===== */
+.chat-fab {
+  /* 🔧 채팅 버튼 완전 표시 및 위치 최적화 */
+  position: fixed !important;
+  bottom: calc(var(--nav-height-mobile) + 15px) !important;
+  right: 20px !important;
+  width: 56px !important;
+  height: 56px !important;
+  background: var(--primary-color) !important;
+  border-radius: 50% !important;
+  border: none !important;
+  color: white !important;
+  font-size: 24px !important;
+  cursor: pointer !important;
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3) !important;
+  /* 🔧 z-index를 앱 네비게이션보다 높게 설정 */
+  z-index: 1025 !important;
+  transition: var(--transition-smooth) !important;
+  /* 🔧 강제 표시 */
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  /* 🔧 변형 방지 */
+  transform: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
 
-  /* 레이아웃 조정 */
+.chat-fab:hover {
+  transform: scale(1.1) !important;
+  box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4) !important;
+}
+
+.chat-fab:focus {
+  outline: 2px solid var(--primary-color) !important;
+  outline-offset: 2px !important;
+}
+
+.chat-fab:focus-visible {
+  outline: 3px solid #fff !important;
+  outline-offset: 2px !important;
+}
+
+/* ===== PWA 환경에서 안전 영역 고려 ===== */
+@supports (padding: max(0px)) {
   .mobile-layout {
-    padding-top: var(--header-height-pc);
-    padding-bottom: 0;
-    margin-left: var(--sidebar-width-pc);
+    padding-top: max(calc(var(--header-height-mobile) + 10px), env(safe-area-inset-top)) !important;
+    padding-bottom: max(calc(var(--nav-height-mobile) + 10px), env(safe-area-inset-bottom)) !important;
   }
 
-  /* 헤더 조정 */
-  .mobile-header {
-    left: var(--sidebar-width-pc);
-    height: var(--header-height-pc);
-  }
-
-  .header-content {
-    padding: 0 40px;
-    max-width: none;
-  }
-
-  /* 햄버거 메뉴 숨김 */
-  .header-menu-btn {
-    display: none;
-  }
-
-  /* 메인 콘텐츠 조정 */
-  .mobile-main {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 40px;
-    min-height: calc(100vh - var(--header-height-pc) - 80px); /* 앱바 높이 고려 */
-  }
-
-  /* 앱 네비게이션을 헤더와 같은 방식으로 사이드바 옆에 배치 */
   .mobile-app-nav {
-    position: fixed !important;
-    bottom: 0 !important;
-    left: var(--sidebar-width-pc) !important; /* 헤더와 같은 방식으로 사이드바 옆에 시작 */
+    padding-bottom: max(20px, env(safe-area-inset-bottom)) !important;
+  }
+
+  .chat-fab {
+    bottom: max(calc(var(--nav-height-mobile) + 15px), calc(env(safe-area-inset-bottom) + 95px)) !important;
+  }
+}
+
+/* ===== 태블릿 반응형 ===== */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .mobile-layout {
+    max-width: 768px;
+    margin: 0 auto !important;
+    border-left: 1px solid #f0f0f0;
+    border-right: 1px solid #f0f0f0;
+    padding-top: calc(var(--header-height-mobile) + 15px) !important;
+    padding-bottom: calc(var(--nav-height-mobile) + 15px) !important;
+  }
+
+  .mobile-header {
+    max-width: 768px;
+    margin: 0 auto;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .mobile-main {
+    max-width: 100%;
+    padding: 20px 24px 30px 24px;
+  }
+
+  .container {
+    padding: 0 24px;
+    padding-bottom: 30px !important;
+  }
+
+  .mobile-app-nav {
+    left: 0 !important;
     right: 0 !important;
-    transform: none !important; /* 기본 transform 제거 */
-    max-width: none !important; /* 기본 max-width 제거 */
-    width: auto !important; /* left와 right로 너비 자동 결정 */
-    margin-left: 0 !important;
-    border-top: 1px solid #e2e8f0;
-    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
-    padding: 16px 0;
-    background: white;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+  }
+
+  .app-nav-container {
+    max-width: 768px;
+    margin: 0 auto;
   }
 
   .app-nav-scroll {
-    padding: 0 40px !important; /* 단순하게 좌우 40px 패딩만 */
-    justify-content: flex-start;
-    max-width: 1200px;
-    margin: 0 auto;
+    justify-content: center;
+    gap: 40px;
   }
 
   .app-nav-item {
-    flex-direction: row;
-    min-width: auto;
-    padding: 12px 16px;
-    margin-right: 12px;
-    white-space: nowrap;
+    min-width: 80px;
   }
 
-  .app-icon {
-    width: 24px;
-    height: 24px;
-    margin-right: 8px;
-    margin-bottom: 0;
-  }
-
-  .app-name {
-    font-size: 14px;
-    max-width: none;
-    white-space: nowrap;
-  }
-
-  /* PC에서 채팅 FAB 위치 조정 */
   .chat-fab {
-    bottom: 90px; /* 앱바 위로 조정 */
-    right: 30px;
-  }
-
-  /* 모바일 전용 요소 숨김 */
-  .mobile-offcanvas,
-  .menu-overlay {
-    display: none;
+    bottom: calc(var(--nav-height-mobile) + 20px) !important;
+    right: 30px !important;
+    width: 60px !important;
+    height: 60px !important;
+    font-size: 26px !important;
   }
 }
 
@@ -484,14 +553,14 @@
 
   /* 레이아웃 조정 */
   .mobile-layout {
-    padding-top: var(--header-height-pc);
-    padding-bottom: 0;
-    margin-left: var(--sidebar-width-pc);
+    margin-left: var(--sidebar-width-pc) !important;
+    padding-top: calc(var(--header-height-pc) + 20px) !important;
+    padding-bottom: 100px !important;
   }
 
   /* 헤더 조정 */
   .mobile-header {
-    left: var(--sidebar-width-pc);
+    left: var(--sidebar-width-pc) !important;
     height: var(--header-height-pc);
   }
 
@@ -510,30 +579,40 @@
     max-width: 1200px;
     margin: 0 auto;
     padding: 40px;
-    min-height: calc(100vh - var(--header-height-pc));
+    min-height: calc(100vh - var(--header-height-pc) - 120px);
+    margin-bottom: 50px !important;
   }
 
-  /* 모바일 네비게이션 완전 숨김 */
-  .mobile-nav {
-    display: none;
+  .container {
+    max-width: 1200px;
+    padding: 0 40px;
+    padding-bottom: 50px !important;
   }
 
-  /* 앱 네비게이션을 하단으로 고정 */
+  /* PC에서 앱 네비게이션 완전 정렬 */
   .mobile-app-nav {
-    position: static;
-    left: var(--sidebar-width-pc);
-    transform: none;
-    max-width: none;
-    margin-left: var(--sidebar-width-pc);
-    border-top: 1px solid #f0f0f0;
-    border-bottom: none;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    padding: 16px 40px;
-    order: 999; /* 페이지 하단에 배치 */
+    position: fixed !important;
+    bottom: 0 !important;
+    left: var(--sidebar-width-pc) !important;
+    right: 0 !important;
+    transform: none !important;
+    max-width: none !important;
+    width: auto !important;
+    margin: 0 !important;
+    border-top: 1px solid #e2e8f0;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+    padding: 16px 0;
+    background: white;
+  }
+
+  .app-nav-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 40px;
   }
 
   .app-nav-scroll {
-    padding: 0;
+    padding: 0 !important;
     justify-content: flex-start;
   }
 
@@ -558,10 +637,12 @@
     white-space: nowrap;
   }
 
-  /* PC에서 채팅 FAB 위치 조정 */
   .chat-fab {
-    bottom: 30px;
-    right: 30px;
+    bottom: 110px !important;
+    right: 40px !important;
+    width: 64px !important;
+    height: 64px !important;
+    font-size: 28px !important;
   }
 
   /* 모바일 전용 요소 숨김 */
@@ -571,94 +652,7 @@
   }
 }
 
-/* ===== 태블릿 반응형 ===== */
-@media (min-width: 768px) and (max-width: 1023px) {
-  .mobile-layout {
-    max-width: 768px;
-    margin: 0 auto;
-    border-left: 1px solid #f0f0f0;
-    border-right: 1px solid #f0f0f0;
-  }
-
-  .mobile-header {
-    max-width: 768px;
-    margin: 0 auto;
-    left: 50%;
-    transform: translateX(-50%);
-  }
-
-  .mobile-main {
-    max-width: 100%;
-    padding: 0 24px;
-  }
-
-  .mobile-nav {
-    max-width: 768px;
-  }
-
-  .nav-container {
-    justify-content: center;
-    gap: 40px;
-  }
-
-  .nav-item {
-    min-width: 80px;
-  }
-}
-
-/* ===== 콘텐츠 그리드 레이아웃 (PC) ===== */
-@media (min-width: 1024px) {
-  /* 메모리얼 카드를 그리드로 배치 */
-  .memorial-intro-card {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    gap: 24px;
-    align-items: center;
-    text-align: left;
-  }
-
-  .memorial-intro-icon {
-    margin: 0;
-  }
-
-  .memorial-intro-content {
-    text-align: left;
-  }
-
-  .new-memorial-btn {
-    margin: 0;
-    white-space: nowrap;
-  }
-
-  /* 메모리얼 리스트 그리드 */
-  .memorial-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 16px;
-    max-height: none;
-    padding: 16px;
-  }
-
-  .memorial-item {
-    margin-bottom: 0;
-  }
-
-  /* 버튼 그리드 */
-  .bottom-actions {
-    display: flex;
-    gap: 16px;
-    justify-content: flex-start;
-  }
-
-  .video-call-btn {
-    flex: 1;
-    max-width: 300px;
-  }
-}
-
-/* ===== 기존 모바일 스타일 유지 ===== */
-
-/* 햄버거 메뉴 (Offcanvas) - 모바일 전용 */
+/* ===== 햄버거 메뉴 (Offcanvas) ===== */
 .mobile-offcanvas {
   position: fixed;
   top: 0;
@@ -848,7 +842,7 @@
   margin-bottom: 4px;
 }
 
-/* 개선된 메뉴 링크 스타일 */
+/* 메뉴 링크 스타일 */
 .menu-link {
   display: flex;
   align-items: center;
@@ -949,187 +943,24 @@
   line-height: 1.3;
 }
 
-/* ===== 채팅 FAB 버튼 ===== */
-.chat-fab {
-  position: fixed;
-  bottom: 100px;
-  right: 20px;
-  width: 56px;
-  height: 56px;
-  background: var(--primary-color);
-  border-radius: 50%;
-  border: none;
-  color: white;
-  font-size: 24px;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
-  z-index: 100;
-  transition: var(--transition-smooth);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.chat-fab:hover {
-  transform: scale(1.1);
-  box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
-}
-
-.chat-fab:focus {
-  outline: 2px solid var(--primary-color);
-  outline-offset: 2px;
-}
-
-/* ===== 앱 네비게이션 스타일 ===== */
-.mobile-app-nav {
-  position: fixed;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100%;
-  max-width: 375px;
-  background: white;
-  border-top: 1px solid #f0f0f0;
-  box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.1);
-  z-index: 1020;
-  padding: 12px 0 20px;
-  transition: var(--transition-smooth);
-}
-
-.app-nav-container {
-  position: relative;
-  overflow: hidden;
-}
-
-.app-nav-scroll {
-  display: flex;
-  gap: 16px;
-  padding: 8px 20px;
-  overflow-x: auto;
-  scroll-behavior: smooth;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.app-nav-scroll::-webkit-scrollbar {
-  display: none;
-}
-
-.app-nav-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 60px;
-  text-decoration: none;
-  color: #666;
-  transition: var(--transition-smooth);
-  padding: 8px 4px;
-  border-radius: 12px;
-  position: relative;
-}
-
-.app-nav-item:hover {
-  color: var(--primary-color);
-  background: rgba(255, 107, 53, 0.1);
-  text-decoration: none;
-  transform: translateY(-2px);
-}
-
-.app-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  margin-bottom: 6px;
-  object-fit: cover;
-  border: 1px solid #f0f0f0;
-  background: white;
-  transition: var(--transition-smooth);
-}
-
-.app-nav-item:hover .app-icon {
-  transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.app-name {
-  font-size: 10px;
-  font-weight: 500;
-  text-align: center;
-  line-height: 1.2;
-  max-width: 60px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* ===== PC에서 앱 네비게이션 조정 ===== */
-@media (min-width: 1024px) {
-  .mobile-app-nav {
-    position: static;
-    left: var(--sidebar-width-pc);
-    transform: none;
-    max-width: none;
-    margin-left: var(--sidebar-width-pc);
-    border-top: none;
-    border-bottom: 1px solid #f0f0f0;
-    box-shadow: none;
-    padding: 16px 40px;
-  }
-
-  .app-nav-scroll {
-    padding: 0;
-    justify-content: flex-start;
-  }
-
-  .app-nav-item {
-    flex-direction: row;
-    min-width: auto;
-    padding: 12px 16px;
-    margin-right: 12px;
-    white-space: nowrap;
-  }
-
-  .app-icon {
-    width: 24px;
-    height: 24px;
-    margin-right: 8px;
-    margin-bottom: 0;
-  }
-
-  .app-name {
-    font-size: 14px;
-    max-width: none;
-    white-space: nowrap;
-  }
-
-  /* PC에서 채팅 FAB 위치 조정 */
-  .chat-fab {
-    bottom: 30px;
-    right: 30px;
-  }
-}
-
-/* ===== 반응형 모바일 최적화 ===== */
+/* ===== 모바일 최소 화면 최적화 ===== */
 @media (max-width: 375px) {
+  .mobile-layout {
+    padding-top: calc(var(--header-height-mobile) + 8px) !important;
+    padding-bottom: calc(var(--nav-height-mobile) + 8px) !important;
+  }
+
+  .mobile-main {
+    padding: 12px 0 15px 0;
+  }
+
+  .container {
+    padding: 0 12px;
+    padding-bottom: 15px !important;
+  }
+
   .header-content {
     padding: 12px 16px;
-  }
-
-  .nav-container {
-    padding: 0 16px;
-  }
-
-  .nav-item {
-    padding: 6px 8px;
-    min-width: 50px;
-  }
-
-  .nav-item i {
-    font-size: 18px;
-  }
-
-  .nav-item span {
-    font-size: 10px;
   }
 
   .mobile-offcanvas {
@@ -1138,15 +969,15 @@
   }
 
   .chat-fab {
-    bottom: 90px;
-    right: 16px;
-    width: 48px;
-    height: 48px;
-    font-size: 20px;
+    bottom: calc(var(--nav-height-mobile) + 12px) !important;
+    right: 16px !important;
+    width: 50px !important;
+    height: 50px !important;
+    font-size: 22px !important;
   }
 
   .mobile-app-nav {
-    max-width: 100vw;
+    max-width: 100vw !important;
   }
 
   .app-icon {
@@ -1166,6 +997,12 @@
     padding: 8px 16px;
     gap: 12px;
   }
+
+  .bottom-actions,
+  .free-trial-section,
+  .terms-footer-section {
+    margin-bottom: 25px !important;
+  }
 }
 
 /* ===== 스크롤 및 상태 효과 ===== */
@@ -1173,10 +1010,7 @@
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(240, 240, 240, 0.8);
-}
-
-.mobile-nav.hidden {
-  transform: translateX(-50%) translateY(100%);
+  z-index: 1031 !important;
 }
 
 /* 메뉴 오픈 시 스크롤 방지 */
@@ -1186,18 +1020,23 @@ body.menu-open {
 
 /* 페이지 전환 애니메이션 */
 .mobile-main {
-  animation: fadeIn 0.3s ease-in-out;
+  animation: fadeInContent 0.3s ease-in-out;
 }
 
-@keyframes fadeIn {
+@keyframes fadeInContent {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(20px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 /* 로딩 상태 */
@@ -1208,37 +1047,37 @@ body.menu-open {
 .mobile-layout.loading::after {
   content: '';
   position: fixed;
-  top: 0;
+  top: var(--header-height-mobile);
   left: 0;
   right: 0;
-  bottom: 0;
+  bottom: var(--nav-height-mobile);
   background: rgba(255, 255, 255, 0.8);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
+  z-index: 1040;
+  backdrop-filter: blur(2px);
 }
 
 /* PWA 지원 */
 @media (display-mode: standalone) {
   .mobile-layout {
-    padding-top: calc(var(--header-height-mobile) + env(safe-area-inset-top));
+    padding-top: calc(var(--header-height-mobile) + env(safe-area-inset-top) + 10px) !important;
   }
 
   .mobile-header {
     padding-top: env(safe-area-inset-top);
   }
 
-  .mobile-nav,
   .mobile-app-nav {
-    padding-bottom: calc(20px + env(safe-area-inset-bottom));
+    padding-bottom: calc(20px + env(safe-area-inset-bottom)) !important;
   }
 }
 
 /* PC PWA 지원 */
 @media (min-width: 1024px) and (display-mode: standalone) {
   .mobile-layout {
-    padding-top: var(--header-height-pc);
+    padding-top: calc(var(--header-height-pc) + 20px) !important;
     margin-left: var(--sidebar-width-pc);
   }
 
@@ -1247,15 +1086,79 @@ body.menu-open {
   }
 }
 
-/* 접근성 개선 */
+/* ===== 접근성 개선 ===== */
 .mobile-header:focus-within,
-.mobile-nav:focus-within,
 .mobile-app-nav:focus-within {
   outline: 2px solid var(--primary-color);
   outline-offset: 2px;
 }
 
-/* 다크모드 대응 */
+/* ===== 스크롤바 스타일링 ===== */
+.mobile-main::-webkit-scrollbar {
+  width: 2px;
+}
+
+.mobile-main::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.mobile-main::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 1px;
+}
+
+.mobile-main::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* ===== 디버그 모드 ===== */
+.debug-spacing .mobile-main {
+  background: rgba(0, 255, 0, 0.05) !important;
+  border: 2px dashed green !important;
+}
+
+.debug-spacing .mobile-app-nav {
+  background: rgba(255, 0, 0, 0.1) !important;
+  border: 2px solid red !important;
+}
+
+.debug-spacing .chat-fab {
+  background: rgba(0, 0, 255, 0.8) !important;
+  border: 3px solid blue !important;
+}
+
+.debug-spacing .mobile-header {
+  background: rgba(255, 255, 0, 0.3) !important;
+  border: 2px solid orange !important;
+}
+
+/* ===== 충돌 방지를 위한 구체적 선택자 ===== */
+.mobile-layout .mobile-app-nav {
+  position: fixed !important;
+  bottom: 0 !important;
+  margin: 0 !important;
+}
+
+/* ===== 브라우저별 기본 스타일 리셋 ===== */
+body {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+html {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+*:before, *:after {
+  box-sizing: border-box;
+}
+
+/* ===== 다크모드 대응 ===== */
 @media (prefers-color-scheme: dark) {
   .mobile-layout.dark-mode {
     background: #1a202c;
@@ -1267,19 +1170,15 @@ body.menu-open {
     border-bottom-color: #4a5568;
   }
 
-  .mobile-layout.dark-mode .mobile-nav,
   .mobile-layout.dark-mode .mobile-app-nav {
     background: #2d3748;
     border-top-color: #4a5568;
   }
 
-  .mobile-layout.dark-mode .nav-item,
   .mobile-layout.dark-mode .app-nav-item {
     color: #a0aec0;
   }
 
-  .mobile-layout.dark-mode .nav-item.active,
-  .mobile-layout.dark-mode .nav-item:hover,
   .mobile-layout.dark-mode .app-nav-item:hover {
     color: var(--primary-color);
   }
@@ -1309,4 +1208,48 @@ body.menu-open {
     background: #374151;
     color: var(--primary-color);
   }
+}
+
+/* 채팅 FAB 애니메이션 */
+@keyframes chatFabPulse {
+  0% {
+    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+  }
+  50% {
+    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.5), 0 0 0 10px rgba(255, 107, 53, 0.1);
+  }
+  100% {
+    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+  }
+}
+
+.chat-fab:not(:hover) {
+  animation: chatFabPulse 3s ease-in-out infinite;
+}
+
+/* iOS Safari 특별 처리 */
+.chat-fab {
+  -webkit-appearance: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+  -webkit-touch-callout: none !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
+}
+
+/* 채팅 FAB 표시 상태 강제 적용 */
+body .chat-fab,
+.mobile-layout .chat-fab,
+.container .chat-fab {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* 숨김 상태 무효화 */
+.chat-fab[style*="display: none"],
+.chat-fab[style*="visibility: hidden"],
+.chat-fab[style*="opacity: 0"] {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }

@@ -178,12 +178,14 @@
   </div>
 </nav>
 
-<!-- 채팅 FAB 버튼 (로그인 후에만 표시) -->
+<!-- 채팅 FAB 버튼 - 템플릿에서 제거하고 JavaScript로 동적 생성 -->
+<!-- 기존 코드 제거:
 <button class="chat-fab" id="chatFab" onclick="openChat()"
         th:if="${currentUser != null}"
         aria-label="채팅 열기">
   <i class="fas fa-comments"></i>
 </button>
+-->
 
 <!-- 햄버거 메뉴 오버레이 (모바일 전용) -->
 <div class="menu-overlay d-lg-none" id="menuOverlay"></div>
@@ -495,6 +497,50 @@
     // 초기 반응형 레이아웃 설정
     window.globalUtils.updateResponsiveLayout();
 
+    // 💬 채팅 FAB 동적 생성 (로그인한 경우만)
+    if (window.APP_CONFIG.isLoggedIn) {
+      setTimeout(() => {
+        console.log('💬 채팅 FAB 동적 생성 시작');
+
+        // 기존 FAB 제거
+        const existingFab = document.querySelector('.chat-fab');
+        if (existingFab) {
+          existingFab.remove();
+        }
+
+        // 새 FAB 생성
+        const chatFab = document.createElement('button');
+        chatFab.className = 'chat-fab';
+        chatFab.id = 'chatFab';
+        chatFab.setAttribute('aria-label', '채팅 열기');
+        chatFab.innerHTML = '<i class="fas fa-comments"></i>';
+
+        // 클릭 이벤트
+        chatFab.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+
+          // 클릭 효과
+          this.style.transform = 'scale(0.95)';
+          setTimeout(() => {
+            this.style.transform = '';
+          }, 150);
+
+          // 채팅 기능 (현재는 준비중)
+          if (window.showToast) {
+            window.showToast('채팅 기능 준비 중입니다.', 'info', 2000);
+          } else {
+            alert('채팅 기능 준비 중입니다.');
+          }
+        });
+
+        // body에 추가
+        document.body.appendChild(chatFab);
+
+        console.log('✅ 채팅 FAB 동적 생성 완료');
+      }, 1000);
+    }
+
     // 페이지별 초기화 로직
     if (window.pageInitializer) {
       window.pageInitializer();
@@ -505,6 +551,40 @@
   document.addEventListener('visibilitychange', function() {
     if (!document.hidden) {
       console.log('👁️ 페이지 가시성 복원');
+
+      // 로그인한 경우 채팅 FAB 복구
+      if (window.APP_CONFIG.isLoggedIn) {
+        setTimeout(() => {
+          const chatFab = document.querySelector('.chat-fab');
+          if (!chatFab) {
+            console.log('💬 페이지 복원 시 채팅 FAB 재생성');
+            // 위의 채팅 FAB 생성 로직 재실행
+            const newChatFab = document.createElement('button');
+            newChatFab.className = 'chat-fab';
+            newChatFab.id = 'chatFab';
+            newChatFab.setAttribute('aria-label', '채팅 열기');
+            newChatFab.innerHTML = '<i class="fas fa-comments"></i>';
+
+            newChatFab.addEventListener('click', function(e) {
+              e.preventDefault();
+              e.stopPropagation();
+
+              this.style.transform = 'scale(0.95)';
+              setTimeout(() => {
+                this.style.transform = '';
+              }, 150);
+
+              if (window.showToast) {
+                window.showToast('채팅 기능 준비 중입니다.', 'info', 2000);
+              } else {
+                alert('채팅 기능 준비 중입니다.');
+              }
+            });
+
+            document.body.appendChild(newChatFab);
+          }
+        }, 1000);
+      }
 
       // 페이지별 새로고침 로직
       if (window.pageRefresher) {
@@ -578,10 +658,54 @@
     }
   });
 
+  // 윈도우 리사이즈 시 채팅 FAB 위치 재조정
+  window.addEventListener('resize', function() {
+    setTimeout(() => {
+      const chatFab = document.querySelector('.chat-fab');
+      if (chatFab && window.forceChatFabStyles) {
+        window.forceChatFabStyles(chatFab);
+      }
+    }, 300);
+  });
+
   // 디버그 모드 활성화
   if (window.location.search.includes('debug=true')) {
     console.log('🔧 디버그 모드 활성화');
     window.debugMode = true;
+
+    // 채팅 FAB 디버그 함수
+    window.debugChatFab = function() {
+      const chatFab = document.querySelector('.chat-fab');
+
+      console.group('💬 채팅 FAB 디버그 정보');
+      console.log('요소 존재:', !!chatFab);
+
+      if (chatFab) {
+        const computedStyle = getComputedStyle(chatFab);
+        console.log('스타일 정보:', {
+          display: computedStyle.display,
+          visibility: computedStyle.visibility,
+          opacity: computedStyle.opacity,
+          position: computedStyle.position,
+          bottom: computedStyle.bottom,
+          right: computedStyle.right,
+          zIndex: computedStyle.zIndex,
+          width: computedStyle.width,
+          height: computedStyle.height,
+          backgroundColor: computedStyle.backgroundColor
+        });
+        console.log('클릭 이벤트:', !!chatFab.onclick || 'addEventListener로 등록됨');
+        console.log('부모 요소:', chatFab.parentElement?.tagName);
+      }
+
+      console.log('로그인 상태:', {
+        'APP_CONFIG.isLoggedIn': window.APP_CONFIG?.isLoggedIn,
+        'serverData.isLoggedIn': window.serverData?.isLoggedIn,
+        'accessToken': !!localStorage.getItem('accessToken')
+      });
+
+      console.groupEnd();
+    };
 
     // 디버그 정보 표시
     window.showDebugInfo = function() {

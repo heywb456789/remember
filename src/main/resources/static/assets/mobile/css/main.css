@@ -1,4 +1,4 @@
-/* main.css - 토마토리멤버 메인 페이지 스타일 (수정된 버전) */
+/* main.css - 토마토리멤버 메인 페이지 스타일 (원래 간격 복원) */
 
 /* 기본 변수 */
 :root {
@@ -50,7 +50,7 @@
   min-height: 100vh;
 }
 
-/* 환영 메시지 */
+/* 환영 메시지 - 원래대로 */
 .welcome-message {
   padding: var(--spacing-lg) 0;
   text-align: center;
@@ -71,7 +71,7 @@
   margin-bottom: var(--spacing-lg);
 }
 
-/* 로그인 전: 디지털 추모 공간 카드 */
+/* 로그인 전: 디지털 추모 공간 카드 - 원래대로 */
 .memorial-intro-card {
   background: var(--memorial-gradient);
   border-radius: var(--radius-lg);
@@ -143,6 +143,9 @@
   transition: var(--transition-smooth);
   position: relative;
   z-index: 2;
+  /* 버튼 가운데 정렬 추가 */
+  display: block;
+  margin: 0 auto;
 }
 
 .new-memorial-btn:hover {
@@ -150,7 +153,7 @@
   box-shadow: var(--shadow-md);
 }
 
-/* 로그인 후: 메모리얼 등록 버튼 */
+/* 로그인 후: 메모리얼 등록 버튼 - 원래대로 */
 .add-memorial-section {
   margin-bottom: var(--spacing-lg);
 }
@@ -172,7 +175,7 @@
   justify-content: center;
   gap: var(--spacing-xs);
   box-shadow: var(--shadow-md);
-  min-height: 48px; /* 통일된 높이 */
+  min-height: 48px;
 }
 
 .add-memorial-btn:hover {
@@ -183,8 +186,9 @@
   text-decoration: none;
 }
 
-/* 서비스 안내 섹션 */
+/* 서비스 안내 섹션 - 버튼과의 간격 추가 */
 .service-intro {
+  margin-top: var(--spacing-xl); /* 위쪽 여백 추가 */
   margin-bottom: var(--spacing-lg);
 }
 
@@ -248,8 +252,9 @@
   margin: 0;
 }
 
-/* 추가 서비스 카드들 */
+/* 추가 서비스 카드들 - 카드 내부 여백만 증가 */
 .additional-services {
+  margin-top: var(--spacing-xl); /* 위쪽 여백 추가 */
   margin-bottom: var(--spacing-lg);
 }
 
@@ -257,8 +262,8 @@
   background: white;
   border: 1px solid var(--border-light);
   border-radius: var(--radius-md);
-  padding: var(--spacing-md);
-  margin-bottom: var(--spacing-sm);
+  padding: var(--spacing-lg) var(--spacing-md); /* 상하 패딩만 증가 */
+  margin-bottom: var(--spacing-sm); /* 카드 간격은 원래대로 */
   box-shadow: var(--shadow-sm);
   transition: var(--transition-smooth);
 }
@@ -276,7 +281,7 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-xs);
+  margin-bottom: var(--spacing-xs); /* 원래대로 복원 */
 }
 
 .service-card-icon {
@@ -314,14 +319,15 @@
 }
 
 .service-card-description {
-  font-size: 12px;
+  font-size: 12px; /* 원래대로 복원 */
   color: var(--text-muted);
-  line-height: 1.4;
+  line-height: 1.4; /* 원래대로 복원 */
   margin: 0;
 }
 
-/* 3개월 무료체험 시작하기 버튼 */
+/* 3개월 무료체험 시작하기 버튼 - 위쪽 여백 추가 */
 .free-trial-section {
+  margin-top: var(--spacing-xl); /* 위쪽 여백 추가 */
   margin-bottom: var(--spacing-lg);
 }
 
@@ -330,9 +336,9 @@
   background: var(--secondary-gradient);
   color: white;
   border: none;
-  padding: 14px var(--spacing-lg); /* 통일된 패딩 */
-  border-radius: var(--radius-sm); /* 통일된 반지름 */
-  font-size: 14px; /* 통일된 폰트 크기 */
+  padding: 14px var(--spacing-lg);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: var(--transition-smooth);
@@ -341,10 +347,10 @@
   align-items: center;
   justify-content: center;
   gap: var(--spacing-sm);
-  box-shadow: var(--shadow-md); /* 통일된 그림자 */
+  box-shadow: var(--shadow-md);
   position: relative;
   overflow: hidden;
-  min-height: 48px; /* 통일된 높이 */
+  min-height: 48px;
 }
 
 .free-trial-btn::before {
@@ -363,7 +369,7 @@
 }
 
 .free-trial-btn:hover {
-  transform: translateY(-1px); /* 통일된 호버 효과 */
+  transform: translateY(-1px);
   box-shadow: var(--shadow-lg);
   color: white;
   text-decoration: none;
@@ -373,7 +379,7 @@
   font-size: 16px;
 }
 
-/* 약관 및 푸터 영역 */
+/* 약관 및 푸터 영역 - 원래대로 */
 .terms-footer-section {
   margin-top: var(--spacing-xl);
   padding-top: var(--spacing-lg);
@@ -438,49 +444,48 @@
   font-weight: 500;
 }
 
-/* 메모리얼 목록 섹션 - 새로운 리스트 스타일 */
+/* 메모리얼 목록 섹션 - 원래대로 */
 .memorial-list-section {
   margin-bottom: var(--spacing-lg);
 }
 
 .memorial-list-container {
-  background: #f7fafc !important;  /* 회색 배경 */
+  background: #f7fafc !important;
   border: 1px solid #e2e8f0;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   border-radius: var(--radius-md);
   overflow: hidden;
-  padding: var(--spacing-md);      /* 내부 여백 추가 */
+  padding: var(--spacing-md);
 }
 
 .memorial-list {
   height: 320px;
   overflow-y: auto;
-  background: transparent;         /* 리스트 자체는 투명 */
+  background: transparent;
 }
 
 .memorial-item {
   display: flex;
   align-items: center;
   padding: var(--spacing-md);
-  background: white;               /* 개별 아이템 흰색 */
-  border-radius: var(--radius-md); /* 개별 아이템 둥근 모서리 */
-  margin-bottom: var(--spacing-sm); /* 아이템 간격 */
+  background: white;
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-sm);
   cursor: pointer;
   transition: var(--transition-smooth);
   height: 64px;
   min-height: 64px;
   max-height: 64px;
-  border: 1px solid #e2e8f0;      /* 개별 테두리 */
+  border: 1px solid #e2e8f0;
 }
 
 .memorial-item:last-child {
-  margin-bottom: 0;               /* 마지막 아이템은 여백 없음 */
+  margin-bottom: 0;
 }
-
 
 .memorial-item:hover {
   background: #f8f9fa;
-  transform: translateY(-1px);    /* 살짝 떠오르는 효과 */
+  transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
@@ -546,7 +551,7 @@
 
 /* 화살표 제거 */
 .memorial-arrow {
-  display: none;                  /* 화살표 완전 제거 */
+  display: none;
 }
 
 .more-info {
@@ -564,7 +569,7 @@
   color: #6c5ce7;
 }
 
-/* 빈 상태 */
+/* 빈 상태 - 원래대로 */
 .empty-state {
   text-align: center;
   padding: 40px var(--spacing-lg);
@@ -625,7 +630,7 @@
   text-decoration: none;
 }
 
-/* 하단 영상통화 버튼 - 단일 버튼으로 수정 */
+/* 하단 영상통화 버튼 - 원래대로 */
 .bottom-actions {
   margin-top: var(--spacing-lg);
   padding-bottom: var(--spacing-xl);
@@ -636,9 +641,9 @@
   background: var(--secondary-gradient);
   color: white;
   border: none;
-  padding: 14px var(--spacing-lg); /* add-memorial-btn과 동일한 패딩 */
-  border-radius: var(--radius-sm); /* 다른 버튼들과 동일한 반지름 */
-  font-size: 14px; /* 통일된 폰트 크기 */
+  padding: 14px var(--spacing-lg);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: var(--transition-smooth);
@@ -646,13 +651,13 @@
   align-items: center;
   justify-content: center;
   gap: var(--spacing-xs);
-  box-shadow: var(--shadow-md); /* 통일된 그림자 */
+  box-shadow: var(--shadow-md);
   margin: var(--spacing-lg) 0;
-  min-height: 48px; /* 통일된 높이 */
+  min-height: 48px;
 }
 
 .video-call-btn:hover:not(:disabled) {
-  transform: translateY(-1px); /* 다른 버튼들과 동일한 호버 효과 */
+  transform: translateY(-1px);
   box-shadow: var(--shadow-lg);
   color: white;
   text-decoration: none;
@@ -670,7 +675,7 @@
   font-size: 16px;
 }
 
-/* 로딩 스켈레톤 - 리스트 형태로 수정 */
+/* 로딩 스켈레톤 - 원래대로 */
 .loading-skeleton {
   display: flex;
   flex-direction: column;
@@ -733,7 +738,7 @@
   }
 }
 
-/* 에러 상태 */
+/* 에러 상태 - 원래대로 */
 .error-state {
   text-align: center;
   padding: 40px var(--spacing-lg);
@@ -793,7 +798,8 @@
   color: white;
   text-decoration: none;
 }
-/* PC에서 버튼 레이아웃 개선 */
+
+/* PC에서 버튼 레이아웃 개선 - 원래대로 */
 @media (min-width: 1024px) {
   /* 메모리얼 카드를 그리드로 배치 */
   .memorial-intro-card {
@@ -815,7 +821,7 @@
   .new-memorial-btn {
     margin: 0;
     white-space: nowrap;
-    min-height: 48px; /* PC에서도 통일된 높이 */
+    min-height: 48px;
     padding: 12px 24px;
   }
 
@@ -837,13 +843,13 @@
     display: flex;
     gap: 16px;
     justify-content: flex-start;
-    margin-bottom: 40px; /* 앱바와의 간격 확보 */
+    margin-bottom: 40px;
   }
 
   .video-call-btn {
     flex: 1;
     max-width: 300px;
-    min-height: 48px; /* PC에서도 통일된 높이 */
+    min-height: 48px;
   }
 
   /* 메모리얼 등록 버튼도 PC에서 동일한 높이 */
@@ -857,7 +863,7 @@
   }
 }
 
-/* 반응형 디자인 */
+/* 반응형 디자인 - 원래대로 */
 @media (max-width: 375px) {
   .container {
     padding: 0 var(--spacing-sm);
@@ -883,11 +889,11 @@
   }
 
   .memorial-list {
-    max-height: 320px; /* 5개 아이템 고정 높이 */
+    max-height: 320px;
   }
 }
 
-/* 애니메이션 */
+/* 애니메이션 - 원래대로 */
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -911,7 +917,7 @@
 .memorial-item:nth-child(4) { animation-delay: 0.3s; }
 .memorial-item:nth-child(5) { animation-delay: 0.4s; }
 
-/* 접근성 개선 */
+/* 접근성 개선 - 원래대로 */
 .memorial-item:focus,
 .new-memorial-btn:focus,
 .add-memorial-btn:focus,
@@ -920,7 +926,7 @@
   outline-offset: 2px;
 }
 
-/* 스크롤바 스타일링 */
+/* 스크롤바 스타일링 - 원래대로 */
 .memorial-list::-webkit-scrollbar {
   width: 4px;
 }
