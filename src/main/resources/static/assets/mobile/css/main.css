@@ -135,28 +135,19 @@
   background: white;
   color: #6c5ce7;
   border: none;
-  padding: var(--spacing-sm) var(--spacing-lg);
+  padding: 12px 24px;
   border-radius: var(--radius-sm);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: var(--transition-smooth);
-  text-decoration: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-xs);
   position: relative;
   z-index: 2;
-  margin: 0 auto;
-  width: fit-content;
 }
 
 .new-memorial-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-  color: #6c5ce7;
-  text-decoration: none;
+  box-shadow: var(--shadow-md);
 }
 
 /* 로그인 후: 메모리얼 등록 버튼 */
@@ -181,6 +172,7 @@
   justify-content: center;
   gap: var(--spacing-xs);
   box-shadow: var(--shadow-md);
+  min-height: 48px; /* 통일된 높이 */
 }
 
 .add-memorial-btn:hover {
@@ -338,10 +330,10 @@
   background: var(--secondary-gradient);
   color: white;
   border: none;
-  padding: 16px var(--spacing-lg);
-  border-radius: var(--radius-md);
-  font-size: 16px;
-  font-weight: 700;
+  padding: 14px var(--spacing-lg); /* 통일된 패딩 */
+  border-radius: var(--radius-sm); /* 통일된 반지름 */
+  font-size: 14px; /* 통일된 폰트 크기 */
+  font-weight: 600;
   cursor: pointer;
   transition: var(--transition-smooth);
   text-decoration: none;
@@ -349,9 +341,10 @@
   align-items: center;
   justify-content: center;
   gap: var(--spacing-sm);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-md); /* 통일된 그림자 */
   position: relative;
   overflow: hidden;
+  min-height: 48px; /* 통일된 높이 */
 }
 
 .free-trial-btn::before {
@@ -370,14 +363,14 @@
 }
 
 .free-trial-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-xl);
+  transform: translateY(-1px); /* 통일된 호버 효과 */
+  box-shadow: var(--shadow-lg);
   color: white;
   text-decoration: none;
 }
 
 .free-trial-btn i {
-  font-size: 18px;
+  font-size: 16px;
 }
 
 /* 약관 및 푸터 영역 */
@@ -643,24 +636,24 @@
   background: var(--secondary-gradient);
   color: white;
   border: none;
-  padding: 16px var(--spacing-lg);
-  border-radius: var(--radius-md);
-  font-size: 16px;
-  font-weight: 700;
+  padding: 14px var(--spacing-lg); /* add-memorial-btn과 동일한 패딩 */
+  border-radius: var(--radius-sm); /* 다른 버튼들과 동일한 반지름 */
+  font-size: 14px; /* 통일된 폰트 크기 */
+  font-weight: 600;
   cursor: pointer;
   transition: var(--transition-smooth);
-  text-decoration: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--spacing-sm);
-  box-shadow: var(--shadow-lg);
+  gap: var(--spacing-xs);
+  box-shadow: var(--shadow-md); /* 통일된 그림자 */
+  margin: var(--spacing-lg) 0;
+  min-height: 48px; /* 통일된 높이 */
 }
 
 .video-call-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, #e63946 0%, #f77f00 100%);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-xl);
+  transform: translateY(-1px); /* 다른 버튼들과 동일한 호버 효과 */
+  box-shadow: var(--shadow-lg);
   color: white;
   text-decoration: none;
 }
@@ -674,7 +667,7 @@
 }
 
 .video-call-btn i {
-  font-size: 18px;
+  font-size: 16px;
 }
 
 /* 로딩 스켈레톤 - 리스트 형태로 수정 */
@@ -799,6 +792,69 @@
   box-shadow: var(--shadow-md);
   color: white;
   text-decoration: none;
+}
+/* PC에서 버튼 레이아웃 개선 */
+@media (min-width: 1024px) {
+  /* 메모리얼 카드를 그리드로 배치 */
+  .memorial-intro-card {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 24px;
+    align-items: center;
+    text-align: left;
+  }
+
+  .memorial-intro-icon {
+    margin: 0;
+  }
+
+  .memorial-intro-content {
+    text-align: left;
+  }
+
+  .new-memorial-btn {
+    margin: 0;
+    white-space: nowrap;
+    min-height: 48px; /* PC에서도 통일된 높이 */
+    padding: 12px 24px;
+  }
+
+  /* 메모리얼 리스트 그리드 */
+  .memorial-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+    max-height: none;
+    padding: 16px;
+  }
+
+  .memorial-item {
+    margin-bottom: 0;
+  }
+
+  /* 버튼 그리드 */
+  .bottom-actions {
+    display: flex;
+    gap: 16px;
+    justify-content: flex-start;
+    margin-bottom: 40px; /* 앱바와의 간격 확보 */
+  }
+
+  .video-call-btn {
+    flex: 1;
+    max-width: 300px;
+    min-height: 48px; /* PC에서도 통일된 높이 */
+  }
+
+  /* 메모리얼 등록 버튼도 PC에서 동일한 높이 */
+  .add-memorial-btn {
+    min-height: 48px;
+  }
+
+  /* 무료체험 버튼도 PC에서 동일한 높이 */
+  .free-trial-btn {
+    min-height: 48px;
+  }
 }
 
 /* 반응형 디자인 */

@@ -1,4 +1,4 @@
-// layout.js - 토마토리멤버 모바일 레이아웃 관리 (개선된 버전)
+// layout.js - 토마토리멤버 완전 반응형 레이아웃 관리
 
 import { showToast, showConfirm } from './common.js';
 import { memberLogout } from './commonFetch.js';
@@ -13,14 +13,23 @@ let layoutState = {
   overlay: null,
   isInitialized: false,
   navigationBadges: {},
-  scrollTimeout: null
+  scrollTimeout: null,
+  currentDevice: 'mobile', // 'mobile', 'tablet', 'desktop'
+  resizeTimeout: null
+};
+
+// 디바이스 브레이크포인트
+const BREAKPOINTS = {
+  MOBILE: 768,
+  TABLET: 1024,
+  DESKTOP: 1200
 };
 
 /**
  * 레이아웃 매니저 초기화
  */
 function initializeLayout() {
-  console.log('🚀 레이아웃 매니저 초기화 시작');
+  console.log('🚀 완전 반응형 레이아웃 매니저 초기화 시작');
 
   if (layoutState.isInitialized) {
     console.warn('⚠️ 레이아웃이 이미 초기화되었습니다.');
@@ -44,11 +53,17 @@ function initializeLayoutComponents() {
   console.log('🔧 레이아웃 컴포넌트 초기화 시작');
 
   try {
+    // 디바이스 타입 감지
+    detectDeviceType();
+
     // 핵심 요소 찾기
     findLayoutElements();
 
     // 이벤트 바인딩
     bindLayoutEvents();
+
+    // 반응형 레이아웃 초기화
+    initializeResponsiveLayout();
 
     // 네비게이션 초기화
     initializeNavigation();
@@ -56,20 +71,181 @@ function initializeLayoutComponents() {
     // 스크롤 동작 초기화
     initializeScrollBehavior();
 
-    // 햄버거 메뉴 초기화
-    initializeHamburgerMenu();
+    // 햄버거 메뉴 초기화 (모바일/태블릿만)
+    if (layoutState.currentDevice !== 'desktop') {
+      initializeHamburgerMenu();
+    }
 
     // 뷰포트 높이 설정
     updateViewportHeight();
 
-    // 네비게이션 배지 업데이트
-    // updateNavigationBadges();
-
     layoutState.isInitialized = true;
-    console.log('✅ 레이아웃 컴포넌트 초기화 완료');
+    console.log('✅ 완전 반응형 레이아웃 초기화 완료');
 
   } catch (error) {
     console.error('❌ 레이아웃 초기화 실패:', error);
+  }
+}
+
+/**
+ * 디바이스 타입 감지
+ */
+function detectDeviceType() {
+  const width = window.innerWidth;
+
+  if (width < BREAKPOINTS.MOBILE) {
+    layoutState.currentDevice = 'mobile';
+  } else if (width < BREAKPOINTS.TABLET) {
+    layoutState.currentDevice = 'tablet';
+  } else {
+    layoutState.currentDevice = 'desktop';
+  }
+
+  // body에 디바이스 타입 속성 추가
+  document.body.setAttribute('data-device', layoutState.currentDevice);
+
+  console.log('📱 디바이스 타입:', layoutState.currentDevice, `(${width}px)`);
+}
+
+/**
+ * 반응형 레이아웃 초기화
+ */
+function initializeResponsiveLayout() {
+  console.log('🖥️ 반응형 레이아웃 초기화');
+
+  // 디바이스별 초기화
+  switch (layoutState.currentDevice) {
+    case 'desktop':
+      initializeDesktopLayout();
+      break;
+    case 'tablet':
+      initializeTabletLayout();
+      break;
+    case 'mobile':
+    default:
+      initializeMobileLayout();
+      break;
+  }
+}
+
+/**
+ * 데스크톱 레이아웃 초기화
+ */
+function initializeDesktopLayout() {
+  console.log('🖥️ 데스크톱 레이아웃 초기화');
+
+  // 사이드바 표시
+  const sidebar = document.querySelector('.pc-sidebar');
+  if (sidebar) {
+    sidebar.style.display = 'block';
+  }
+
+  // 햄버거 메뉴 숨김
+  const menuBtn = document.querySelector('.header-menu-btn');
+  if (menuBtn) {
+    menuBtn.style.display = 'none';
+  }
+
+  // 모바일 메뉴 강제 닫기
+  if (layoutState.isMenuOpen) {
+    closeMenu();
+  }
+
+  // 콘텐츠 영역 조정
+  adjustContentLayout('desktop');
+}
+
+/**
+ * 태블릿 레이아웃 초기화
+ */
+function initializeTabletLayout() {
+  console.log('📱 태블릿 레이아웃 초기화');
+
+  // 사이드바 숨김
+  const sidebar = document.querySelector('.pc-sidebar');
+  if (sidebar) {
+    sidebar.style.display = 'none';
+  }
+
+  // 햄버거 메뉴 표시
+  const menuBtn = document.querySelector('.header-menu-btn');
+  if (menuBtn) {
+    menuBtn.style.display = 'flex';
+  }
+
+  // 콘텐츠 영역 조정
+  adjustContentLayout('tablet');
+}
+
+/**
+ * 모바일 레이아웃 초기화
+ */
+function initializeMobileLayout() {
+  console.log('📱 모바일 레이아웃 초기화');
+
+  // 사이드바 숨김
+  const sidebar = document.querySelector('.pc-sidebar');
+  if (sidebar) {
+    sidebar.style.display = 'none';
+  }
+
+  // 햄버거 메뉴 표시
+  const menuBtn = document.querySelector('.header-menu-btn');
+  if (menuBtn) {
+    menuBtn.style.display = 'flex';
+  }
+
+  // 콘텐츠 영역 조정
+  adjustContentLayout('mobile');
+}
+
+/**
+ * 콘텐츠 레이아웃 조정
+ */
+function adjustContentLayout(deviceType) {
+  const layout = document.querySelector('.mobile-layout');
+  const header = document.querySelector('.mobile-header');
+  const main = document.querySelector('.mobile-main');
+  const nav = document.querySelector('.mobile-nav, .mobile-app-nav');
+
+  if (!layout || !header || !main) return;
+
+  switch (deviceType) {
+    case 'desktop':
+      // CSS 변수로 조정 (PC 레이아웃)
+      layout.style.marginLeft = 'var(--sidebar-width-pc, 280px)';
+      layout.style.paddingTop = 'var(--header-height-pc, 80px)';
+      layout.style.paddingBottom = '0';
+
+      if (header) {
+        header.style.left = 'var(--sidebar-width-pc, 280px)';
+        header.style.height = 'var(--header-height-pc, 80px)';
+      }
+
+      if (nav) {
+        nav.style.position = 'static';
+        nav.style.marginLeft = 'var(--sidebar-width-pc, 280px)';
+      }
+      break;
+
+    case 'tablet':
+    case 'mobile':
+    default:
+      // 모바일 레이아웃 (기존)
+      layout.style.marginLeft = '0';
+      layout.style.paddingTop = 'var(--header-height-mobile, 70px)';
+      layout.style.paddingBottom = 'var(--nav-height-mobile, 80px)';
+
+      if (header) {
+        header.style.left = '0';
+        header.style.height = 'var(--header-height-mobile, 70px)';
+      }
+
+      if (nav) {
+        nav.style.position = 'fixed';
+        nav.style.marginLeft = '0';
+      }
+      break;
   }
 }
 
@@ -79,19 +255,24 @@ function initializeLayoutComponents() {
 function findLayoutElements() {
   console.log('🔍 핵심 DOM 요소 찾기');
 
-  // 햄버거 메뉴 관련 요소
-  layoutState.menuElement = document.getElementById('mobileMenu');
-  layoutState.menuButton = document.getElementById('menuToggleBtn');
-  layoutState.overlay = document.getElementById('menuOverlay');
+  // 햄버거 메뉴 관련 요소 (모바일/태블릿만)
+  if (layoutState.currentDevice !== 'desktop') {
+    layoutState.menuElement = document.getElementById('mobileMenu');
+    layoutState.menuButton = document.getElementById('menuToggleBtn');
+    layoutState.overlay = document.getElementById('menuOverlay');
+  }
 
   console.log('📱 요소 검색 결과:');
+  console.log('  디바이스 타입:', layoutState.currentDevice);
   console.log('  메뉴 요소:', !!layoutState.menuElement);
   console.log('  메뉴 버튼:', !!layoutState.menuButton);
   console.log('  오버레이:', !!layoutState.overlay);
 
-  // 필수 요소 누락 시 경고
-  if (!layoutState.menuElement || !layoutState.menuButton || !layoutState.overlay) {
-    console.warn('⚠️ 일부 필수 요소를 찾을 수 없습니다. 햄버거 메뉴 기능이 제한될 수 있습니다.');
+  // 데스크톱이 아닌 경우에만 필수 요소 체크
+  if (layoutState.currentDevice !== 'desktop') {
+    if (!layoutState.menuElement || !layoutState.menuButton || !layoutState.overlay) {
+      console.warn('⚠️ 일부 필수 요소를 찾을 수 없습니다. 햄버거 메뉴 기능이 제한될 수 있습니다.');
+    }
   }
 }
 
@@ -99,9 +280,9 @@ function findLayoutElements() {
  * 이벤트 바인딩
  */
 function bindLayoutEvents() {
-  console.log('🔗 레이아웃 이벤트 바인딩');
+  console.log('🔗 반응형 레이아웃 이벤트 바인딩');
 
-  // 윈도우 리사이즈 이벤트
+  // 윈도우 리사이즈 이벤트 (디바운스 적용)
   window.addEventListener('resize', debounce(() => {
     handleWindowResize();
   }, 250));
@@ -110,7 +291,7 @@ function bindLayoutEvents() {
   document.addEventListener('keydown', handleKeyboardEvents);
 
   // 네비게이션 아이템 클릭 이벤트
-  const navItems = document.querySelectorAll('.nav-item');
+  const navItems = document.querySelectorAll('.nav-item, .sidebar-menu-link');
   navItems.forEach(item => {
     item.addEventListener('click', (e) => {
       handleNavItemClick(e, item);
@@ -120,7 +301,57 @@ function bindLayoutEvents() {
   // 메뉴 링크 클릭 이벤트 (개선됨)
   bindMenuLinkEvents();
 
-  console.log('✅ 레이아웃 이벤트 바인딩 완료');
+  // 사이드바 메뉴 링크 이벤트 (PC용)
+  bindSidebarEvents();
+
+  console.log('✅ 반응형 레이아웃 이벤트 바인딩 완료');
+}
+
+/**
+ * 사이드바 이벤트 바인딩 (PC전용)
+ */
+function bindSidebarEvents() {
+  const sidebarLinks = document.querySelectorAll('.sidebar-menu-link');
+
+  sidebarLinks.forEach(link => {
+    link.addEventListener('click', (e) => {
+      const href = link.getAttribute('href');
+      const linkText = link.querySelector('span')?.textContent?.trim() || '알 수 없는 메뉴';
+
+      console.log('🖥️ 사이드바 링크 클릭:', linkText, href);
+
+      // 로그아웃 버튼 특별 처리
+      if (link.classList.contains('logout-btn')) {
+        e.preventDefault();
+        handleLogout();
+        return;
+      }
+
+      // disabled 링크 처리
+      if (link.classList.contains('disabled')) {
+        e.preventDefault();
+        showToast('준비 중인 기능입니다.', 'info', 2000);
+        return;
+      }
+
+      // 외부 링크 처리
+      if (href && (href.startsWith('http') || href.startsWith('tel:') || href.startsWith('mailto:'))) {
+        e.preventDefault();
+        window.open(href, '_blank', 'noopener,noreferrer');
+        return;
+      }
+
+      // 같은 페이지 링크 확인
+      if (href === window.location.pathname) {
+        e.preventDefault();
+        showToast('현재 페이지입니다.', 'info', 2000);
+        return;
+      }
+
+      // 페이지 로딩 표시
+      showNavigationLoading(link);
+    });
+  });
 }
 
 /**
@@ -143,9 +374,15 @@ function bindMenuLinkEvents() {
         return;
       }
 
+      // disabled 링크 처리
+      if (link.classList.contains('disabled')) {
+        e.preventDefault();
+        showToast('준비 중인 기능입니다.', 'info', 2000);
+        return;
+      }
+
       // 외부 링크 처리
       if (href && (href.startsWith('http') || href.startsWith('tel:') || href.startsWith('mailto:'))) {
-        // 외부 링크는 메뉴를 닫지 않고 새 창에서 열기
         e.preventDefault();
         window.open(href, '_blank', 'noopener,noreferrer');
         return;
@@ -205,7 +442,7 @@ function initializeScrollBehavior() {
 }
 
 /**
- * 햄버거 메뉴 초기화
+ * 햄버거 메뉴 초기화 (모바일/태블릿만)
  */
 function initializeHamburgerMenu() {
   console.log('🍔 햄버거 메뉴 초기화');
@@ -269,6 +506,13 @@ function bindMenuButtonEvents() {
 
     console.log('🔘 메뉴 버튼 클릭');
     console.log('  현재 상태:', layoutState.isMenuOpen ? '열림' : '닫힌');
+    console.log('  디바이스:', layoutState.currentDevice);
+
+    // 데스크톱에서는 메뉴 토글 비활성화
+    if (layoutState.currentDevice === 'desktop') {
+      console.log('🖥️ 데스크톱에서는 햄버거 메뉴를 사용하지 않습니다.');
+      return;
+    }
 
     toggleMenu();
   });
@@ -310,7 +554,14 @@ function bindMenuInternalEvents() {
  */
 function toggleMenu() {
   console.log('🔄 메뉴 토글');
-  console.log('  현재 상태:', layoutState.isMenuOpen ? '열림' : '닫힘');
+  console.log('  현재 상태:', layoutState.isMenuOpen ? '열림' : '닫힌');
+  console.log('  디바이스:', layoutState.currentDevice);
+
+  // 데스크톱에서는 메뉴 토글 비활성화
+  if (layoutState.currentDevice === 'desktop') {
+    console.log('🖥️ 데스크톱에서는 사이드바를 사용합니다.');
+    return;
+  }
 
   if (!layoutState.menuElement || !layoutState.overlay) {
     console.error('❌ 메뉴 토글 실패 - 필수 요소 누락');
@@ -329,6 +580,12 @@ function toggleMenu() {
  */
 function openMenu() {
   console.log('🔓 메뉴 열기');
+
+  // 데스크톱에서는 메뉴 열기 비활성화
+  if (layoutState.currentDevice === 'desktop') {
+    console.log('🖥️ 데스크톱에서는 메뉴를 열 수 없습니다.');
+    return;
+  }
 
   if (!layoutState.menuElement || !layoutState.overlay) {
     console.error('❌ 메뉴 열기 실패 - 필수 요소 누락');
@@ -402,14 +659,80 @@ function closeMenu() {
 }
 
 /**
- * 스크롤 처리 (개선된 버전)
+ * 윈도우 리사이즈 처리 (반응형 핵심)
+ */
+function handleWindowResize() {
+  console.log('📱 윈도우 리사이즈');
+
+  const prevDevice = layoutState.currentDevice;
+
+  // 디바이스 타입 재감지
+  detectDeviceType();
+
+  const currentDevice = layoutState.currentDevice;
+
+  console.log(`📱 디바이스 변경: ${prevDevice} → ${currentDevice}`);
+
+  // 디바이스 타입이 변경된 경우
+  if (prevDevice !== currentDevice) {
+    handleDeviceTypeChange(prevDevice, currentDevice);
+  }
+
+  // 뷰포트 높이 업데이트
+  updateViewportHeight();
+
+  // 콘텐츠 레이아웃 조정
+  adjustContentLayout(currentDevice);
+
+  console.log('✅ 윈도우 리사이즈 처리 완료');
+}
+
+/**
+ * 디바이스 타입 변경 처리
+ */
+function handleDeviceTypeChange(prevDevice, currentDevice) {
+  console.log(`🔄 디바이스 타입 변경: ${prevDevice} → ${currentDevice}`);
+
+  // 메뉴 상태 정리
+  if (layoutState.isMenuOpen && currentDevice === 'desktop') {
+    console.log('🖥️ 데스크톱으로 변경 - 모바일 메뉴 닫기');
+    closeMenu();
+  }
+
+  // 디바이스별 레이아웃 초기화
+  switch (currentDevice) {
+    case 'desktop':
+      initializeDesktopLayout();
+      break;
+    case 'tablet':
+      initializeTabletLayout();
+      break;
+    case 'mobile':
+    default:
+      initializeMobileLayout();
+      break;
+  }
+
+  // 햄버거 메뉴 재초기화 (필요한 경우)
+  if (currentDevice !== 'desktop' && (prevDevice === 'desktop' || !layoutState.menuElement)) {
+    findLayoutElements();
+    if (layoutState.menuElement && layoutState.menuButton && layoutState.overlay) {
+      initializeHamburgerMenu();
+    }
+  }
+
+  // 네비게이션 상태 업데이트
+  updateActiveNavigation();
+}
+
+/**
+ * 스크롤 처리 (앱 네비게이션만)
  */
 function handleScroll() {
   const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
   const header = document.getElementById('mobileHeader');
-  const nav = document.getElementById('mobileNav');
 
-  // 헤더 스크롤 효과
+  // 헤더 스크롤 효과 (공통)
   if (header) {
     if (scrollTop > 50) {
       header.classList.add('scrolled');
@@ -418,20 +741,8 @@ function handleScroll() {
     }
   }
 
-  // 네비게이션 자동 숨김/표시 (개선된 로직)
-  if (Math.abs(scrollTop - layoutState.lastScrollTop) > 5) {
-    // 메뉴가 열려있을 때는 네비게이션 숨김/표시 안함
-    if (!layoutState.isMenuOpen) {
-      if (scrollTop > layoutState.lastScrollTop && scrollTop > 100) {
-        // 아래로 스크롤 시 네비게이션 숨김
-        if (nav) nav.classList.add('hidden');
-      } else {
-        // 위로 스크롤 시 네비게이션 표시
-        if (nav) nav.classList.remove('hidden');
-      }
-    }
-    layoutState.lastScrollTop = scrollTop;
-  }
+  // 앱 네비게이션은 항상 고정 - 숨김/표시 로직 제거
+  layoutState.lastScrollTop = scrollTop;
 
   // 스크롤 종료 감지
   clearTimeout(layoutState.scrollTimeout);
@@ -441,42 +752,24 @@ function handleScroll() {
 }
 
 /**
- * 윈도우 리사이즈 처리
- */
-function handleWindowResize() {
-  console.log('📱 윈도우 리사이즈');
-
-  // 뷰포트 높이 업데이트
-  updateViewportHeight();
-
-  // 데스크톱 크기에서 메뉴 자동 닫기
-  if (layoutState.isMenuOpen && window.innerWidth > 768) {
-    closeMenu();
-  }
-
-  // 네비게이션 배지 업데이트
-  // updateNavigationBadges();
-}
-
-/**
  * 키보드 이벤트 처리
  */
 function handleKeyboardEvents(e) {
-  // ESC 키로 메뉴 닫기
-  if (e.key === 'Escape' && layoutState.isMenuOpen) {
+  // ESC 키로 메뉴 닫기 (모바일/태블릿만)
+  if (e.key === 'Escape' && layoutState.isMenuOpen && layoutState.currentDevice !== 'desktop') {
     console.log('⌨️ ESC 키로 메뉴 닫기');
     e.preventDefault();
     closeMenu();
   }
 
-  // 단축키 지원 (1-4번으로 네비게이션 이동)
-  if (e.altKey && !layoutState.isMenuOpen) {
+  // 단축키 지원 (데스크톱만)
+  if (e.altKey && layoutState.currentDevice === 'desktop' && !layoutState.isMenuOpen) {
     const key = parseInt(e.key);
-    if (key >= 1 && key <= 4) {
+    if (key >= 1 && key <= 6) {
       e.preventDefault();
-      const navItems = document.querySelectorAll('.nav-item');
-      if (navItems[key - 1]) {
-        navItems[key - 1].click();
+      const sidebarLinks = document.querySelectorAll('.sidebar-menu-link');
+      if (sidebarLinks[key - 1]) {
+        sidebarLinks[key - 1].click();
       }
     }
   }
@@ -490,6 +783,13 @@ function handleNavItemClick(e, item) {
   const itemText = item.querySelector('span')?.textContent?.trim() || '알 수 없는 메뉴';
 
   console.log('🧭 네비게이션 클릭:', itemText, href);
+
+  // disabled 링크 처리
+  if (item.classList.contains('disabled')) {
+    e.preventDefault();
+    showToast('준비 중인 기능입니다.', 'info', 2000);
+    return;
+  }
 
   // 같은 페이지 클릭 시 새로고침
   if (href === window.location.pathname) {
@@ -513,73 +813,34 @@ function handleNavItemClick(e, item) {
  */
 function updateActiveNavigation() {
   const currentPath = window.location.pathname;
-  const navItems = document.querySelectorAll('.nav-item');
 
+  // 사이드바 네비게이션 업데이트 (PC)
+  const sidebarItems = document.querySelectorAll('.sidebar-menu-link');
+  sidebarItems.forEach(item => {
+    const href = item.getAttribute('href');
+    item.classList.remove('active');
+
+    if (href === currentPath) {
+      item.classList.add('active');
+    } else if (href !== '/mobile/home' && currentPath.startsWith(href)) {
+      item.classList.add('active');
+    } else if (href === '/mobile/home' && (currentPath === '/mobile' || currentPath === '/mobile/')) {
+      item.classList.add('active');
+    }
+  });
+
+  // 하단 네비게이션 업데이트 (모바일/태블릿)
+  const navItems = document.querySelectorAll('.nav-item');
   navItems.forEach(item => {
     const href = item.getAttribute('href');
     item.classList.remove('active');
 
-    // 정확한 경로 매칭
     if (href === currentPath) {
       item.classList.add('active');
-    }
-    // 하위 경로 매칭 (예: /mobile/support 하위 페이지들)
-    else if (href !== '/mobile/home' && currentPath.startsWith(href)) {
+    } else if (href !== '/mobile/home' && currentPath.startsWith(href)) {
       item.classList.add('active');
-    }
-    // 홈 페이지 특별 처리
-    else if (href === '/mobile/home' && (currentPath === '/mobile' || currentPath === '/mobile/')) {
+    } else if (href === '/mobile/home' && (currentPath === '/mobile' || currentPath === '/mobile/')) {
       item.classList.add('active');
-    }
-  });
-}
-
-/**
- * 네비게이션 배지 업데이트
- */
-async function updateNavigationBadges() {
-  try {
-    const accessToken = localStorage.getItem('accessToken');
-    if (!accessToken) {
-      console.log('🔐 로그인 안됨 - 네비게이션 배지 업데이트 스킵');
-      return;
-    }
-
-    const response = await fetch('/api/navigation/badges', {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`
-      }
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      if (data.status?.code === 'OK_0000') {
-        layoutState.navigationBadges = data.response || {};
-        renderNavigationBadges(layoutState.navigationBadges);
-      }
-    }
-  } catch (error) {
-    console.error('네비게이션 배지 업데이트 실패:', error);
-  }
-}
-
-/**
- * 네비게이션 배지 렌더링
- */
-function renderNavigationBadges(badges) {
-  // 기존 배지 제거
-  document.querySelectorAll('.nav-badge').forEach(badge => badge.remove());
-
-  Object.entries(badges).forEach(([menu, count]) => {
-    if (count <= 0) return;
-
-    const navItem = document.querySelector(`[href*="${menu}"]`);
-    if (navItem) {
-      const badge = document.createElement('span');
-      badge.className = 'nav-badge';
-      badge.textContent = count > 99 ? '99+' : count;
-      badge.setAttribute('aria-label', `${count}개의 알림`);
-      navItem.appendChild(badge);
     }
   });
 }
@@ -588,12 +849,22 @@ function renderNavigationBadges(badges) {
  * 네비게이션 접근성 향상
  */
 function enhanceNavigationAccessibility() {
-  const navItems = document.querySelectorAll('.nav-item');
-
-  navItems.forEach((item, index) => {
+  // 사이드바 접근성
+  const sidebarItems = document.querySelectorAll('.sidebar-menu-link');
+  sidebarItems.forEach((item, index) => {
     const text = item.querySelector('span')?.textContent;
     if (text) {
       item.setAttribute('title', `${text} (Alt+${index + 1})`);
+      item.setAttribute('aria-label', `${text} 페이지로 이동`);
+    }
+  });
+
+  // 하단 네비게이션 접근성
+  const navItems = document.querySelectorAll('.nav-item');
+  navItems.forEach((item, index) => {
+    const text = item.querySelector('span')?.textContent;
+    if (text) {
+      item.setAttribute('title', text);
       item.setAttribute('aria-label', `${text} 페이지로 이동`);
     }
   });
@@ -620,8 +891,10 @@ async function handleLogout() {
     // 로딩 상태 표시
     showPageLoading();
 
-    // 메뉴 닫기
-    closeMenu();
+    // 메뉴 닫기 (모바일/태블릿)
+    if (layoutState.currentDevice !== 'desktop') {
+      closeMenu();
+    }
 
     // 토스트 메시지 표시
     showToast('로그아웃 중입니다...', 'info');
@@ -728,12 +1001,17 @@ function throttle(func, limit) {
  * 메뉴 상태 체크 (디버그용)
  */
 function checkMenuState() {
-  console.log('🔍 메뉴 상태 체크:', {
+  console.log('🔍 레이아웃 상태 체크:', {
+    currentDevice: layoutState.currentDevice,
     isMenuOpen: layoutState.isMenuOpen,
     menuElement: !!layoutState.menuElement,
     menuButton: !!layoutState.menuButton,
     overlay: !!layoutState.overlay,
-    bodyClasses: document.body.className
+    bodyClasses: document.body.className,
+    windowSize: {
+      width: window.innerWidth,
+      height: window.innerHeight
+    }
   });
 }
 
@@ -744,6 +1022,9 @@ function destroyLayout() {
   console.log('🗑️ 레이아웃 정리');
 
   // 이벤트 리스너 제거
+  window.removeEventListener('resize', handleWindowResize);
+
+  // 오버레이 제거
   if (layoutState.overlay && layoutState.overlay.parentNode) {
     layoutState.overlay.parentNode.removeChild(layoutState.overlay);
   }
@@ -751,6 +1032,10 @@ function destroyLayout() {
   // 타이머 정리
   if (layoutState.scrollTimeout) {
     clearTimeout(layoutState.scrollTimeout);
+  }
+
+  if (layoutState.resizeTimeout) {
+    clearTimeout(layoutState.resizeTimeout);
   }
 
   // 상태 초기화
@@ -763,7 +1048,9 @@ function destroyLayout() {
     overlay: null,
     isInitialized: false,
     navigationBadges: {},
-    scrollTimeout: null
+    scrollTimeout: null,
+    currentDevice: 'mobile',
+    resizeTimeout: null
   };
 }
 
@@ -774,9 +1061,6 @@ function handleConnectionChange() {
   window.addEventListener('online', () => {
     console.log('🌐 온라인 상태 복원');
     showToast('인터넷 연결이 복원되었습니다.', 'success', 3000);
-
-    // 네비게이션 배지 업데이트
-    // updateNavigationBadges();
   });
 
   window.addEventListener('offline', () => {
@@ -796,9 +1080,12 @@ function handleVisibilityChange() {
       // 네비게이션 상태 업데이트
       updateActiveNavigation();
 
-      // 배지 업데이트
-      if (window.APP_CONFIG?.isLoggedIn) {
-        // updateNavigationBadges();
+      // 디바이스 타입 재확인
+      const prevDevice = layoutState.currentDevice;
+      detectDeviceType();
+
+      if (prevDevice !== layoutState.currentDevice) {
+        handleDeviceTypeChange(prevDevice, layoutState.currentDevice);
       }
     }
   });
@@ -810,34 +1097,46 @@ window.closeMenu = closeMenu;
 window.toggleMenu = toggleMenu;
 window.checkMenuState = checkMenuState;
 
-// 레이아웃 매니저 객체
+// 완전 반응형 레이아웃 매니저 객체
 window.layoutManager = {
   openMenu,
   closeMenu,
   toggleMenu,
   isMenuOpen: () => layoutState.isMenuOpen,
-  updateNavigationBadges,
+  getCurrentDevice: () => layoutState.currentDevice,
+  updateResponsiveLayout: () => handleWindowResize(),
   showPageLoading,
   hidePageLoading,
   destroy: destroyLayout,
-  checkState: checkMenuState
+  checkState: checkMenuState,
+
+  // 새로운 반응형 관련 메서드들
+  isDesktop: () => layoutState.currentDevice === 'desktop',
+  isTablet: () => layoutState.currentDevice === 'tablet',
+  isMobile: () => layoutState.currentDevice === 'mobile',
+  getBreakpoints: () => BREAKPOINTS
 };
 
 // 전역 디버깅 함수
 window.debugLayout = function() {
-  console.group('🔍 레이아웃 디버그 정보');
+  console.group('🔍 완전 반응형 레이아웃 디버그 정보');
   console.log('레이아웃 상태:', layoutState);
+  console.log('현재 디바이스:', layoutState.currentDevice);
+  console.log('브레이크포인트:', BREAKPOINTS);
+  console.log('윈도우 크기:', {
+    width: window.innerWidth,
+    height: window.innerHeight
+  });
   console.log('메뉴 요소:', layoutState.menuElement);
   console.log('메뉴 버튼:', layoutState.menuButton);
   console.log('오버레이:', layoutState.overlay);
   console.log('메뉴 열림 상태:', layoutState.isMenuOpen);
   console.log('초기화 상태:', layoutState.isInitialized);
-  console.log('네비게이션 배지:', layoutState.navigationBadges);
   console.groupEnd();
 };
 
 // 자동 초기화
-console.log('🌟 layout.js 스크립트 로드 완료');
+console.log('🌟 완전 반응형 layout.js 스크립트 로드 완료');
 initializeLayout();
 
 // 추가 이벤트 핸들러 초기화
@@ -849,6 +1148,7 @@ window.addEventListener('beforeunload', () => {
   destroyLayout();
 });
 
+// 앱 네비게이션 설정 (기존 유지)
 window.APP_CONFIG = window.APP_CONFIG || {};
 window.APP_CONFIG.appNavigation = {
   apiUrl: 'https://api.otongtong.net/v1/api/etc/app/menu_list',
@@ -866,8 +1166,11 @@ export {
   openMenu,
   closeMenu,
   toggleMenu,
-  // updateNavigationBadges,
   showPageLoading,
   hidePageLoading,
-  checkMenuState
+  checkMenuState,
+  // 새로운 반응형 관련 함수들
+  detectDeviceType,
+  handleDeviceTypeChange,
+  initializeResponsiveLayout
 };
