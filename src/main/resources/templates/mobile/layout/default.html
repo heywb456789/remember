@@ -65,30 +65,30 @@
 </main>
 
 <!-- 하단 네비게이션 -->
-<nav class="mobile-nav fixed-bottom" id="mobileNav">
-  <div class="nav-container">
-    <a href="/mobile/home" class="nav-item" th:classappend="${(activeMenu ?: 'main') == 'main' ? 'active' : ''}"
-       aria-label="홈 페이지로 이동">
-      <i class="fas fa-home"></i>
-      <span>홈</span>
-    </a>
-    <a href="/mobile/search" class="nav-item" th:classappend="${(activeMenu ?: 'main') == 'search' ? 'active' : ''}"
-       aria-label="검색 페이지로 이동">
-      <i class="fas fa-search"></i>
-      <span>검색</span>
-    </a>
-    <a href="/mobile/support/faq" class="nav-item" th:classappend="${(activeMenu ?: 'main') == 'support' ? 'active' : ''}"
-       aria-label="도움말 페이지로 이동">
-      <i class="fas fa-question-circle"></i>
-      <span>도움말</span>
-    </a>
-    <a href="/mobile/mypage" class="nav-item" th:classappend="${(activeMenu ?: 'main') == 'mypage' ? 'active' : ''}"
-       aria-label="마이페이지로 이동">
-      <i class="fas fa-user"></i>
-      <span>마이페이지</span>
-    </a>
-  </div>
-</nav>
+<!--<nav class="mobile-nav fixed-bottom" id="mobileNav">-->
+<!--  <div class="nav-container">-->
+<!--    <a href="/mobile/home" class="nav-item" th:classappend="${(activeMenu ?: 'main') == 'main' ? 'active' : ''}"-->
+<!--       aria-label="홈 페이지로 이동">-->
+<!--      <i class="fas fa-home"></i>-->
+<!--      <span>홈</span>-->
+<!--    </a>-->
+<!--    <a href="/mobile/search" class="nav-item" th:classappend="${(activeMenu ?: 'main') == 'search' ? 'active' : ''}"-->
+<!--       aria-label="검색 페이지로 이동">-->
+<!--      <i class="fas fa-search"></i>-->
+<!--      <span>검색</span>-->
+<!--    </a>-->
+<!--    <a href="/mobile/support/faq" class="nav-item" th:classappend="${(activeMenu ?: 'main') == 'support' ? 'active' : ''}"-->
+<!--       aria-label="도움말 페이지로 이동">-->
+<!--      <i class="fas fa-question-circle"></i>-->
+<!--      <span>도움말</span>-->
+<!--    </a>-->
+<!--    <a href="/mobile/mypage" class="nav-item" th:classappend="${(activeMenu ?: 'main') == 'mypage' ? 'active' : ''}"-->
+<!--       aria-label="마이페이지로 이동">-->
+<!--      <i class="fas fa-user"></i>-->
+<!--      <span>마이페이지</span>-->
+<!--    </a>-->
+<!--  </div>-->
+<!--</nav>-->
 
 <!-- 채팅 FAB 버튼 (로그인 후에만 표시) -->
 <button class="chat-fab" id="chatFab" onclick="openChat()"
