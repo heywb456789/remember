@@ -1,6 +1,9 @@
 package com.tomato.remember.application.oneld.service;
 
 import com.tomato.remember.application.auth.dto.AuthRequestDTO;
+import com.tomato.remember.application.auth.dto.PasswordResetOneIdResponse;
+import com.tomato.remember.application.auth.dto.PasswordResetRequestDTO;
+import com.tomato.remember.application.auth.dto.PasswordResetVerifyResponse;
 import com.tomato.remember.application.oneld.dto.OneIdImageResponse;
 import com.tomato.remember.application.oneld.dto.OneIdResponse;
 import com.tomato.remember.application.oneld.dto.OneIdVerifyResponse;
@@ -47,6 +50,15 @@ public class TomatoAuthService {
 
     @Value("${one-id.endpoints.profile-img}")
     private String profileImg;
+
+    @Value("${one-id.endpoints.password-reset-cert}")
+    private String passwordResetCert;
+
+    @Value("${one-id.endpoints.password-reset-verify}")
+    private String passwordResetVerify;
+
+    @Value("${one-id.endpoints.password-reset}")
+    private String passwordReset;
 
     private final WebClient webClient;
 
@@ -240,6 +252,107 @@ public class TomatoAuthService {
             .bodyToMono(OneIdImageResponse.class)
             // 블록해서 동기 호출로 전환
             .block();
+    }
+
+    /**
+     * 비밀번호 재설정 인증번호 요청
+     */
+    public Mono<PasswordResetOneIdResponse> sendPasswordResetCert(PasswordResetRequestDTO req) {
+        if (req.getPhoneNumber() == null) {
+            throw new BadRequestException("휴대폰 번호가 필요합니다");
+        }
+
+        String timestamp = Long.toString(System.currentTimeMillis() / 1000);
+        String encodedPhoneNumber = AES256.encrypt(req.getPhoneNumber(), timestamp);
+
+        log.debug("비밀번호 재설정 인증번호 요청: phoneNumber={}", req.getPhoneNumber());
+
+        return webClient.post()
+                .uri(passwordResetCert, appType)
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .body(BodyInserters
+                        .fromFormData("phonenum", encodedPhoneNumber)
+                        .with("nation", nationCode)
+                        .with("timestamp", timestamp)
+                )
+                .retrieve()
+                .onStatus(HttpStatusCode::is4xxClientError,
+                        clientResp -> Mono.error(new BadRequestException("비밀번호 재설정 인증번호 요청 실패")))
+                .onStatus(HttpStatusCode::is5xxServerError,
+                        clientResp -> Mono.error(
+                                new APIException("One-ID 서버 오류", ResponseStatus.INTERNAL_SERVER_ERROR)))
+                .bodyToMono(PasswordResetOneIdResponse.class)
+                .doOnNext(response -> log.debug("비밀번호 재설정 인증번호 요청 응답: {}", response))
+                .doOnError(error -> log.error("비밀번호 재설정 인증번호 요청 오류: {}", error.getMessage()));
+    }
+
+    /**
+     * 비밀번호 재설정 인증번호 확인
+     */
+    public Mono<PasswordResetVerifyResponse> verifyPasswordResetCert(PasswordResetRequestDTO req) {
+        if (req.getPhoneNumber() == null || req.getVerificationCode() == null) {
+            throw new BadRequestException("휴대폰 번호와 인증번호가 필요합니다");
+        }
+
+        String timestamp = Long.toString(System.currentTimeMillis() / 1000);
+        String encodedPhoneNumber = AES256.encrypt(req.getPhoneNumber(), timestamp);
+
+        log.debug("비밀번호 재설정 인증번호 확인: phoneNumber={}, code={}",
+                req.getPhoneNumber(), req.getVerificationCode());
+
+        return webClient.post()
+                .uri(passwordResetVerify, appType)
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .body(BodyInserters
+                        .fromFormData("phonenum", encodedPhoneNumber)
+                        .with("code", req.getVerificationCode())
+                        .with("nation", nationCode)
+                        .with("timestamp", timestamp)
+                )
+                .retrieve()
+                .onStatus(HttpStatusCode::is4xxClientError,
+                        clientResp -> Mono.error(new BadRequestException("인증번호 확인 실패")))
+                .onStatus(HttpStatusCode::is5xxServerError,
+                        clientResp -> Mono.error(
+                                new APIException("One-ID 서버 오류", ResponseStatus.INTERNAL_SERVER_ERROR)))
+                .bodyToMono(PasswordResetVerifyResponse.class)
+                .doOnNext(response -> log.debug("비밀번호 재설정 인증번호 확인 응답: {}", response))
+                .doOnError(error -> log.error("비밀번호 재설정 인증번호 확인 오류: {}", error.getMessage()));
+    }
+
+    /**
+     * 비밀번호 재설정 실행
+     */
+    public Mono<PasswordResetVerifyResponse> resetPassword(PasswordResetRequestDTO req) {
+        if (req.getPhoneNumber() == null || req.getNewPassword() == null || req.getVerificationCode() == null) {
+            throw new BadRequestException("휴대폰 번호, 새 비밀번호, 인증번호가 모두 필요합니다");
+        }
+
+        String timestamp = Long.toString(System.currentTimeMillis() / 1000);
+        String encodedPhoneNumber = AES256.encrypt(req.getPhoneNumber(), timestamp);
+        String encodedNewPassword = AES256.encrypt(req.getNewPassword(), timestamp);
+
+        log.debug("비밀번호 재설정 실행: phoneNumber={}", req.getPhoneNumber());
+
+        return webClient.post()
+                .uri(passwordReset, appType)
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .body(BodyInserters
+                        .fromFormData("phonenum", encodedPhoneNumber)
+                        .with("newpasswd", encodedNewPassword)
+                        .with("nation", nationCode)
+                        .with("code", req.getVerificationCode())
+                        .with("timestamp", timestamp)
+                )
+                .retrieve()
+                .onStatus(HttpStatusCode::is4xxClientError,
+                        clientResp -> Mono.error(new BadRequestException("비밀번호 재설정 실패")))
+                .onStatus(HttpStatusCode::is5xxServerError,
+                        clientResp -> Mono.error(
+                                new APIException("One-ID 서버 오류", ResponseStatus.INTERNAL_SERVER_ERROR)))
+                .bodyToMono(PasswordResetVerifyResponse.class)
+                .doOnNext(response -> log.debug("비밀번호 재설정 실행 응답: {}", response))
+                .doOnError(error -> log.error("비밀번호 재설정 실행 오류: {}", error.getMessage()));
     }
 
 }

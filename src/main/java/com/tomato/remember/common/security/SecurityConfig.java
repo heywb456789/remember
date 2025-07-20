@@ -163,6 +163,7 @@ public class SecurityConfig {
                         "/api/auth/login",
                         "/api/auth/refresh",
                         "/api/auth/register",
+                        "/api/auth/password-reset/**",
                         "/api/memorial/public/**",
                         "/api/videos/public/**",
                         "/api/auth/smsCert/**",

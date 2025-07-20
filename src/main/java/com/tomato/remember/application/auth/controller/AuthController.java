@@ -187,4 +187,20 @@ public class AuthController {
         return "mobile/mypage/profile";
     }
 
+    @GetMapping("/forgot-password")
+    public String forgotPasswordPage(Model model) {
+        log.debug("비밀번호 찾기 페이지 요청");
+
+        model.addAttribute("pageTitle", "비밀번호 찾기");
+        model.addAttribute("appName", "토마토리멤버");
+
+        // API 엔드포인트 정보 제공
+        model.addAttribute("sendCodeApiUrl", "/api/auth/password-reset/send-code");
+        model.addAttribute("verifyCodeApiUrl", "/api/auth/password-reset/verify-code");
+        model.addAttribute("resetPasswordApiUrl", "/api/auth/password-reset/reset");
+        model.addAttribute("loginUrl", "/mobile/login");
+
+        return "mobile/login/forgot-password";
+    }
+
 }
