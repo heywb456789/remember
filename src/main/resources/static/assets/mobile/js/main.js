@@ -1,98 +1,32 @@
-// main.js - 토마토리멤버 메인 페이지 (초대 토큰 처리 추가)
+// main-simple.js - 간소화된 메인 페이지 JavaScript (이벤트 바인딩 타이밍 수정)
 
-import { authFetch, checkLoginStatus, handleFetchError } from './commonFetch.js';
-import { showToast, showConfirm, showLoading, hideLoading } from './common.js';
+import { showToast, showConfirm } from './common.js';
+import { authFetch, memberLogout } from './commonFetch.js';
 
-// 메인 페이지 상태 관리
+// 메인 페이지 상태 관리 (단순화)
 let mainPageState = {
-  isLoading: false,
   isInitialized: false,
-  memorialItems: [],
   selectedMemorialId: null,
   isLoggedIn: false,
   currentUser: null,
-  retryCount: 0,
-  maxRetries: 3,
-  refreshInterval: null,
-  inviteProcessing: false // 초대 처리 중 플래그 추가
+  memorialItems: []
 };
 
-// 관계별 이모지 매핑
-const RELATIONSHIP_EMOJIS = {
-  '부': '👨',
-  '모': '👩',
-  '배우자부': '👨',
-  '배우자모': '👩',
-  '조부': '👴',
-  '조모': '👵',
-  '증조부': '👴',
-  '증조모': '👵',
-  '배우자': '💑',
-  '자': '👶',
-  '자부': '👰',
-  '사위': '🤵',
-  '형제/자매': '👫',
-  '손': '👶',
-  '증손': '👶',
-  '본인': '😊',
-  '동거인': '🏠',
-  '기타': '👤'
+// 체험하기 FAB 상태 (단순화)
+let experienceFabState = {
+  isExpanded: false,
+  fab: null,
+  options: null
 };
 
 /**
- * 가족 구성원 배지 스타일 추가
- */
-const familyMemberBadgeStyle = `
-  .family-member-badge {
-    background: #e3f2fd;
-    color: #1976d2;
-    font-size: 10px;
-    padding: 2px 6px;
-    border-radius: 4px;
-    margin-left: 8px;
-    font-weight: 500;
-  }
-
-  .memorial-meta {
-    font-size: 12px;
-    color: var(--text-light);
-    margin-top: 4px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-
-  .memorial-meta .separator {
-    opacity: 0.5;
-  }
-
-  .access-type {
-    font-weight: 500;
-    color: var(--text-secondary);
-  }
-
-  .status-icon.status-heart {
-    color: #e91e63;
-  }
-
-  .status-icon.status-heart.status-ok {
-    color: #4caf50;
-  }
-
-  .status-icon.status-heart.status-warning {
-    color: #ff9800;
-  }
-`;
-
-
-/**
- * 메인 페이지 초기화
+ * ===== 메인 초기화 함수 =====
  */
 function initializeMainPage() {
-  console.log('메인 페이지 초기화 시작');
+  console.log('🚀 메인 페이지 초기화 시작 (간소화 버전)');
 
   if (mainPageState.isInitialized) {
-    console.warn('메인 페이지가 이미 초기화되었습니다.');
+    console.warn('⚠️ 메인 페이지가 이미 초기화되었습니다.');
     return;
   }
 
@@ -100,196 +34,131 @@ function initializeMainPage() {
     // 1. 서버 데이터 로드
     loadServerData();
 
-    // 2. 초대 토큰 처리 (최우선)
-    if (mainPageState.isLoggedIn) {
-      checkAndProcessInviteToken();
-    }
-
-    // 3. 이벤트 바인딩
+    // 2. 이벤트 바인딩 (FAB 포함)
     bindAllEvents();
 
-    // 4. 로그인 상태 UI 업데이트
-    updateLoginUI();
+    // 3. FAB 버튼 초기화 (DOM이 완전히 준비된 후)
+    // requestAnimationFrame으로 DOM 렌더링 완료 후 실행
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        initializeFabButtons();
+      }, 100); // 100ms 후 실행으로 DOM 완전 준비 보장
+    });
 
-    // 5. 로그인한 경우 추가 초기화
-    if (mainPageState.isLoggedIn) {
-      initializeLoggedInFeatures();
-    }
-
-    // 6. 초기화 완료 플래그 설정
+    // 4. 초기화 완료
     mainPageState.isInitialized = true;
-    console.log('메인 페이지 초기화 완료');
+    console.log('✅ 메인 페이지 초기화 완료 (간소화 버전)');
 
   } catch (error) {
-    console.error('메인 페이지 초기화 실패:', error);
+    console.error('❌ 메인 페이지 초기화 실패:', error);
     showToast('페이지 초기화 중 오류가 발생했습니다.', 'error');
   }
 }
 
 /**
- * 초대 토큰 확인 및 처리 (sessionStorage 기반)
- */
-async function checkAndProcessInviteToken() {
-  console.log('초대 토큰 확인 시작');
-
-  if (mainPageState.inviteProcessing) {
-    console.log('초대 처리가 이미 진행 중입니다.');
-    return;
-  }
-
-  try {
-    // sessionStorage에서 초대 토큰 조회
-    const inviteToken = sessionStorage.getItem('inviteToken');
-
-    if (!inviteToken) {
-      console.log('초대 토큰이 없습니다.');
-      return;
-    }
-
-    console.log('초대 토큰 발견:', inviteToken.substring(0, 8) + '...');
-
-    // 초대 처리 시작
-    mainPageState.inviteProcessing = true;
-
-    // 로딩 표시
-    const loading = showLoading('초대 처리 중...');
-
-    // 초대 토큰 처리 API 호출
-    const response = await authFetch('/api/family/invite/process', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        token: inviteToken
-      })
-    });
-
-    console.log('초대 처리 API 응답:', response);
-
-    // 성공 처리
-    if (response.status?.code === 'OK_0000') {
-      const result = response.response;
-
-      // 성공 토스트 표시
-      showToast(result.message || '초대 처리가 완료되었습니다.', 'success');
-
-      // sessionStorage에서 토큰 제거
-      sessionStorage.removeItem('inviteToken');
-
-      // 가족 목록 새로고침 (필요한 경우)
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
-
-      console.log('초대 처리 완료');
-
-    } else {
-      // 실패 처리
-      const errorMessage = response.status?.message || '초대 처리에 실패했습니다.';
-      console.error('초대 처리 실패:', errorMessage);
-
-      showToast(errorMessage, 'error');
-
-      // 실패 시에도 토큰 제거 (보안상 이유)
-      sessionStorage.removeItem('inviteToken');
-    }
-
-  } catch (error) {
-    console.error('초대 토큰 처리 중 오류:', error);
-
-    // 에러 메시지 표시
-    const errorMessage = error.name === 'FetchError' ?
-        error.statusMessage :
-        '초대 처리 중 오류가 발생했습니다.';
-
-    showToast(errorMessage, 'error');
-
-    // 에러 시에도 토큰 제거
-    sessionStorage.removeItem('inviteToken');
-
-  } finally {
-    // 로딩 숨김
-    hideLoading();
-
-    // 초대 처리 플래그 해제
-    mainPageState.inviteProcessing = false;
-  }
-}
-
-/**
- * 초대 토큰 유효성 검증 (선택적 사용)
- */
-async function validateInviteToken(token) {
-  console.log('초대 토큰 유효성 검증:', token.substring(0, 8) + '...');
-
-  try {
-    const response = await authFetch(`/api/family/invite/validate/${token}`);
-
-    if (response.status?.code === 'OK_0000') {
-      return response.response;
-    } else {
-      console.warn('토큰 유효성 검증 실패:', response.status?.message);
-      return { valid: false, message: response.status?.message };
-    }
-
-  } catch (error) {
-    console.error('토큰 유효성 검증 오류:', error);
-    return { valid: false, message: '토큰 검증 중 오류가 발생했습니다.' };
-  }
-}
-
-/**
- * 서버 데이터 로드
+ * ===== 서버 데이터 로드 =====
  */
 function loadServerData() {
-  console.log('서버 데이터 로드');
+  console.log('📡 서버 데이터 로드');
 
   if (window.serverData) {
     mainPageState.isLoggedIn = window.serverData.isLoggedIn || false;
     mainPageState.memorialItems = window.serverData.memorialList || [];
     mainPageState.currentUser = window.serverData.currentUser || null;
 
-    console.log('서버 데이터 로드 완료:', {
+    console.log('✅ 서버 데이터 로드 완료:', {
       isLoggedIn: mainPageState.isLoggedIn,
       memorialCount: mainPageState.memorialItems.length,
       currentUser: mainPageState.currentUser?.name || 'None'
     });
   } else {
-    console.warn('서버 데이터가 없습니다.');
+    console.warn('⚠️ 서버 데이터가 없습니다.');
   }
 }
 
 /**
- * 모든 이벤트 바인딩
+ * ===== FAB 버튼 초기화 (HTML에 이미 존재) =====
  */
-function bindAllEvents() {
-  console.log('모든 이벤트 바인딩 시작');
+function initializeFabButtons() {
+  console.log('🎯 FAB 버튼 초기화 (정적 생성 버전)');
 
-  // 1. 새 메모리얼 등록 버튼들
-  bindCreateMemorialButtons();
+  // 체험하기 FAB 요소 찾기 (재시도 로직 추가)
+  experienceFabState.fab = document.getElementById('experienceFab');
+  experienceFabState.options = document.getElementById('experienceOptions');
 
-  // 2. 영상통화 버튼
-  bindVideoCallButton();
+  if (!experienceFabState.fab) {
+    console.error('❌ 체험하기 FAB 버튼을 찾을 수 없습니다. 재시도 중...');
 
-  // 3. 무료체험 버튼
-  bindFreeTrialButton();
+    // 1초 후 재시도
+    setTimeout(() => {
+      initializeFabButtons();
+    }, 1000);
+    return;
+  }
 
-  // 4. 메모리얼 아이템들 (선택 기능 추가)
-  bindMemorialItems();
+  console.log('✅ 체험하기 FAB 요소 찾음:', {
+    fab: !!experienceFabState.fab,
+    options: !!experienceFabState.options
+  });
 
-  // 5. 기타 버튼들
-  bindOtherButtons();
+  // 체험하기 FAB 이벤트 바인딩
+  try {
+    experienceFabState.fab.addEventListener('click', handleExperienceFabClick);
+    console.log('✅ 체험하기 FAB 클릭 이벤트 바인딩 완료');
+  } catch (error) {
+    console.error('❌ 체험하기 FAB 이벤트 바인딩 실패:', error);
+  }
 
-  console.log('모든 이벤트 바인딩 완료');
+  // 체험하기 옵션 이벤트 바인딩
+  if (experienceFabState.options) {
+    try {
+      const optionBtns = experienceFabState.options.querySelectorAll('.experience-option-btn');
+      console.log('🎯 체험하기 옵션 버튼 개수:', optionBtns.length);
+
+      optionBtns.forEach((btn, index) => {
+        btn.addEventListener('click', handleExperienceOptionClick);
+        console.log(`✅ 체험하기 옵션 ${index + 1} 이벤트 바인딩 완료`);
+      });
+    } catch (error) {
+      console.error('❌ 체험하기 옵션 이벤트 바인딩 실패:', error);
+    }
+  }
+
+  // 채팅 FAB 이벤트 바인딩 (로그인 시에만 존재)
+  const chatFab = document.getElementById('chatFab');
+  if (chatFab) {
+    try {
+      chatFab.addEventListener('click', handleChatFabClick);
+      console.log('✅ 채팅 FAB 클릭 이벤트 바인딩 완료');
+    } catch (error) {
+      console.error('❌ 채팅 FAB 이벤트 바인딩 실패:', error);
+    }
+  } else {
+    console.log('📝 채팅 FAB 없음 (로그인하지 않았거나 조건부 렌더링으로 숨김)');
+  }
+
+  // 외부 클릭 시 체험하기 옵션 닫기
+  document.addEventListener('click', handleOutsideClick);
+
+  console.log('✅ FAB 버튼 초기화 완료');
 }
 
 /**
- * 메모리얼 생성 버튼 바인딩
+ * ===== 이벤트 바인딩 =====
  */
-function bindCreateMemorialButtons() {
-  console.log('메모리얼 생성 버튼 바인딩');
+function bindAllEvents() {
+  console.log('🔗 모든 이벤트 바인딩 시작');
 
+  bindCreateMemorialButtons();
+  bindVideoCallButton();
+  bindFreeTrialButton();
+  bindMemorialItems();
+  bindOtherButtons();
+
+  console.log('✅ 모든 이벤트 바인딩 완료');
+}
+
+function bindCreateMemorialButtons() {
   const createButtons = document.querySelectorAll(`
     .new-memorial-btn,
     .add-memorial-btn,
@@ -299,69 +168,46 @@ function bindCreateMemorialButtons() {
   createButtons.forEach(btn => {
     btn.removeEventListener('click', handleCreateMemorialClick);
     btn.addEventListener('click', handleCreateMemorialClick);
-    console.log('생성 버튼 바인딩:', btn.className);
   });
 
-  console.log('메모리얼 생성 버튼 바인딩 완료:', createButtons.length);
+  console.log('🔗 메모리얼 생성 버튼 바인딩 완료:', createButtons.length);
 }
 
-/**
- * 영상통화 버튼 바인딩
- */
 function bindVideoCallButton() {
-  console.log('영상통화 버튼 바인딩');
-
   const videoCallBtn = document.querySelector('.video-call-btn');
   if (videoCallBtn) {
     videoCallBtn.removeEventListener('click', handleVideoCallClick);
     videoCallBtn.addEventListener('click', handleVideoCallClick);
-    console.log('영상통화 버튼 바인딩 완료');
+    console.log('🔗 영상통화 버튼 바인딩 완료');
   }
 }
 
-/**
- * 무료체험 버튼 바인딩
- */
 function bindFreeTrialButton() {
-  console.log('무료체험 버튼 바인딩');
-
   const freeTrialBtn = document.querySelector('.free-trial-btn');
   if (freeTrialBtn) {
     freeTrialBtn.removeEventListener('click', handleFreeTrialClick);
     freeTrialBtn.addEventListener('click', handleFreeTrialClick);
-    console.log('무료체험 버튼 바인딩 완료');
+    console.log('🔗 무료체험 버튼 바인딩 완료');
   }
 }
 
-/**
- * 메모리얼 아이템 바인딩 (선택 기능으로 변경)
- */
 function bindMemorialItems() {
-  console.log('메모리얼 아이템 바인딩');
-
   const memorialItems = document.querySelectorAll('.memorial-item');
   memorialItems.forEach(item => {
     item.removeEventListener('click', handleMemorialItemClick);
     item.addEventListener('click', handleMemorialItemClick);
   });
 
-  console.log('메모리얼 아이템 바인딩 완료:', memorialItems.length);
+  console.log('🔗 메모리얼 아이템 바인딩 완료:', memorialItems.length);
 }
 
-/**
- * 기타 버튼들 바인딩
- */
 function bindOtherButtons() {
-  console.log('기타 버튼 바인딩');
-
-  // 새로고침 버튼
   const refreshBtn = document.querySelector('.refresh-btn');
   if (refreshBtn) {
     refreshBtn.removeEventListener('click', handleRefreshClick);
     refreshBtn.addEventListener('click', handleRefreshClick);
   }
 
-  // 에러 상태 재시도 버튼
   const retryBtn = document.querySelector('#errorState .btn');
   if (retryBtn) {
     retryBtn.removeEventListener('click', handleRetryClick);
@@ -370,94 +216,164 @@ function bindOtherButtons() {
 }
 
 /**
- * 로그인 UI 업데이트
+ * ===== 이벤트 핸들러들 =====
  */
-function updateLoginUI() {
-  console.log('로그인 UI 업데이트');
 
-  const loggedInElements = document.querySelectorAll('.logged-in-only');
-  const loggedOutElements = document.querySelectorAll('.logged-out-only');
+// 체험하기 FAB 클릭
+function handleExperienceFabClick(e) {
+  e.preventDefault();
+  e.stopPropagation();
 
-  if (mainPageState.isLoggedIn) {
-    loggedInElements.forEach(el => {
-      el.style.display = 'block';
-      el.classList.remove('d-none');
-    });
-    loggedOutElements.forEach(el => {
-      el.style.display = 'none';
-      el.classList.add('d-none');
-    });
+  console.log('🚀 체험하기 FAB 클릭', {
+    isExpanded: experienceFabState.isExpanded,
+    fab: !!experienceFabState.fab,
+    options: !!experienceFabState.options
+  });
+
+  if (experienceFabState.isExpanded) {
+    closeExperienceOptions();
   } else {
-    loggedInElements.forEach(el => {
-      el.style.display = 'none';
-      el.classList.add('d-none');
-    });
-    loggedOutElements.forEach(el => {
-      el.style.display = 'block';
-      el.classList.remove('d-none');
-    });
-  }
-
-  console.log('로그인 UI 업데이트 완료');
-}
-
-/**
- * 로그인한 사용자 기능 초기화
- */
-async function initializeLoggedInFeatures() {
-  console.log('로그인한 사용자 기능 초기화');
-
-  try {
-    // 서버에서 이미 데이터를 받았으므로 바로 렌더링
-    if (mainPageState.memorialItems.length > 0) {
-      renderMemorialList(mainPageState.memorialItems);
-    }
-
-    // 영상통화 버튼 상태 업데이트
-    updateVideoCallButtonState();
-
-  } catch (error) {
-    console.error('로그인한 사용자 기능 초기화 실패:', error);
+    openExperienceOptions();
   }
 }
 
-/**
- * 이벤트 핸들러들
- */
+function openExperienceOptions() {
+  if (!experienceFabState.fab || !experienceFabState.options) {
+    console.error('❌ 체험하기 버튼 또는 옵션을 찾을 수 없습니다.');
+    return;
+  }
 
-// 메모리얼 생성 클릭 핸들러
+  experienceFabState.isExpanded = true;
+
+  // 아이콘 변경 (플레이 → X)
+  experienceFabState.fab.innerHTML = '<i class="fas fa-times"></i>';
+  experienceFabState.fab.classList.add('expanded');
+
+  // 확장 옵션 표시
+  experienceFabState.options.classList.add('show');
+
+  // 접근성
+  experienceFabState.fab.setAttribute('aria-expanded', 'true');
+  experienceFabState.fab.setAttribute('aria-label', '체험 옵션 닫기');
+
+  console.log('🎯 확장 옵션 열림');
+}
+
+function closeExperienceOptions() {
+  if (!experienceFabState.fab || !experienceFabState.options) {
+    console.error('❌ 체험하기 버튼 또는 옵션을 찾을 수 없습니다.');
+    return;
+  }
+
+  experienceFabState.isExpanded = false;
+
+  // 아이콘 변경 (X → 플레이)
+  experienceFabState.fab.innerHTML = '<i class="fas fa-play"></i>';
+  experienceFabState.fab.classList.remove('expanded');
+
+  // 확장 옵션 숨김
+  experienceFabState.options.classList.remove('show');
+
+  // 접근성
+  experienceFabState.fab.setAttribute('aria-expanded', 'false');
+  experienceFabState.fab.setAttribute('aria-label', '체험하기');
+
+  console.log('🎯 확장 옵션 닫힘');
+}
+
+// 체험하기 옵션 클릭
+function handleExperienceOptionClick(e) {
+  const btn = e.currentTarget;
+  const href = btn.getAttribute('href');
+  const name = btn.querySelector('span').textContent;
+
+  console.log(`🎯 ${name} 버튼 클릭:`, href);
+
+  // 클릭 효과
+  btn.style.transform = 'scale(0.95)';
+  setTimeout(() => {
+    btn.style.transform = '';
+  }, 150);
+
+  // 토스트 메시지
+  if (window.showToast) {
+    showToast(`${name}으로 이동합니다.`, 'info', 2000);
+  }
+
+  // 확장 옵션 닫기
+  setTimeout(() => {
+    closeExperienceOptions();
+  }, 300);
+}
+
+// 채팅 FAB 클릭
+function handleChatFabClick(e) {
+  e.preventDefault();
+  e.stopPropagation();
+
+  console.log('💬 채팅 FAB 클릭');
+
+  const chatFab = e.currentTarget;
+
+  // 클릭 효과
+  chatFab.style.transform = 'scale(0.95)';
+  setTimeout(() => {
+    chatFab.style.transform = 'scale(1)';
+  }, 150);
+
+  if (window.showToast) {
+    showToast('채팅 기능 준비 중입니다.', 'info', 2000);
+  } else {
+    alert('채팅 기능 준비 중입니다.');
+  }
+}
+
+// 외부 클릭시 닫기
+function handleOutsideClick(e) {
+  if (!experienceFabState.isExpanded) return;
+
+  const fab = experienceFabState.fab;
+  const options = experienceFabState.options;
+
+  if (fab && options &&
+      !fab.contains(e.target) &&
+      !options.contains(e.target)) {
+    closeExperienceOptions();
+  }
+}
+
+// 메모리얼 생성 클릭
 async function handleCreateMemorialClick(e) {
   e.preventDefault();
   e.stopPropagation();
 
-  console.log('메모리얼 생성 클릭');
+  console.log('➕ 메모리얼 생성 클릭');
 
   if (!mainPageState.isLoggedIn) {
     showLoginModal();
     return;
   }
 
-  // 메모리얼 생성 페이지로 이동
   window.location.href = '/mobile/memorial/create';
 }
 
-// 메모리얼 아이템 클릭 핸들러 (선택 기능으로 변경)
+// 메모리얼 아이템 클릭
 function handleMemorialItemClick(e) {
   e.preventDefault();
   e.stopPropagation();
 
   const memorialId = parseInt(e.currentTarget.dataset.memorialId);
-  console.log('메모리얼 아이템 클릭:', memorialId);
+  console.log('📋 메모리얼 아이템 클릭:', memorialId);
 
   if (!memorialId) return;
 
-  // 이미 선택된 메모리얼을 다시 클릭한 경우 선택 해제
+  // 선택/해제 토글
   if (mainPageState.selectedMemorialId === memorialId) {
     mainPageState.selectedMemorialId = null;
-    console.log('메모리얼 선택 해제');
+    console.log('❌ 메모리얼 선택 해제');
   } else {
     mainPageState.selectedMemorialId = memorialId;
-    console.log('메모리얼 선택:', memorialId);
+    console.log('✅ 메모리얼 선택:', memorialId);
   }
 
   // UI 업데이트
@@ -465,12 +381,11 @@ function handleMemorialItemClick(e) {
   updateVideoCallButtonState();
 }
 
-// 영상통화 클릭 핸들러 (수정된 로직)
+// 영상통화 클릭
 async function handleVideoCallClick(e) {
   e.preventDefault();
-  console.log('영상통화 클릭');
+  console.log('📹 영상통화 클릭');
 
-  // 메모리얼이 없는 경우
   if (mainPageState.memorialItems.length === 0) {
     alert('먼저 메모리얼을 등록해주세요.');
     return;
@@ -482,7 +397,7 @@ async function handleVideoCallClick(e) {
   if (mainPageState.memorialItems.length === 1) {
     selectedMemorial = mainPageState.memorialItems[0];
   }
-  // 메모리얼이 여러개인 경우 선택된 메모리얼 확인
+  // 여러개인 경우 선택된 메모리얼 확인
   else {
     if (!mainPageState.selectedMemorialId) {
       alert('영상통화할 메모리얼을 선택해주세요.');
@@ -498,69 +413,45 @@ async function handleVideoCallClick(e) {
     return;
   }
 
-  console.log('선택된 메모리얼:', selectedMemorial);
-
-  // 영상통화 가능 여부 확인
+  console.log('✅ 선택된 메모리얼:', selectedMemorial);
   await checkVideoCallAvailability(selectedMemorial);
 }
 
-// 무료체험 클릭 핸들러
+// 무료체험 클릭
 function handleFreeTrialClick(e) {
   e.preventDefault();
-  console.log('무료체험 클릭');
+  console.log('🎁 무료체험 클릭');
 
   if (mainPageState.isLoggedIn) {
     alert('이미 로그인된 상태입니다.');
     return;
   }
 
-  // 회원가입 페이지로 이동
   window.location.href = '/mobile/register?trial=true';
 }
 
-// 새로고침 클릭 핸들러
+// 새로고침 클릭
 async function handleRefreshClick(e) {
   e.preventDefault();
-  console.log('새로고침 클릭');
-
-  if (mainPageState.isLoggedIn) {
-    // 로그인 상태면 메모리얼 목록 다시 로드
-    mainPageState.retryCount = 0;
-    await loadMemorialList();
-  } else {
-    // 서버사이드 렌더링 사용하므로 페이지 새로고침
-    window.location.reload();
-  }
+  console.log('🔄 새로고침 클릭');
+  window.location.reload();
 }
 
-// 재시도 클릭 핸들러
+// 재시도 클릭
 async function handleRetryClick(e) {
   e.preventDefault();
-  console.log('재시도 클릭');
-
-  // 에러 상태 숨김
-  hideErrorState();
-
-  // 재시도 카운트 리셋
-  mainPageState.retryCount = 0;
-
-  if (mainPageState.isLoggedIn) {
-    // 로그인 상태면 메모리얼 목록 다시 로드
-    await loadMemorialList();
-  } else {
-    // 로그아웃 상태면 페이지 새로고침
-    window.location.reload();
-  }
+  console.log('🔄 재시도 클릭');
+  window.location.reload();
 }
 
 /**
- * 영상통화 가능 여부 확인
+ * ===== 영상통화 가능 여부 확인 =====
  */
 async function checkVideoCallAvailability(memorial) {
-  console.log('영상통화 가능 여부 확인:', memorial);
+  console.log('🔍 영상통화 가능 여부 확인:', memorial);
 
   try {
-    // 1. 프로필 이미지 확인 (공통)
+    // 1. 프로필 이미지 확인
     if (!memorial.hasRequiredProfileImages) {
       const confirmed = confirm(
           '영상통화 시작을 위해서는 프로필 사진을 등록해주세요.\n\n내정보 수정 페이지로 이동하시겠습니까?'
@@ -572,19 +463,18 @@ async function checkVideoCallAvailability(memorial) {
       return;
     }
 
-    // 2-1. 소유자인 경우: AI 학습 완료 확인
+    // 2-1. 소유자인 경우
     if (memorial.isOwner) {
       if (!memorial.aiTrainingCompleted) {
         alert('영상통화 준비를 위한 학습 중입니다. 잠시만 기다려주세요.');
         return;
       }
 
-      // 소유자 - 모든 조건 만족 시 영상통화 시작
       startVideoCall(memorial.memorialId);
       return;
     }
 
-    // 2-2. 가족 구성원인 경우: 고인 상세 정보 확인
+    // 2-2. 가족 구성원인 경우
     if (!memorial.hasRequiredDeceasedInfo) {
       const confirmed = confirm(
           '영상통화 시작을 위해서는 고인에 대한 상세 정보를 입력해주세요.\n\n' +
@@ -593,49 +483,30 @@ async function checkVideoCallAvailability(memorial) {
       );
 
       if (confirmed) {
-        // 가족 구성원용 메모리얼 정보 입력 페이지로 이동
         window.location.href = `/mobile/memorial/family-info/${memorial.memorialId}`;
       }
       return;
     }
 
-    // 3. AI 학습 완료 확인 (가족 구성원)
+    // 3. AI 학습 완료 확인
     if (!memorial.aiTrainingCompleted) {
       alert('영상통화 준비를 위한 학습 중입니다. 잠시만 기다려주세요.');
       return;
     }
 
-    // 가족 구성원 - 모든 조건 만족 시 영상통화 시작
     startVideoCall(memorial.memorialId);
 
   } catch (error) {
-    console.error('영상통화 가능 여부 확인 중 오류:', error);
+    console.error('❌ 영상통화 가능 여부 확인 중 오류:', error);
     alert('영상통화 확인 중 오류가 발생했습니다.');
   }
 }
 
-async function confirmVideoCallStart(memorial) {
-  console.log('영상통화 시작 최종 확인:', memorial);
-
-  const memorialName = memorial.name || '메모리얼';
-  const accessType = memorial.isOwner ? '소유자' : '가족 구성원';
-
-  const confirmed = confirm(
-      `${memorialName}님과 영상통화를 시작하시겠습니까?\n\n` +
-      `접근 권한: ${accessType}\n` +
-      `관계: ${memorial.getDisplayRelationship?.() || memorial.relationshipDescription}`
-  );
-
-  if (confirmed) {
-    startVideoCall(memorial.memorialId);
-  }
-}
-
 /**
- * 메모리얼 선택 UI 업데이트
+ * ===== UI 상태 업데이트 함수들 =====
  */
 function updateMemorialSelection() {
-  console.log('메모리얼 선택 UI 업데이트');
+  console.log('🎨 메모리얼 선택 UI 업데이트');
 
   const memorialItems = document.querySelectorAll('.memorial-item');
 
@@ -644,18 +515,15 @@ function updateMemorialSelection() {
 
     if (memorialId === mainPageState.selectedMemorialId) {
       item.classList.add('selected');
-      console.log('메모리얼 선택 표시:', memorialId);
+      console.log('✅ 메모리얼 선택 표시:', memorialId);
     } else {
       item.classList.remove('selected');
     }
   });
 }
 
-/**
- * 영상통화 버튼 상태 업데이트
- */
 function updateVideoCallButtonState() {
-  console.log('영상통화 버튼 상태 업데이트');
+  console.log('🎨 영상통화 버튼 상태 업데이트');
 
   const videoCallBtn = document.querySelector('.video-call-btn');
   if (!videoCallBtn) return;
@@ -664,14 +532,12 @@ function updateVideoCallButtonState() {
   const hasSelection = mainPageState.selectedMemorialId !== null;
   const isMultipleMemorials = mainPageState.memorialItems.length > 1;
 
-  // 메모리얼이 없으면 비활성화
   if (!hasMemorials) {
     videoCallBtn.disabled = true;
     videoCallBtn.innerHTML = '<i class="fas fa-video"></i> 영상통화';
     return;
   }
 
-  // 선택된 메모리얼 정보 가져오기
   let selectedMemorial = null;
   if (!isMultipleMemorials) {
     selectedMemorial = mainPageState.memorialItems[0];
@@ -681,11 +547,10 @@ function updateVideoCallButtonState() {
     );
   }
 
-  // 버튼 텍스트 업데이트
   if (selectedMemorial) {
     const blockReason = getVideoCallBlockReason(selectedMemorial);
     if (blockReason) {
-      videoCallBtn.disabled = false; // 클릭은 가능 (설명을 위해)
+      videoCallBtn.disabled = false;
       videoCallBtn.innerHTML = `<i class="fas fa-video"></i> 영상통화 <small>(${getShortBlockReason(blockReason)})</small>`;
     } else {
       videoCallBtn.disabled = false;
@@ -697,31 +562,23 @@ function updateVideoCallButtonState() {
   }
 }
 
-/**
- * 영상통화 차단 사유 반환 (새로 추가)
- */
 function getVideoCallBlockReason(memorial) {
-  // 프로필 이미지 확인
   if (!memorial.hasRequiredProfileImages) {
     return '프로필 사진을 등록해주세요.';
   }
 
-  // 가족 구성원인 경우 고인 상세 정보 확인
   if (!memorial.isOwner && !memorial.hasRequiredDeceasedInfo) {
     return '고인에 대한 상세 정보를 입력해주세요.';
   }
 
-  // AI 학습 상태 확인
   if (!memorial.aiTrainingCompleted) {
     return 'AI 학습이 완료되지 않았습니다.';
   }
 
-  // 접근 권한 확인
   if (!memorial.canAccess) {
     return '접근 권한이 없습니다.';
   }
 
-  // 영상통화 권한 확인
   if (!memorial.isOwner && !memorial.canVideoCall) {
     return '영상통화 권한이 없습니다.';
   }
@@ -729,10 +586,6 @@ function getVideoCallBlockReason(memorial) {
   return null;
 }
 
-
-/**
- * 짧은 차단 사유 텍스트 반환
- */
 function getShortBlockReason(fullReason) {
   const shortReasons = {
     '프로필 사진을 등록해주세요.': '프로필 필요',
@@ -745,247 +598,9 @@ function getShortBlockReason(fullReason) {
   return shortReasons[fullReason] || '준비 중';
 }
 
-/**
- * 메모리얼 목록 로드
- */
-async function loadMemorialList() {
-  console.log('메모리얼 목록 로드');
-
-  if (mainPageState.isLoading || !mainPageState.isLoggedIn) {
-    return;
-  }
-
-  try {
-    mainPageState.isLoading = true;
-    showLoadingState();
-
-    // API 호출
-    const data = await authFetch('/api/memorial/my?size=5');
-
-    console.log('API 응답:', data);
-
-    // 응답 구조에 따른 성공/실패 판단
-    if (data.status?.code === 'OK_0000') {
-      mainPageState.memorialItems = data.response?.data || [];
-
-      if (mainPageState.memorialItems.length > 0) {
-        renderMemorialList(mainPageState.memorialItems);
-      } else {
-        showEmptyState();
-      }
-
-      // 선택 상태 초기화
-      mainPageState.selectedMemorialId = null;
-      updateVideoCallButtonState();
-
-      // 재시도 카운트 리셋
-      mainPageState.retryCount = 0;
-
-    } else {
-      // 서버에서 실패 응답을 보낸 경우
-      const errorMessage = data.status?.message || '메모리얼 목록 로드 실패';
-      console.error('서버 응답 오류:', data);
-      throw new Error(errorMessage);
-    }
-
-  } catch (error) {
-    console.error('메모리얼 목록 로드 실패:', error);
-
-    // 재시도 로직
-    mainPageState.retryCount++;
-
-    if (mainPageState.retryCount < mainPageState.maxRetries) {
-      console.log(`재시도 ${mainPageState.retryCount}/${mainPageState.maxRetries}`);
-      setTimeout(() => loadMemorialList(), 1000 * mainPageState.retryCount);
-    } else {
-      // 최대 재시도 초과 시 에러 상태 표시
-      const errorMessage = error.name === 'FetchError' ?
-          error.statusMessage :
-          (error.message || '메모리얼 목록을 불러올 수 없습니다.');
-
-      showErrorState(errorMessage);
-    }
-
-  } finally {
-    mainPageState.isLoading = false;
-    hideLoadingState();
-  }
-}
-
-/**
- * 메모리얼 목록 렌더링 (서버 데이터 기반)
- */
-function renderMemorialList(memorials) {
-  console.log('메모리얼 목록 렌더링:', memorials.length);
-
-  const container = document.getElementById('memorialList');
-  if (!container) {
-    console.log('메모리얼 리스트 컨테이너를 찾을 수 없음 - 서버에서 이미 렌더링됨');
-    return;
-  }
-
-  // 서버에서 이미 렌더링된 경우 추가 처리만 수행
-  bindMemorialItems();
-  updateVideoCallButtonState();
-  console.log('메모리얼 목록 이벤트 바인딩 완료');
-}
-
-/**
- * 메모리얼 아이템 생성
- */
-function createMemorialItem(memorial) {
-  const item = document.createElement('div');
-  item.className = 'memorial-item';
-  item.dataset.memorialId = memorial.memorialId;
-
-  // 아바타 HTML 생성
-  const avatarHtml = createAvatarHtml(memorial);
-
-  // 상태 표시 아이콘 생성
-  const statusIconsHtml = createStatusIconsHtml(memorial);
-
-  item.innerHTML = `
-    ${avatarHtml}
-    <div class="memorial-info">
-      <div class="memorial-name">
-        ${memorial.name}
-        ${memorial.isOwner ? '' : '<span class="family-member-badge">가족</span>'}
-      </div>
-      <div class="memorial-relationship">${memorial.getDisplayRelationship?.() || memorial.relationshipDescription}</div>
-      <div class="memorial-meta">
-        <span class="access-type">${memorial.getAccessStatusText?.() || (memorial.isOwner ? '소유자' : '가족 구성원')}</span>
-        <span class="separator">•</span>
-        <span class="age">${memorial.formattedAge}</span>
-      </div>
-    </div>
-    <div class="memorial-status">
-      ${statusIconsHtml}
-      <div class="memorial-arrow">
-        <i class="fas fa-chevron-right"></i>
-        <i class="fas fa-check-circle selection-icon" style="display: none;"></i>
-      </div>
-    </div>
-  `;
-
-  return item;
-}
-
-/**
- * 상태 표시 아이콘 HTML 생성
- */
-function createStatusIconsHtml(memorial) {
-  const statusIcons = [];
-
-  // 프로필 이미지 상태
-  if (memorial.hasRequiredProfileImages) {
-    statusIcons.push('<i class="fas fa-image status-icon status-ok" title="프로필 사진 등록 완료"></i>');
-  } else {
-    statusIcons.push('<i class="fas fa-image status-icon status-warning" title="프로필 사진 필요"></i>');
-  }
-
-  // 가족 구성원인 경우 고인 상세 정보 상태 추가
-  if (!memorial.isOwner) {
-    if (memorial.hasRequiredDeceasedInfo) {
-      statusIcons.push('<i class="fas fa-heart status-icon status-ok" title="고인 상세 정보 입력 완료"></i>');
-    } else {
-      statusIcons.push('<i class="fas fa-heart status-icon status-warning" title="고인 상세 정보 입력 필요"></i>');
-    }
-  }
-
-  // AI 학습 상태
-  if (memorial.aiTrainingCompleted) {
-    statusIcons.push('<i class="fas fa-brain status-icon status-ok" title="AI 학습 완료"></i>');
-  } else {
-    statusIcons.push('<i class="fas fa-brain status-icon status-warning" title="AI 학습 중"></i>');
-  }
-
-  return `
-    <div class="status-indicators">
-      ${statusIcons.join('')}
-    </div>
-  `;
-}
-
-/**
- * 아바타 HTML 생성 (이미지 또는 이모지)
- */
-function createAvatarHtml(memorial) {
-  if (memorial.mainProfileImageUrl) {
-    return `
-      <div class="memorial-avatar">
-        <img src="${memorial.mainProfileImageUrl}" alt="${memorial.name}" class="avatar-img">
-      </div>
-    `;
-  } else {
-    const emoji = RELATIONSHIP_EMOJIS[memorial.relationshipDescription] || '👤';
-    return `
-      <div class="memorial-avatar">
-        <span class="memorial-emoji">
-          <span class="emoji">${emoji}</span>
-        </span>
-      </div>
-    `;
-  }
-}
-
-/**
- * 영상통화 시작
- */
 function startVideoCall(memorialId) {
-  console.log('영상통화 시작:', memorialId);
-
-  // 영상통화 페이지로 이동
+  console.log('📹 영상통화 시작:', memorialId);
   window.location.href = `/mobile/videocall/${memorialId}`;
-}
-
-/**
- * 유틸리티 함수들
- */
-function showLoadingState() {
-  const skeleton = document.getElementById('loadingSkeleton');
-  if (skeleton) skeleton.style.display = 'block';
-}
-
-function hideLoadingState() {
-  const skeleton = document.getElementById('loadingSkeleton');
-  if (skeleton) skeleton.style.display = 'none';
-}
-
-function showEmptyState() {
-  const emptyState = document.querySelector('.empty-state');
-  if (emptyState) emptyState.style.display = 'block';
-}
-
-function hideEmptyState() {
-  const emptyState = document.querySelector('.empty-state');
-  if (emptyState) emptyState.style.display = 'none';
-}
-
-function showErrorState(message) {
-  const errorState = document.getElementById('errorState');
-  const errorMessage = document.getElementById('errorMessage');
-
-  if (errorState) {
-    errorState.style.display = 'block';
-    errorState.classList.remove('d-none');
-  }
-
-  if (errorMessage) {
-    errorMessage.textContent = message;
-  }
-
-  hideLoadingState();
-  hideEmptyState();
-
-  console.log('에러 상태 표시:', message);
-}
-
-function hideErrorState() {
-  const errorState = document.getElementById('errorState');
-  if (errorState) {
-    errorState.style.display = 'none';
-    errorState.classList.add('d-none');
-  }
 }
 
 function showLoginModal() {
@@ -996,75 +611,77 @@ function showLoginModal() {
 }
 
 /**
- * 정리 함수
- */
-function destroyMainPage() {
-  console.log('메인 페이지 정리');
-
-  if (mainPageState.refreshInterval) {
-    clearInterval(mainPageState.refreshInterval);
-    mainPageState.refreshInterval = null;
-  }
-
-  mainPageState.isInitialized = false;
-  mainPageState.selectedMemorialId = null;
-}
-
-/**
- * 전역 함수들 (하위 호환성)
+ * ===== 전역 함수들 =====
  */
 window.mainPageManager = {
   initialize: initializeMainPage,
-  destroy: destroyMainPage,
   getState: () => mainPageState,
   selectMemorial: (memorialId) => {
     mainPageState.selectedMemorialId = memorialId;
     updateMemorialSelection();
     updateVideoCallButtonState();
   },
-  // 초대 토큰 처리 함수 추가
-  processInviteToken: checkAndProcessInviteToken,
-  validateInviteToken: validateInviteToken
+  toggleExperience: () => {
+    if (experienceFabState.isExpanded) {
+      closeExperienceOptions();
+    } else {
+      openExperienceOptions();
+    }
+  },
+  // 디버깅용 함수
+  debugFab: () => {
+    console.log('🔍 FAB 디버그 정보:', {
+      experienceFab: {
+        element: !!experienceFabState.fab,
+        id: experienceFabState.fab?.id,
+        expanded: experienceFabState.isExpanded
+      },
+      experienceOptions: {
+        element: !!experienceFabState.options,
+        id: experienceFabState.options?.id,
+        buttons: experienceFabState.options?.querySelectorAll('.experience-option-btn').length || 0
+      },
+      chatFab: {
+        element: !!document.getElementById('chatFab')
+      }
+    });
+  }
 };
 
-// 전역 함수들 (HTML에서 호출 가능)
+// HTML에서 호출 가능한 전역 함수들
 window.handleCreateMemorial = handleCreateMemorialClick;
 window.showVideoCall = handleVideoCallClick;
 window.showLoginModal = showLoginModal;
-window.processInviteToken = checkAndProcessInviteToken; // 초대 토큰 처리 함수 전역 등록
 
 /**
- * 자동 초기화
+ * ===== 자동 초기화 =====
  */
-console.log('초대 토큰 처리 기능이 추가된 main.js 로드 완료');
+console.log('🎉 토마토리멤버 main-simple.js 로드 완료 (정적 FAB 버전 - 이벤트 바인딩 수정)');
 
-// DOM이 준비되면 즉시 초기화
+// DOM이 준비되면 초기화
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initializeMainPage);
 } else {
-  setTimeout(initializeMainPage, 100);
+  // 이미 DOM이 준비된 경우 즉시 실행
+  setTimeout(initializeMainPage, 50);
 }
 
-// 스타일 동적 추가
-if (!document.getElementById('family-member-styles')) {
-  const styleSheet = document.createElement('style');
-  styleSheet.id = 'family-member-styles';
-  styleSheet.textContent = familyMemberBadgeStyle;
-  document.head.appendChild(styleSheet);
-}
-
-
-// 페이지 언로드 시 정리
-window.addEventListener('beforeunload', destroyMainPage);
+// 키보드 단축키 지원
+document.addEventListener('keydown', function(e) {
+  // ESC 키로 체험하기 옵션 닫기
+  if (e.key === 'Escape' && experienceFabState.isExpanded) {
+    e.preventDefault();
+    closeExperienceOptions();
+  }
+});
 
 // 모듈 익스포트
 export {
   initializeMainPage,
-  destroyMainPage,
   handleCreateMemorialClick,
   handleVideoCallClick,
   updateMemorialSelection,
   updateVideoCallButtonState,
-  checkAndProcessInviteToken,
-  validateInviteToken
+  openExperienceOptions,
+  closeExperienceOptions
 };

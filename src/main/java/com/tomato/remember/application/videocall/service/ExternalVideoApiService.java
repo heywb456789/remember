@@ -41,7 +41,7 @@ public class ExternalVideoApiService {
     /**
      * ✅ 단순 전송 방식 - 200 OK만 확인하고 완료
      */
-    public Mono<ResponseEntity<Void>> sendVideoToExternalApiSimple(String sessionKey, String savedFilePath) {
+    public Mono<ResponseEntity<Void>> sendVideoToExternalApiSimple(String sessionKey, String savedFilePath, String contactKey) {
         log.info("🚀 외부 API 전송 시작 - 세션: {}, 파일: {}", sessionKey, savedFilePath);
 
         String fullVideoUrl = convertToFullUrl(savedFilePath);
@@ -49,7 +49,8 @@ public class ExternalVideoApiService {
 
         Map<String, Object> requestBody = Map.of(
             "sessionKey", sessionKey,
-            "videoUrl", fullVideoUrl
+            "videoUrl", fullVideoUrl,
+            "character", contactKey.equals("rohmoohyun") ? 2 : 1
         );
 
         // ✅ 상세 로깅
@@ -58,6 +59,7 @@ public class ExternalVideoApiService {
         log.info("  - Video URL: {}", fullVideoUrl);
         log.info("  - Session Key: {}", sessionKey);
         log.info("  - Timeout: {}초", timeoutSeconds);
+        log.info("  - contactKey: {}", contactKey.equals("rohmoohyun") ? 2 : 1);
         log.info("  - Request Body: {}", requestBody);
 
         return webClient
@@ -101,11 +103,11 @@ public class ExternalVideoApiService {
     /**
      * ✅ 비동기 콜백 방식 (단순 전송)
      */
-    public void sendVideoToExternalApiAsync(String sessionKey, String savedFilePath,
+    public void sendVideoToExternalApiAsync(String sessionKey, String savedFilePath, String contactKey,
             java.util.function.Consumer<ResponseEntity<Void>> successCallback,
             java.util.function.Consumer<Throwable> errorCallback) {
 
-        sendVideoToExternalApiSimple(sessionKey, savedFilePath)
+        sendVideoToExternalApiSimple(sessionKey, savedFilePath, contactKey)
             .subscribe(
                 response -> {
                     log.info("외부 API 단순 전송 성공 - 세션: {}", sessionKey);

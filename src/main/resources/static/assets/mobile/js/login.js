@@ -300,10 +300,12 @@ const handleLogin = async (elements) => {
       showToast(`환영합니다, ${memberName}님!`, 'success');
       showSuccessMessage(elements, `로그인되었습니다.`);
 
+      const redirectUrl = determineRedirectUrl();
+      console.log('🎯 리다이렉트 URL:', redirectUrl);
+
       // 홈 페이지로 이동
       setTimeout(() => {
-        const homeUrl = window.PAGE_CONFIG?.homeUrl || '/';
-        window.location.href = homeUrl;
+        window.location.href = redirectUrl;
       }, 1500);
 
     } else {
@@ -327,6 +329,50 @@ const handleLogin = async (elements) => {
     isSubmitting = false;
     hideLoadingState(elements.loginButton);
   }
+};
+
+const determineRedirectUrl = () => {
+  // 1. URL 파라미터에서 redirect 확인
+  const urlParams = new URLSearchParams(window.location.search);
+  const redirectParam = urlParams.get('redirect');
+
+  if (redirectParam) {
+    console.log('🔗 URL 파라미터 리다이렉트:', redirectParam);
+    return decodeURIComponent(redirectParam);
+  }
+
+  // 2. localStorage에서 pendingRedirect 확인 (체험하기에서 설정)
+  const pendingRedirect = localStorage.getItem('pendingRedirect');
+  if (pendingRedirect) {
+    console.log('🎯 대기중인 리다이렉트:', pendingRedirect);
+    localStorage.removeItem('pendingRedirect'); // 사용 후 제거
+    return pendingRedirect;
+  }
+
+  // 3. sessionStorage에서 returnUrl 확인
+  const returnUrl = sessionStorage.getItem('returnUrl');
+  if (returnUrl) {
+    console.log('↩️ 세션 리턴 URL:', returnUrl);
+    sessionStorage.removeItem('returnUrl'); // 사용 후 제거
+    return returnUrl;
+  }
+
+  // 4. 이전 페이지 referrer 확인 (체험 페이지에서 온 경우)
+  const referrer = document.referrer;
+  if (referrer) {
+    const referrerUrl = new URL(referrer);
+
+    // 체험 페이지에서 온 경우 다시 돌려보내기
+    if (referrerUrl.pathname.includes('/call/')) {
+      console.log('🎬 체험 페이지에서 로그인 후 복귀:', referrer);
+      return referrer;
+    }
+  }
+
+  // 5. 기본값: 홈 페이지
+  const defaultUrl = window.PAGE_CONFIG?.homeUrl || '/mobile/home';
+  console.log('🏠 기본 홈 페이지로 이동:', defaultUrl);
+  return defaultUrl;
 };
 
 // ===== 회원가입 처리 =====

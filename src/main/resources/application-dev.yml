@@ -111,8 +111,8 @@ app:
     base-url: https://www.TomatoRemember.com
   external-api:
     video:
-      base-url: https://aicut.newstomato.com/remember
-      process-endpoint: /downvideo
+      base-url: https://remember.newstomato.com/
+      process-endpoint: /downvideo-v2
       timeout: 15
 
 # =======================================================

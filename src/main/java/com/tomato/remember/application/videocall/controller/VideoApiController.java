@@ -2,17 +2,28 @@
 
 package com.tomato.remember.application.videocall.controller;
 
+import com.tomato.remember.application.security.MemberUserDetails;
+import com.tomato.remember.application.videocall.dto.VideoCallFeedbackRequestDTO;
+import com.tomato.remember.application.videocall.dto.VideoCallFeedbackResponseDTO;
+import com.tomato.remember.application.videocall.entity.VideoCallSampleReview;
 import com.tomato.remember.application.videocall.service.ExternalVideoApiService;
+import com.tomato.remember.application.videocall.service.VideoCallSampleReviewService;
+import com.tomato.remember.common.code.ResponseStatus;
+import com.tomato.remember.common.dto.ResponseDTO;
+import com.tomato.remember.common.exception.APIException;
 import com.tomato.remember.common.util.FileStorageService;
+import jakarta.validation.Valid;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -30,13 +41,12 @@ import java.util.concurrent.Executors;
 @RestController
 @RequestMapping("/api/video")
 @CrossOrigin(origins = "*")
+@RequiredArgsConstructor
 public class VideoApiController {
 
-    @Autowired
-    private FileStorageService fileStorageService;
+    private final FileStorageService fileStorageService;
 
-    @Autowired
-    private ExternalVideoApiService externalVideoApiService;
+    private final ExternalVideoApiService externalVideoApiService;
 
     // 키 기반 SSE 연결 관리
     private final Map<String, SseEmitter> sseEmitters = new ConcurrentHashMap<>();
@@ -248,8 +258,15 @@ public SseEmitter streamBySessionKey(@PathVariable String sessionKey) {
     @PostMapping(value = "/process/{sessionKey}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> processVideoWithKey(
         @PathVariable String sessionKey,
+        @RequestParam(value = "contactKey", required = false, defaultValue = "kimgeuntae") String contactKey,
         @RequestParam("video") MultipartFile videoFile) {
         try {
+
+            log.info("비디오 처리 요청 - 세션: {},대상: {}, 파일크기: {}",
+                sessionKey,
+                contactKey,
+                videoFile.getSize());
+
             // 세션 키 유효성 검증
             VideoCallSession session = activeSessions.get(sessionKey);
             if (session == null) {
@@ -295,7 +312,7 @@ public SseEmitter streamBySessionKey(@PathVariable String sessionKey) {
 
             // 백그라운드에서 외부 API 호출
             executorService.submit(() -> {
-                processVideoAsyncWithExternalApi(sessionKey, savedFilePath);
+                processVideoAsyncWithExternalApi(sessionKey, savedFilePath, contactKey);
             });
 
             return response;
@@ -554,7 +571,7 @@ public SseEmitter streamBySessionKey(@PathVariable String sessionKey) {
     /**
      * 외부 API 비동기 호출
      */
-    private void processVideoAsyncWithExternalApi(String sessionKey, String savedFilePath) {
+    private void processVideoAsyncWithExternalApi(String sessionKey, String savedFilePath, String contactKey) {
         try {
             log.info("외부 API 비동기 처리 시작 - 세션: {}", sessionKey);
 
@@ -577,6 +594,7 @@ public SseEmitter streamBySessionKey(@PathVariable String sessionKey) {
             externalVideoApiService.sendVideoToExternalApiAsync(
                 sessionKey,
                 savedFilePath,
+                contactKey,
                 // 성공 콜백
                 (response) -> {
                     log.info("✅ 외부 API 전송 완료 - 세션: {}, 상태: {}",
@@ -928,4 +946,6 @@ private boolean isEmitterClosed(SseEmitter emitter) {
             ));
         }
     }
+
+
 }

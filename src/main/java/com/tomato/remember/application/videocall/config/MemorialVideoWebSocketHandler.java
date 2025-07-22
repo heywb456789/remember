@@ -2,6 +2,7 @@ package com.tomato.remember.application.videocall.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tomato.remember.application.videocall.dto.MemorialVideoSession;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -21,14 +22,13 @@ import java.util.regex.Pattern;
  * 클라이언트와의 실시간 통신 처리
  */
 @Slf4j
-@Component
+//@Component
+@RequiredArgsConstructor
 public class MemorialVideoWebSocketHandler extends TextWebSocketHandler {
     
-    @Autowired
-    private MemorialVideoSessionManager sessionManager;
+    private final MemorialVideoSessionManager sessionManager;
     
-    @Autowired
-    private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
     
     // 활성 웹소켓 연결 관리 (메모리 내)
     private final Map<String, WebSocketSession> activeConnections = new ConcurrentHashMap<>();

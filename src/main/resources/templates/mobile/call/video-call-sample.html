@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>토마토리멤버 - 영상통화</title>
+  <!-- Font Awesome과 Bootstrap Icons 추가 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.8.1/font/bootstrap-icons.min.css">
   <style>
     * {
       margin: 0;
@@ -15,17 +18,21 @@
       font-family: 'Apple SD Gothic Neo', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       background: #000;
       height: 100vh;
+      height: 100dvh;
       overflow: hidden;
       position: relative;
+      padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0);
     }
 
-    /* 메인 비디오 (전체 화면) */
     .main-video-container {
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      top: env(safe-area-inset-top, 0);
+      left: env(safe-area-inset-left, 0);
+      right: env(safe-area-inset-right, 0);
+      bottom: env(safe-area-inset-bottom, 0);
+      width: calc(100vw - env(safe-area-inset-left, 0) - env(safe-area-inset-right, 0));
+      height: calc(100vh - env(safe-area-inset-top, 0) - env(safe-area-inset-bottom, 0));
+      height: calc(100dvh - env(safe-area-inset-top, 0) - env(safe-area-inset-bottom, 0));
       background: #000;
     }
 
@@ -37,11 +44,11 @@
       transition: opacity 0.5s ease;
     }
 
-    /* 내 카메라 (우측 상단) - PC/모바일 반응형 */
+    /* 🔧 수정: 내 카메라 (X버튼 바로 아래) */
     .my-camera-container {
       position: absolute;
-      top: 20px;
-      right: 20px;
+      top: 70px; /* X 버튼(50px) + 여백(20px) = 70px */
+      right: 20px; /* 우측 정렬 유지 */
       width: 120px;
       height: 160px;
       background: #2c3e50;
@@ -69,7 +76,37 @@
       font-size: 24px;
     }
 
-    /* 하단 컨트롤 바 - 고정 위치 보장 */
+    /* 🔧 수정: 통화 종료 버튼 (우측 상단 고정) */
+    .end-call-container {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      z-index: 101;
+    }
+
+    .end-call-x-btn {
+      width: 50px;
+      height: 50px;
+      border-radius: 25px;
+      border: none;
+      background: rgba(231, 76, 60, 0.9);
+      color: white;
+      font-size: 24px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
+      backdrop-filter: blur(10px);
+    }
+
+    .end-call-x-btn:hover {
+      background: rgba(231, 76, 60, 1);
+      transform: scale(1.05);
+    }
+
+    /* 하단 컨트롤 바 - 녹화 버튼만 */
     .control-bar {
       position: fixed;
       bottom: 0;
@@ -81,7 +118,6 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      gap: 20px;
       z-index: 1000;
       min-height: 120px;
     }
@@ -147,21 +183,11 @@
       }
     }
 
-    .end-call-btn {
-      background: #e74c3c;
-      box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
-    }
-
-    .end-call-btn:hover {
-      background: #c0392b;
-      transform: scale(1.1);
-    }
-
     /* 상태 표시 */
     .status-indicator {
       position: absolute;
       top: 20px;
-      left: 20px;
+      left: 20px; /* 좌측 상단으로 복구 */
       background: rgba(0, 0, 0, 0.7);
       padding: 8px 16px;
       border-radius: 20px;
@@ -189,22 +215,6 @@
       50% {
         opacity: 0.5;
       }
-    }
-
-    /* 음소거 버튼 스타일 */
-    .mute-btn {
-      background: #95a5a6;
-      box-shadow: 0 4px 15px rgba(149, 165, 166, 0.4);
-    }
-
-    .mute-btn:hover {
-      background: #7f8c8d;
-      transform: scale(1.1);
-    }
-
-    .mute-btn.active {
-      background: #27ae60;
-      box-shadow: 0 4px 15px rgba(39, 174, 96, 0.4);
     }
 
     /* 권한 요청 모달 */
@@ -298,70 +308,101 @@
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     }
 
-    /* 음성 안내 말풍선 */
-    .audio-guide {
-      position: absolute;
-      bottom: 130px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(52, 73, 94, 0.95);
-      color: white;
-      padding: 12px 16px;
-      border-radius: 12px;
-      font-size: 14px;
-      text-align: center;
-      line-height: 1.4;
-      backdrop-filter: blur(10px);
-      z-index: 150;
-      animation: guideBounce 0.5s ease-out;
-      display: none;
+    /* 통화 시작 모달 */
+    .call-start-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
     }
 
-    .audio-guide.show {
+    .call-start-modal.show {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .call-start-dialog {
+      background: #2c3e50;
+      border-radius: 16px;
+      padding: 32px;
+      max-width: 360px;
+      width: 90%;
+      text-align: center;
+      color: white;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+      transform: scale(0.8);
+      transition: transform 0.3s ease;
+    }
+
+    .call-start-modal.show .call-start-dialog {
+      transform: scale(1);
+    }
+
+    .call-start-icon {
+      font-size: 72px;
+      margin-bottom: 20px;
       display: block;
     }
 
-    .guide-arrow {
-      position: absolute;
-      bottom: -8px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 0;
-      height: 0;
-      border-left: 8px solid transparent;
-      border-right: 8px solid transparent;
-      border-top: 8px solid rgba(52, 73, 94, 0.95);
+    .call-start-title {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #ecf0f1;
     }
 
-    .guide-text strong {
-      color: #f39c12;
+    .call-start-message {
+      font-size: 16px;
+      line-height: 1.6;
+      margin-bottom: 24px;
+      color: #bdc3c7;
     }
 
-    @keyframes guideBounce {
-      0% {
-        transform: translateX(-50%) translateY(10px);
-        opacity: 0;
-      }
-      100% {
-        transform: translateX(-50%) translateY(0);
-        opacity: 1;
-      }
+    .call-start-buttons {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
     }
 
-    /* 펄스 효과 (버튼 강조) */
-    .mute-btn.pulse {
-      animation: mutePulse 1.5s ease-in-out infinite;
+    .call-start-btn {
+      flex: 1;
+      padding: 14px 18px;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
     }
 
-    @keyframes mutePulse {
-      0%, 100% {
-        transform: scale(1);
-        box-shadow: 0 4px 15px rgba(149, 165, 166, 0.4);
-      }
-      50% {
-        transform: scale(1.05);
-        box-shadow: 0 4px 20px rgba(241, 196, 15, 0.6);
-      }
+    .call-start-btn.cancel {
+      background: #7f8c8d;
+      color: white;
+    }
+
+    .call-start-btn.start {
+      background: #27ae60;
+      color: white;
+      box-shadow: 0 4px 15px rgba(39, 174, 96, 0.4);
+    }
+
+    .call-start-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .call-start-btn.start:hover {
+      background: #219a52;
+      box-shadow: 0 6px 20px rgba(39, 174, 96, 0.6);
     }
 
     /* 세션 정보 표시 */
@@ -384,13 +425,23 @@
       .my-camera-container {
         width: 180px;
         height: 240px;
+        top: 90px; /* X 버튼(60px) + 여백(30px) = 90px */
+        right: 30px; /* 우측 정렬 유지 */
+      }
+
+      .end-call-container {
         top: 30px;
         right: 30px;
       }
 
+      .end-call-x-btn {
+        width: 60px;
+        height: 60px;
+        font-size: 28px;
+      }
+
       .control-bar {
         padding: 40px 30px 50px;
-        gap: 30px;
       }
 
       .control-btn {
@@ -401,35 +452,28 @@
 
       .status-indicator {
         top: 30px;
-        left: 30px;
         font-size: 16px;
         padding: 10px 20px;
-      }
-
-      .audio-guide {
-        bottom: 160px;
-        font-size: 16px;
-        padding: 16px 20px;
       }
 
       .main-video {
         object-fit: contain;
       }
 
-      .permission-dialog {
+      .permission-dialog, .call-start-dialog {
         max-width: 420px;
         padding: 40px;
       }
 
-      .permission-icon {
+      .permission-icon, .call-start-icon {
         font-size: 72px;
       }
 
-      .permission-title {
+      .permission-title, .call-start-title {
         font-size: 24px;
       }
 
-      .permission-message {
+      .permission-message, .call-start-message {
         font-size: 16px;
       }
     }
@@ -439,13 +483,23 @@
       .my-camera-container {
         width: 100px;
         height: 133px;
+        top: 60px; /* X 버튼(45px) + 여백(15px) = 60px */
+        right: 15px; /* 우측 정렬 유지 */
+      }
+
+      .end-call-container {
         top: 15px;
         right: 15px;
       }
 
+      .end-call-x-btn {
+        width: 35px;
+        height: 35px;
+        font-size: 20px;
+      }
+
       .control-bar {
         padding: 20px 15px 30px;
-        gap: 15px;
         min-height: 100px;
       }
 
@@ -455,15 +509,8 @@
         font-size: 20px;
       }
 
-      .audio-guide {
-        bottom: 120px;
-        font-size: 13px;
-        padding: 10px 14px;
-      }
-
       .status-indicator {
         top: 15px;
-        left: 15px;
         font-size: 12px;
         padding: 6px 12px;
       }
@@ -472,19 +519,19 @@
         object-fit: cover;
       }
 
-      .permission-dialog {
+      .permission-dialog, .call-start-dialog {
         padding: 24px;
       }
 
-      .permission-icon {
+      .permission-icon, .call-start-icon {
         font-size: 56px;
       }
 
-      .permission-title {
+      .permission-title, .call-start-title {
         font-size: 18px;
       }
 
-      .permission-message {
+      .permission-message, .call-start-message {
         font-size: 14px;
       }
     }
@@ -493,7 +540,6 @@
     @media (max-width: 375px) {
       .control-bar {
         padding: 15px 10px 25px;
-        gap: 12px;
         min-height: 90px;
       }
 
@@ -506,11 +552,22 @@
       .my-camera-container {
         width: 80px;
         height: 107px;
+        top: 50px; /* X 버튼(40px) + 여백(10px) = 50px */
+        right: 10px; /* 우측 정렬 유지 */
+      }
+
+      .end-call-container {
         top: 10px;
         right: 10px;
       }
 
-      .permission-dialog {
+      .end-call-x-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 18px;
+      }
+
+      .permission-dialog, .call-start-dialog {
         padding: 20px;
       }
     }
@@ -531,29 +588,71 @@
       .my-camera-container {
         width: 80px;
         height: 107px;
+        top: 50px; /* X 버튼 아래 */
+        right: 10px; /* 우측 정렬 유지 */
+      }
+
+      .end-call-container {
         top: 10px;
         right: 10px;
       }
-
-      .audio-guide {
-        bottom: 90px;
-      }
     }
 
-    /* 안전 영역 대응 (아이폰 노치 등) */
+    /* 개선된 안전 영역 대응 */
     @supports (padding: max(0px)) {
       .control-bar {
-        padding-bottom: max(30px, env(safe-area-inset-bottom));
+        padding-bottom: max(30px, calc(env(safe-area-inset-bottom) + 20px));
+        padding-left: max(20px, env(safe-area-inset-left));
+        padding-right: max(20px, env(safe-area-inset-right));
       }
 
       .my-camera-container {
-        top: max(20px, env(safe-area-inset-top));
-        right: max(20px, env(safe-area-inset-right));
+        top: max(70px, calc(env(safe-area-inset-top) + 60px)); /* X버튼 아래 */
+        right: max(20px, calc(env(safe-area-inset-right) + 10px)); /* 우측 고정 */
+      }
+
+      .end-call-container {
+        top: max(20px, calc(env(safe-area-inset-top) + 10px));
+        right: max(20px, calc(env(safe-area-inset-right) + 10px));
       }
 
       .status-indicator {
-        top: max(20px, env(safe-area-inset-top));
-        left: max(20px, env(safe-area-inset-left));
+        top: max(20px, calc(env(safe-area-inset-top) + 10px));
+        left: max(20px, calc(env(safe-area-inset-left) + 10px)); /* 좌측 고정 */
+      }
+
+      @media (max-width: 480px) {
+        .my-camera-container {
+          top: max(60px, calc(env(safe-area-inset-top) + 50px)); /* X버튼 아래 위치 */
+          right: max(15px, calc(env(safe-area-inset-right) + 5px)); /* 우측 고정 유지 */
+        }
+
+        .end-call-container {
+          right: max(15px, calc(env(safe-area-inset-right) + 5px));
+        }
+
+        .status-indicator {
+          top: max(15px, calc(env(safe-area-inset-top) + 5px));
+        }
+
+        .control-bar {
+          padding-bottom: max(25px, calc(env(safe-area-inset-bottom) + 15px));
+        }
+      }
+
+      @media (max-width: 375px) {
+        .my-camera-container {
+          right: max(10px, calc(env(safe-area-inset-right) + 5px)); /* 우측 고정 */
+        }
+
+        .end-call-container {
+          top: max(10px, calc(env(safe-area-inset-top) + 5px));
+          right: max(10px, calc(env(safe-area-inset-right) + 5px));
+        }
+
+        .control-bar {
+          padding-bottom: max(20px, calc(env(safe-area-inset-bottom) + 10px));
+        }
       }
     }
 
@@ -587,6 +686,15 @@
         transform: translate(-50%, -50%) scale(0.8);
       }
     }
+
+    @keyframes float {
+      0%, 100% {
+        transform: translateY(0px);
+      }
+      50% {
+        transform: translateY(-10px);
+      }
+    }
   </style>
 </head>
 <body>
@@ -606,7 +714,23 @@
   </div>
 </div>
 
-<!-- 상태 표시 -->
+<!-- 통화 시작 모달 -->
+<div id="callStartModal" class="call-start-modal">
+  <div class="call-start-dialog">
+    <div class="call-start-icon">📹</div>
+    <div class="call-start-title">통화를 시작하시겠습니까?</div>
+    <div class="call-start-message">
+      <span id="contactNameDisplay">김근태</span>님과의 영상통화를<br>
+      시작할 준비가 되었습니다.
+    </div>
+    <div class="call-start-buttons">
+      <button class="call-start-btn cancel" onclick="cancelCall()">취소</button>
+      <button class="call-start-btn start" onclick="startCall()">통화 시작하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 상태 표시 (상단 중앙) -->
 <div class="status-indicator">
   <span class="status-dot"></span>
   <span id="statusText">초기화 중...</span>
@@ -617,45 +741,38 @@
   <span id="sessionId">세션: 로딩중...</span>
 </div>
 
-<!-- 메인 비디오 (전체 화면) -->
+<!-- 메인 비디오 컨테이너 -->
 <div class="main-video-container">
+  <!-- 메인 비디오 (전체 화면) -->
   <video id="mainVideo" class="main-video" autoplay loop muted playsinline style="display: none;">
-    <source src="https://aicut.newstomato.com/remember/static/waiting_kt.mp4" type="video/mp4">
+    <source th:src="@{${waitingVideoUrl}}" type="video/mp4">
     대기 영상을 불러올 수 없습니다.
   </video>
 </div>
 
-<!-- 내 카메라 (우측 상단) -->
+<!-- 내 카메라 (좌측 상단) -->
 <div class="my-camera-container">
   <video id="myCamera" class="my-camera" autoplay muted playsinline style="display: none;"></video>
   <div id="cameraPlaceholder" class="camera-placeholder">📹</div>
 </div>
 
-<!-- 하단 컨트롤 -->
+<!-- 통화 종료 버튼 (우측 중앙) -->
+<div class="end-call-container">
+  <button class="end-call-x-btn" onclick="endCall()">✕</button>
+</div>
+
+<!-- 하단 컨트롤 (마이크/녹화 버튼) -->
 <div class="control-bar">
   <button id="recordBtn" class="control-btn record-btn" onclick="toggleRecording()">
-    <span id="recordIcon">⏺</span>
-  </button>
-
-  <!-- 음소거 버튼 -->
-  <button id="muteBtn" class="control-btn mute-btn" onclick="toggleMute()">
-    <span id="muteIcon">🔇</span>
-  </button>
-
-  <button class="control-btn end-call-btn" onclick="endCall()">
-    📞
+    <!-- 🆕 Font Awesome 마이크 아이콘 사용 -->
+    <i class="fas fa-microphone" id="recordIcon"></i>
   </button>
 </div>
 
-<!-- 음성 안내 말풍선 -->
-<div id="audioGuide" class="audio-guide">
-  <div class="guide-arrow"></div>
-  <div class="guide-text">
-    음성 재생을 위해<br>
-    <strong>🔇 버튼을 터치</strong>해주세요
-  </div>
-</div>
-
+<script th:inline="javascript">
+  // 컨트롤러에서 내려준 waitingVideoUrl
+  const WAITING_VIDEO_URL = /*[[@{${waitingVideoUrl}}]]*/ '';
+</script>
 <script>
   // ========== 전역 변수 ==========
 
@@ -674,9 +791,9 @@
   let isRecording = false;
   let userMediaStream = null;
 
-  // 음소거 관련
-  let isAudioEnabled = false;
-  let guideTimeout = null;
+  // 음성 관련 (기본 활성화)
+  let isAudioEnabled = true;
+  let callStarted = false;
 
   // 영상 재생 관련
   let waitingVideoPreloaded = false;
@@ -688,15 +805,14 @@
   const permissionIcon = document.getElementById('permissionIcon');
   const permissionTitle = document.getElementById('permissionTitle');
   const permissionMessage = document.getElementById('permissionMessage');
+  const callStartModal = document.getElementById('callStartModal');
+  const contactNameDisplay = document.getElementById('contactNameDisplay');
   const mainVideo = document.getElementById('mainVideo');
   const myCamera = document.getElementById('myCamera');
   const cameraPlaceholder = document.getElementById('cameraPlaceholder');
   const recordBtn = document.getElementById('recordBtn');
   const recordIcon = document.getElementById('recordIcon');
   const statusText = document.getElementById('statusText');
-  const muteBtn = document.getElementById('muteBtn');
-  const muteIcon = document.getElementById('muteIcon');
-  const audioGuide = document.getElementById('audioGuide');
   const sessionInfo = document.getElementById('sessionInfo');
   const sessionId = document.getElementById('sessionId');
 
@@ -710,7 +826,7 @@
   const SESSION_STORAGE_KEY = 'videoCallSession';
   const SESSION_TTL = 3 * 60 * 60 * 1000; // 3시간
 
-  // ========== 브라우저 및 OS 감지 (먼저 설정) ==========
+  // ========== 브라우저 및 OS 감지 ==========
   function getBrowserInfo() {
     const userAgent = navigator.userAgent;
     const isIOS = /iPad|iPhone|iPod/.test(userAgent);
@@ -749,37 +865,134 @@
     }
   }
 
-  // 전역 설정 변수 (먼저 설정)
+  // 전역 설정 변수
   const BROWSER_INFO = getBrowserInfo();
   const VIDEO_SETTINGS = getVideoSettings();
 
   console.log('🔧 브라우저 정보:', BROWSER_INFO);
   console.log('⚙️ 비디오 설정:', VIDEO_SETTINGS);
 
-  // ========== 🆕 권한 확인 시스템 ==========
+  // ========== 🆕 녹화 아이콘 변경 함수 ==========
+  function updateRecordIcon() {
+    if (isRecording) {
+      // 녹화 중일 때는 정지 아이콘
+      recordIcon.className = 'fas fa-stop';
+    } else {
+      // 녹화 중이 아닐 때는 마이크 아이콘
+      recordIcon.className = 'fas fa-microphone';
+    }
+  }
+
+  // ========== 녹화 기능 수정 ==========
+  async function toggleRecording() {
+    updateSessionActivity();
+
+    if (!cameraPermissionGranted || !userMediaStream) {
+      console.log('🎥 녹화를 위한 권한/스트림 확인');
+
+      try {
+        if (cameraPermissionGranted && !userMediaStream) {
+          console.log('📷 녹화용 스트림 획득');
+          userMediaStream = await navigator.mediaDevices.getUserMedia({
+            video: { width: { ideal: 1920 }, height: { ideal: 1080 } },
+            audio: { echoCancellation: true, noiseSuppression: true }
+          });
+          setupCamera();
+        } else {
+          showInfoMessage('녹화 기능을 사용하려면 카메라 권한이 필요합니다.');
+          return;
+        }
+      } catch (error) {
+        console.error('녹화용 스트림 획득 실패:', error);
+        showErrorMessage('카메라에 접근할 수 없습니다. 권한을 확인해주세요.');
+        return;
+      }
+    }
+
+    if (!isRecording) {
+      await startRecording();
+    } else {
+      await stopRecording();
+    }
+  }
+
+  async function startRecording() {
+    try {
+      recordedChunks = [];
+
+      const options = {
+        mimeType: 'video/webm;codecs=vp9,opus',
+        videoBitsPerSecond: 5000000,
+        audioBitsPerSecond: 128000
+      };
+
+      if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+        options.mimeType = 'video/webm;codecs=vp8,opus';
+        if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+          options.mimeType = 'video/webm';
+        }
+      }
+
+      mediaRecorder = new MediaRecorder(userMediaStream, options);
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          recordedChunks.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        processRecordedVideo();
+      };
+
+      mediaRecorder.start();
+      isRecording = true;
+
+      recordBtn.classList.add('recording');
+      updateRecordIcon(); // 🆕 아이콘 업데이트
+      updateStatusSmoothly('녹화 중');
+
+      console.log('📹 녹화 시작');
+
+    } catch (error) {
+      console.error('녹화 시작 오류:', error);
+      showErrorMessage('녹화를 시작할 수 없습니다.');
+    }
+  }
+
+  async function stopRecording() {
+    if (mediaRecorder && isRecording) {
+      mediaRecorder.stop();
+      isRecording = false;
+
+      recordBtn.classList.remove('recording');
+      updateRecordIcon(); // 🆕 아이콘 업데이트
+      updateStatusSmoothly('처리 중');
+
+      console.log('⏹ 녹화 중지');
+    }
+  }
+
+  // ========== 나머지 기존 함수들 (동일하게 유지) ==========
 
   async function checkExistingPermissions() {
     console.log('🔍 기존 권한 확인 시작');
 
     try {
-      // 1단계: 저장된 권한 상태 확인 (빠른 확인)
       const storedStatus = getStoredPermissionStatus();
       if (storedStatus === true) {
         console.log('💾 저장된 권한 확인 - 빠른 검증 진행');
 
-        // 빠른 검증: 실제로 스트림 획득 가능한지 확인
         const quickTest = await quickMediaTest();
         if (quickTest) {
           console.log('✅ 빠른 검증 성공 - 권한 있음');
           return true;
         } else {
           console.log('❌ 빠른 검증 실패 - 상세 확인 진행');
-          // 저장된 상태 제거
           localStorage.removeItem('mediaPermissionStatus');
         }
       }
 
-      // 2단계: Permissions API 확인 (Chrome, Firefox)
       if (navigator.permissions) {
         const permissionResult = await checkPermissionsAPI();
         if (permissionResult !== null) {
@@ -787,7 +1000,6 @@
         }
       }
 
-      // 3단계: getUserMedia 테스트 (Safari 등)
       return await testMediaAccess();
 
     } catch (error) {
@@ -805,18 +1017,15 @@
         audio: true
       });
 
-      // 즉시 정리
       stream.getTracks().forEach(track => track.stop());
       console.log('⚡ 빠른 테스트 성공');
 
-      // 🆕 권한 상태 변수 업데이트
       cameraPermissionGranted = true;
       microphonePermissionGranted = true;
 
       return true;
     } catch (error) {
       console.log('⚡ 빠른 테스트 실패:', error.name);
-      // 🆕 권한 상태 변수 업데이트
       cameraPermissionGranted = false;
       microphonePermissionGranted = false;
       return false;
@@ -840,19 +1049,16 @@
 
       if (hasPermissions) {
         updatePermissionStorage(true);
-        // 🆕 권한 상태 변수 업데이트
         cameraPermissionGranted = true;
         microphonePermissionGranted = true;
         return true;
       } else if (cameraPermission.state === 'denied' || micPermission.state === 'denied') {
         updatePermissionStorage(false);
-        // 🆕 권한 상태 변수 업데이트
         cameraPermissionGranted = false;
         microphonePermissionGranted = false;
         return false;
       }
 
-      // prompt 상태는 null 반환 (getUserMedia 테스트 필요)
       return null;
 
     } catch (error) {
@@ -873,13 +1079,11 @@
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       console.log('✅ 미디어 접근 성공 - 권한 있음');
 
-      // 🔧 중요: 즉시 스트림 정리
       stream.getTracks().forEach(track => {
         track.stop();
         console.log('🧹 트랙 정리:', track.kind);
       });
 
-      // 🆕 권한 상태 변수 업데이트
       updatePermissionStorage(true);
       cameraPermissionGranted = true;
       microphonePermissionGranted = true;
@@ -911,7 +1115,7 @@
         camera: hasPermission,
         microphone: hasPermission,
         timestamp: Date.now(),
-        userAgent: navigator.userAgent.substring(0, 100) // 브라우저 변경 감지용
+        userAgent: navigator.userAgent.substring(0, 100)
       };
 
       localStorage.setItem('mediaPermissionStatus', JSON.stringify(permissionData));
@@ -931,7 +1135,6 @@
       const age = Date.now() - data.timestamp;
       const maxAge = 24 * 60 * 60 * 1000; // 24시간
 
-      // 24시간 이후 또는 브라우저 변경시 무효화
       if (age > maxAge || !data.userAgent ||
               !navigator.userAgent.includes(data.userAgent.substring(0, 50))) {
         localStorage.removeItem('mediaPermissionStatus');
@@ -946,7 +1149,27 @@
     }
   }
 
-  // ========== 🔧 수정된 requestPermissions 함수 ==========
+  // ========== DOM 로드 이벤트 ==========
+  document.addEventListener('DOMContentLoaded', async function () {
+    console.log('📄 DOM 로드 완료');
+
+    updateStatusSmoothly('권한 확인 중...');
+    updateRecordIcon(); // 🆕 초기 아이콘 설정
+
+    const hasPermissions = await checkExistingPermissions();
+
+    if (hasPermissions) {
+      console.log('🚀 기존 권한으로 초기화');
+      await initializeVideoCallAfterPermission();
+    } else {
+      console.log('🔐 권한 요청 모달 표시');
+      setTimeout(() => {
+        showPermissionModal();
+      }, 500);
+    }
+  });
+
+  // ========== 나머지 모든 함수들 (동일하게 유지) ==========
 
   async function requestPermissions() {
     if (permissionRequestInProgress) {
@@ -954,7 +1177,6 @@
       return;
     }
 
-    // 🆕 추가: 권한 사전 확인
     const hasExistingPermissions = await checkExistingPermissions();
     if (hasExistingPermissions) {
       console.log('✅ 기존 권한 확인됨 - 모달 스킵');
@@ -969,9 +1191,7 @@
     try {
       updateStatusSmoothly('권한 확인 중...');
       console.log('🔐 미디어 권한 요청 시작');
-      console.log('📱 플랫폼:', BROWSER_INFO.platform);
 
-      // 기본 제약사항
       const constraints = {
         video: {
           width: { ideal: 1920, min: 1280 },
@@ -986,26 +1206,16 @@
         }
       };
 
-      console.log('📱 getUserMedia 호출 중...');
-
-      // OS별 권한 요청 방식
       if (BROWSER_INFO.isIOSSafari) {
         console.log('🍎 iOS Safari 단계별 권한 요청');
 
-        // iOS Safari: 단계별 권한 요청
         try {
-          // 1단계: 카메라 권한
-          console.log('📷 카메라 권한 요청');
           const videoStream = await navigator.mediaDevices.getUserMedia({ video: constraints.video });
           console.log('✅ 카메라 권한 획득');
 
-          // 2단계: 마이크 권한
-          console.log('🎤 마이크 권한 요청');
           const audioStream = await navigator.mediaDevices.getUserMedia({ audio: constraints.audio });
           console.log('✅ 마이크 권한 획득');
 
-          // 3단계: 스트림 결합
-          console.log('🔗 스트림 결합');
           const tracks = [...videoStream.getTracks(), ...audioStream.getTracks()];
           userMediaStream = new MediaStream(tracks);
 
@@ -1018,8 +1228,6 @@
 
       } else {
         console.log('🤖 Android/Desktop 통합 권한 요청');
-
-        // Android/Desktop: 통합 권한 요청
         userMediaStream = await navigator.mediaDevices.getUserMedia(constraints);
         console.log('✅ 통합 권한 획득:', userMediaStream.getTracks().map(t => t.kind));
       }
@@ -1027,13 +1235,8 @@
       cameraPermissionGranted = true;
       microphonePermissionGranted = true;
 
-      // 권한 상태 저장
       updatePermissionStorage(true);
-
-      // 카메라 설정
       setupCamera();
-
-      // 권한 획득 후 영상통화 초기화
       await initializeVideoCallAfterPermission();
 
       updateStatusSmoothly('권한 설정 완료');
@@ -1041,14 +1244,91 @@
 
     } catch (error) {
       console.error('❌ 권한 요청 실패:', error);
-      updatePermissionStorage(false); // 실패 상태 저장
+      updatePermissionStorage(false);
       handlePermissionError(error);
     } finally {
       permissionRequestInProgress = false;
     }
   }
 
-  // ========== SessionStorage 관리 ==========
+  function showCallStartModal() {
+    const contactName = getCurrentContactName();
+    contactNameDisplay.textContent = contactName;
+    callStartModal.classList.add('show');
+    console.log('📞 통화 시작 모달 표시');
+  }
+
+  function hideCallStartModal() {
+    callStartModal.classList.remove('show');
+  }
+
+  function cancelCall() {
+    console.log('❌ 사용자가 통화를 취소함');
+    hideCallStartModal();
+
+    const hasOnboarding = hasCompletedOnboarding();
+    const redirectPath = hasOnboarding ? '/mobile/home' : '/mobile/onboarding';
+    window.location.href = redirectPath;
+  }
+
+  async function startCall() {
+    console.log('📞 통화 시작!');
+    hideCallStartModal();
+    callStarted = true;
+
+    try {
+      updateStatusSmoothly('통화 시작 중...');
+      await enableAudioImmediately();
+
+      const existingSession = loadSession();
+
+      if (existingSession) {
+        console.log('📱 기존 세션 발견:', existingSession);
+
+        const isValid = await validateSessionOnServer(existingSession.sessionKey);
+        console.log('🔍 서버 세션 유효성:', isValid);
+
+        if (isValid) {
+          console.log('✅ 기존 세션 재사용');
+          sessionKey = existingSession.sessionKey;
+          updateSessionInfoDisplay(existingSession);
+          connectSSE();
+          updateSessionActivity();
+          updateStatusSmoothly(`${existingSession.contactName}와 재연결됨`);
+          return;
+        } else {
+          console.log('❌ 기존 세션 무효 - 새로 생성');
+          sessionStorage.removeItem(SESSION_STORAGE_KEY);
+        }
+      }
+
+      console.log('🆕 새 세션 생성');
+      await createNewSession();
+
+    } catch (error) {
+      console.error('❌ 통화 시작 오류:', error);
+      handleInitializationError(error);
+    }
+  }
+
+  async function enableAudioImmediately() {
+    try {
+      console.log('🔊 즉시 오디오 활성화');
+
+      mainVideo.muted = false;
+      mainVideo.volume = 0.8;
+
+      if (!mainVideo.paused) {
+        await mainVideo.play();
+      }
+
+      isAudioEnabled = true;
+      console.log('✅ 즉시 오디오 활성화 완료');
+
+    } catch (error) {
+      console.error('즉시 오디오 활성화 실패:', error);
+    }
+  }
 
   function saveSession(sessionKey, contactName) {
     const sessionData = {
@@ -1102,13 +1382,10 @@
     }
   }
 
-  // ========== 영상통화 초기화 (권한 후) ==========
-
   async function initializeVideoCallAfterPermission() {
     try {
       console.log('🚀 권한 획득 후 영상통화 초기화 시작');
 
-      // 🆕 추가: 실제 스트림이 없는 경우 다시 획득
       if (!userMediaStream) {
         console.log('📷 사용자 미디어 스트림 획득');
         userMediaStream = await navigator.mediaDevices.getUserMedia({
@@ -1118,44 +1395,18 @@
         setupCamera();
       }
 
-      // iOS Safari 상태 모니터링 시작
       if (BROWSER_INFO.isIOSSafari) {
         monitorIOSVideoState();
       }
 
-      // 1. 기존 세션 확인
-      const existingSession = loadSession();
+      await startWaitingVideoImmediately();
+      showCallStartModal();
 
-      if (existingSession) {
-        console.log('📱 기존 세션 발견:', existingSession);
-
-        const isValid = await validateSessionOnServer(existingSession.sessionKey);
-        console.log('🔍 서버 세션 유효성:', isValid);
-
-        if (isValid) {
-          console.log('✅ 기존 세션 재사용');
-          sessionKey = existingSession.sessionKey;
-          updateSessionInfoDisplay(existingSession);
-
-          await startWaitingVideoImmediately();
-          connectSSE();
-          updateSessionActivity();
-          updateStatusSmoothly(`${existingSession.contactName}와 재연결 중...`);
-          return;
-        } else {
-          console.log('❌ 기존 세션 무효 - 새로 생성');
-          sessionStorage.removeItem(SESSION_STORAGE_KEY);
-        }
-      }
-
-      // 2. 새 세션 생성
-      console.log('🆕 새 세션 생성');
-      await createNewSession();
+      console.log('✅ 영상통화 초기화 완료 - 통화 시작 대기');
 
     } catch (error) {
       console.error('❌ 영상통화 초기화 오류:', error);
 
-      // iOS Safari 초기화 실패 시 폴백
       if (BROWSER_INFO.isIOSSafari) {
         console.log('🆘 iOS Safari 초기화 실패 - 폴백 모드');
         await fallbackToWaitingVideoOnly();
@@ -1167,36 +1418,82 @@
 
   async function createNewSession() {
     try {
-      // 1. 즉시 대기 영상 시작
-      await startWaitingVideoImmediately();
+      const contactName = getCurrentContactName();
+      console.log('🔄 백그라운드 세션 생성 중:', contactName);
 
-      // 2. 백그라운드에서 세션 생성
-      await initializeSessionInBackground();
+      const sessionResponse = await fetch('/api/video/create-session', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({contactName: contactName})
+      });
 
-      console.log('✅ 새 세션 생성 완료');
+      const sessionData = await sessionResponse.json();
+
+      if (sessionData.status.code === 'OK_0000') {
+        sessionKey = sessionData.response.sessionKey;
+        console.log('✅ 세션 생성 완료:', sessionKey);
+
+        saveSession(sessionKey, contactName);
+        connectSSE();
+        startConnectionMonitoring();
+        setupNetworkMonitoring();
+        updateStatusSmoothly(`${contactName}와 연결됨`);
+
+      } else {
+        throw new Error(sessionData.status.message);
+      }
 
     } catch (error) {
-      console.error('새 세션 생성 오류:', error);
-      handleInitializationError(error);
+      console.error('세션 생성 실패:', error);
+      updateStatusSmoothly('연결 재시도 중...');
+
+      setTimeout(() => {
+        createNewSession();
+      }, 3000);
     }
   }
 
-  // ========== 권한 없이 초기화 ==========
+  async function validateSessionOnServer(sessionKey) {
+    try {
+      console.log('🔍 서버 세션 검증:', sessionKey);
+
+      const response = await fetch(`/api/video/session/${sessionKey}`, {
+        method: 'GET',
+        headers: {'Content-Type': 'application/json'},
+        timeout: 10000
+      });
+
+      if (!response.ok) {
+        if (response.status === 404 || response.status === 410) {
+          console.log('❌ 세션 만료 또는 없음');
+          return false;
+        }
+        console.log('⚠️ 서버 오류지만 세션 재사용 시도');
+        return true;
+      }
+
+      const data = await response.json();
+      console.log('🔍 서버 응답:', data);
+
+      return data.status.code === 'OK_0000';
+
+    } catch (error) {
+      console.error('❌ 세션 검증 네트워크 오류:', error);
+      return true;
+    }
+  }
 
   async function initializeWithoutPermission() {
     console.log('🎬 권한 없이 영상통화 초기화');
 
-    // iOS Safari 상태 모니터링 시작
     if (BROWSER_INFO.isIOSSafari) {
       monitorIOSVideoState();
     }
 
-    // 대기 영상만 실행
     try {
       await startWaitingVideoOnly();
       updateStatusSmoothly('체험 모드');
 
-      // 체험 모드임을 알리는 메시지
       setTimeout(() => {
         showInfoMessage('체험 모드로 실행 중입니다.\n녹화 기능은 권한이 필요합니다.');
       }, 2000);
@@ -1204,7 +1501,6 @@
     } catch (error) {
       console.error('체험 모드 초기화 실패:', error);
 
-      // iOS Safari 실패 시 폴백
       if (BROWSER_INFO.isIOSSafari) {
         console.log('🆘 iOS Safari 체험 모드 실패 - 폴백');
         await fallbackToWaitingVideoOnly();
@@ -1243,7 +1539,6 @@
     permissionTitle.textContent = '권한 오류';
     permissionMessage.textContent = message;
 
-    // 버튼 변경
     const buttons = document.querySelector('.permission-buttons');
     buttons.innerHTML = `
             <button class="permission-btn deny" onclick="goBack()">뒤로가기</button>
@@ -1257,8 +1552,6 @@
     console.log('❌ 사용자가 권한을 거부함');
     updateStatusSmoothly('권한 없이 체험');
     hidePermissionModal();
-
-    // 권한 없이 기본 초기화
     initializeWithoutPermission();
   }
 
@@ -1269,51 +1562,20 @@
     window.location.href = redirectPath;
   }
 
-  // ========== 🔧 수정된 DOM 로드 이벤트 ==========
-
-  document.addEventListener('DOMContentLoaded', async function () {
-    console.log('📄 DOM 로드 완료');
-
-    // 🆕 수정: 권한 사전 확인 후 모달 표시 여부 결정
-    updateStatusSmoothly('권한 확인 중...');
-
-    const hasPermissions = await checkExistingPermissions();
-
-    if (hasPermissions) {
-      console.log('🚀 기존 권한으로 자동 초기화');
-      await initializeVideoCallAfterPermission();
-    } else {
-      console.log('🔐 권한 요청 모달 표시');
-      setTimeout(() => {
-        showPermissionModal();
-      }, 500);
-    }
-  });
-
-  // ========== 나머지 모든 기능들 (그대로 유지) ==========
-
   async function startWaitingVideoImmediately() {
     try {
-      const waitingVideoUrl = 'https://aicut.newstomato.com/remember/static/waiting_kt.mp4';
-
-      console.log('🎬 대기 영상 시작 (MVP 방식):', waitingVideoUrl);
+      console.log('🎬 대기 영상 시작 (오디오 활성화):', WAITING_VIDEO_URL);
 
       mainVideo.style.display = 'block';
       mainVideo.style.opacity = '1';
 
-      // MVP 방식으로 대기 영상 시작
-      await playVideoSimple(waitingVideoUrl, true);
+      await playVideoWithAudio(WAITING_VIDEO_URL, true);
 
       currentVideoState = 'WAITING';
       waitingVideoPreloaded = true;
-      updateStatusSmoothly('연결 준비 중...');
+      updateStatusSmoothly('연결 준비됨');
 
-      // 음성 안내 표시
-      setTimeout(() => {
-        if (!isAudioEnabled) {
-          showInitialAudioGuide();
-        }
-      }, 1000);
+      console.log('✅ 대기 영상 재생 성공 (오디오 활성화)');
 
     } catch (error) {
       console.error('즉시 재생 실패:', error);
@@ -1329,15 +1591,12 @@
 
   async function startWaitingVideoOnly() {
     try {
-      const waitingVideoUrl = 'https://aicut.newstomato.com/remember/static/waiting_kt.mp4';
-
-      console.log('🎬 체험 모드 영상 시작 (MVP 방식):', waitingVideoUrl);
+      console.log('🎬 체험 모드 영상 시작:', WAITING_VIDEO_URL);
 
       mainVideo.style.display = 'block';
       mainVideo.style.opacity = '1';
 
-      // MVP 방식으로 체험 모드 시작
-      await playVideoSimple(waitingVideoUrl, true);
+      await playVideoWithAudio(WAITING_VIDEO_URL, true);
 
       currentVideoState = 'WAITING';
       console.log('✅ 체험 모드 영상 재생 성공');
@@ -1348,28 +1607,22 @@
     }
   }
 
-  // MVP 방식 단순 비디오 재생
-  async function playVideoSimple(videoUrl, loop = true) {
+  async function playVideoWithAudio(videoUrl, loop = true) {
     return new Promise((resolve, reject) => {
-      console.log('🎬 단순 비디오 재생:', videoUrl);
+      console.log('🎬🔊 오디오 활성화 비디오 재생:', videoUrl);
 
-      // 기본 설정
       mainVideo.src = videoUrl;
       mainVideo.loop = loop;
-      mainVideo.muted = !isAudioEnabled;
+      mainVideo.muted = false;
       mainVideo.playsInline = true;
+      mainVideo.volume = 0.8;
 
-      if (isAudioEnabled) {
-        mainVideo.volume = 0.8;
-      }
-
-      // 단순한 이벤트 처리 (MVP 방식)
       const onLoadedMetadata = () => {
         console.log('✅ 비디오 로딩 완료');
         cleanup();
         mainVideo.play()
                 .then(() => {
-                  console.log('✅ 비디오 재생 성공');
+                  console.log('✅ 비디오 재생 성공 (오디오 활성화)');
                   resolve();
                 })
                 .catch(reject);
@@ -1387,15 +1640,12 @@
         if (timeout) clearTimeout(timeout);
       };
 
-      // 이벤트 등록
       mainVideo.addEventListener('loadedmetadata', onLoadedMetadata);
       mainVideo.addEventListener('error', onError);
 
-      // 타임아웃 설정 (10초)
       const timeout = setTimeout(() => {
         console.warn('⏰ 비디오 로딩 타임아웃');
         cleanup();
-        // 타임아웃 시에도 재생 시도
         mainVideo.play()
                 .then(() => {
                   console.log('✅ 타임아웃 후 재생 성공');
@@ -1404,22 +1654,8 @@
                 .catch(reject);
       }, 10000);
 
-      // 로딩 시작
       mainVideo.load();
     });
-  }
-
-  function showInitialAudioGuide() {
-    console.log('🔊 초기 음성 안내 표시');
-
-    if (!isAudioEnabled) {
-      audioGuide.classList.add('show');
-      muteBtn.classList.add('pulse');
-
-      setTimeout(() => {
-        hideAudioGuide();
-      }, 3000);
-    }
   }
 
   function showTouchToPlayGuide() {
@@ -1452,7 +1688,13 @@
         await mainVideo.play();
         guide.remove();
         console.log('✅ 사용자 터치로 재생 시작');
-        updateStatusSmoothly('연결 준비 중...');
+        updateStatusSmoothly('연결 준비됨');
+
+        if (cameraPermissionGranted && !callStarted) {
+          setTimeout(() => {
+            showCallStartModal();
+          }, 1000);
+        }
       } catch (e) {
         console.error('수동 재생 실패:', e);
         guide.remove();
@@ -1462,79 +1704,6 @@
 
     document.querySelector('.main-video-container').appendChild(guide);
   }
-
-  // ========== 여기서부터는 모든 기존 함수들이 그대로 유지됩니다 ==========
-  // (세션 관리, SSE 연결, 녹화, 음소거, 영상 재생, 유틸리티 등)
-
-  async function initializeSessionInBackground() {
-    try {
-      const contactName = getCurrentContactName();
-      console.log('🔄 백그라운드 세션 생성 중:', contactName);
-
-      const sessionResponse = await fetch('/api/video/create-session', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({contactName: contactName})
-      });
-
-      const sessionData = await sessionResponse.json();
-
-      if (sessionData.status.code === 'OK_0000') {
-        sessionKey = sessionData.response.sessionKey;
-        console.log('✅ 세션 생성 완료:', sessionKey);
-
-        saveSession(sessionKey, contactName);
-        connectSSE();
-        startConnectionMonitoring();
-        setupNetworkMonitoring();
-        updateStatusSmoothly('대기 중');
-
-      } else {
-        throw new Error(sessionData.status.message);
-      }
-
-    } catch (error) {
-      console.error('백그라운드 세션 생성 실패:', error);
-      updateStatusSmoothly('연결 재시도 중...');
-
-      setTimeout(() => {
-        initializeSessionInBackground();
-      }, 3000);
-    }
-  }
-
-  async function validateSessionOnServer(sessionKey) {
-    try {
-      console.log('🔍 서버 세션 검증:', sessionKey);
-
-      const response = await fetch(`/api/video/session/${sessionKey}`, {
-        method: 'GET',
-        headers: {'Content-Type': 'application/json'},
-        timeout: 10000
-      });
-
-      if (!response.ok) {
-        if (response.status === 404 || response.status === 410) {
-          console.log('❌ 세션 만료 또는 없음');
-          return false;
-        }
-        console.log('⚠️ 서버 오류지만 세션 재사용 시도');
-        return true;
-      }
-
-      const data = await response.json();
-      console.log('🔍 서버 응답:', data);
-
-      return data.status.code === 'OK_0000';
-
-    } catch (error) {
-      console.error('❌ 세션 검증 네트워크 오류:', error);
-      return true; // 네트워크 오류 시 기존 세션 재사용
-    }
-  }
-
-  // ========== 모든 기존 함수들 그대로 유지 ==========
-  // SSE, 녹화, 음소거, 영상 재생, 유틸리티 등...
 
   function connectSSE() {
     if (!sessionKey) {
@@ -1724,100 +1893,6 @@
     });
   }
 
-  // ========== 녹화 기능 ==========
-
-  async function toggleRecording() {
-    updateSessionActivity();
-
-    // 🔧 수정: 권한 상태 재확인 및 스트림 획득
-    if (!cameraPermissionGranted || !userMediaStream) {
-      console.log('🎥 녹화를 위한 권한/스트림 확인');
-
-      try {
-        // 권한이 있지만 스트림이 없는 경우 스트림 획득
-        if (cameraPermissionGranted && !userMediaStream) {
-          console.log('📷 녹화용 스트림 획득');
-          userMediaStream = await navigator.mediaDevices.getUserMedia({
-            video: { width: { ideal: 1920 }, height: { ideal: 1080 } },
-            audio: { echoCancellation: true, noiseSuppression: true }
-          });
-          setupCamera();
-        } else {
-          // 권한이 없는 경우
-          showInfoMessage('녹화 기능을 사용하려면 카메라 권한이 필요합니다.');
-          return;
-        }
-      } catch (error) {
-        console.error('녹화용 스트림 획득 실패:', error);
-        showErrorMessage('카메라에 접근할 수 없습니다. 권한을 확인해주세요.');
-        return;
-      }
-    }
-
-    if (!isRecording) {
-      await startRecording();
-    } else {
-      await stopRecording();
-    }
-  }
-
-  async function startRecording() {
-    try {
-      recordedChunks = [];
-
-      const options = {
-        mimeType: 'video/webm;codecs=vp9,opus',
-        videoBitsPerSecond: 5000000,
-        audioBitsPerSecond: 128000
-      };
-
-      if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-        options.mimeType = 'video/webm;codecs=vp8,opus';
-        if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-          options.mimeType = 'video/webm';
-        }
-      }
-
-      mediaRecorder = new MediaRecorder(userMediaStream, options);
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          recordedChunks.push(event.data);
-        }
-      };
-
-      mediaRecorder.onstop = () => {
-        processRecordedVideo();
-      };
-
-      mediaRecorder.start();
-      isRecording = true;
-
-      recordBtn.classList.add('recording');
-      recordIcon.textContent = '⏹';
-      updateStatusSmoothly('녹화 중');
-
-      console.log('📹 녹화 시작');
-
-    } catch (error) {
-      console.error('녹화 시작 오류:', error);
-      showErrorMessage('녹화를 시작할 수 없습니다.');
-    }
-  }
-
-  async function stopRecording() {
-    if (mediaRecorder && isRecording) {
-      mediaRecorder.stop();
-      isRecording = false;
-
-      recordBtn.classList.remove('recording');
-      recordIcon.textContent = '⏺';
-      updateStatusSmoothly('처리 중');
-
-      console.log('⏹ 녹화 중지');
-    }
-  }
-
   async function processRecordedVideo() {
     if (!sessionKey) {
       showErrorMessage('세션이 유효하지 않습니다.');
@@ -1833,7 +1908,14 @@
       const formData = new FormData();
       formData.append('video', blob, `recorded_video_${sessionKey}_${Date.now()}.webm`);
 
-      console.log('📤 서버로 영상 전송 중...', blob.size, 'bytes');
+      const contactKey = getCurrentContactKey();
+      formData.append('contactKey', contactKey);
+
+      console.log('📤 서버로 영상 전송 중...', {
+        videoSize: blob.size + ' bytes',
+        contactKey: contactKey,
+        sessionKey: sessionKey
+      });
 
       const response = await fetch(`/api/video/process/${sessionKey}`, {
         method: 'POST',
@@ -1856,7 +1938,35 @@
     }
   }
 
-  // ========== 영상 재생 (MVP 방식) ==========
+  function getCurrentContactKey() {
+    const urlParams = new URLSearchParams(window.location.search);
+    let contactKey = urlParams.get('contact');
+
+    if (contactKey) {
+      console.log('Contact key from URL:', contactKey);
+      return contactKey;
+    }
+
+    contactKey = localStorage.getItem('selectedContactKey');
+    if (contactKey) {
+      console.log('Contact key from localStorage:', contactKey);
+      return contactKey;
+    }
+
+    const contactName = localStorage.getItem('selectedContact') ||
+                       urlParams.get('contactName') ||
+                       '김근태';
+
+    const nameToKeyMap = {
+      '노무현': 'rohmoohyun',
+      '김근태': 'kimgeuntae'
+    };
+
+    contactKey = nameToKeyMap[contactName] || 'kimgeuntae';
+    console.log('Contact key mapped from name:', contactName, '->', contactKey);
+
+    return contactKey;
+  }
 
   async function playResponseVideo(videoUrl) {
     if (videoTransitionInProgress) {
@@ -1871,23 +1981,13 @@
       updateStatusSmoothly('응답 재생 중');
       currentVideoState = 'TRANSITIONING';
 
-      // 부드러운 전환을 위한 페이드 아웃
       await fadeOutVideo();
-
-      // MVP 방식: 단순하게 src만 변경
-      await playVideoSimple(videoUrl, false); // loop = false
-
-      // 부드러운 전환을 위한 페이드 인
+      await playVideoWithAudio(videoUrl, false);
       await fadeInVideo();
 
       currentVideoState = 'RESPONSE';
       console.log('✅ 응답 영상 재생 성공 (MVP 방식)');
 
-      if (!isAudioEnabled) {
-        showAudioGuide();
-      }
-
-      // 영상 종료 시 대기 영상으로 복귀
       const onVideoEnded = async () => {
         console.log('🔄 응답 영상 종료, 대기 영상으로 복귀');
         mainVideo.removeEventListener('ended', onVideoEnded);
@@ -1904,7 +2004,6 @@
     }
   }
 
-  // 부드러운 페이드 아웃
   async function fadeOutVideo() {
     if (VIDEO_SETTINGS.transitionType !== 'SMOOTH') return;
 
@@ -1920,7 +2019,6 @@
     });
   }
 
-  // 부드러운 페이드 인
   async function fadeInVideo() {
     if (VIDEO_SETTINGS.transitionType !== 'SMOOTH') return;
 
@@ -1931,14 +2029,12 @@
       mainVideo.style.opacity = '1';
 
       setTimeout(() => {
-        // 전환 완료 후 transition 제거
         mainVideo.style.transition = '';
         resolve();
       }, 300);
     });
   }
 
-  // 대기 영상으로 복귀 (MVP 방식)
   async function returnToWaitingVideo() {
     try {
       console.log('🔄 대기 영상으로 복귀 (MVP 방식)');
@@ -1946,14 +2042,8 @@
       currentVideoState = 'TRANSITIONING';
       updateStatusSmoothly('대기 영상으로 복귀 중...');
 
-      // 부드러운 전환을 위한 페이드 아웃
       await fadeOutVideo();
-
-      // MVP 방식: 단순하게 대기 영상으로 변경
-      const waitingVideoUrl = 'https://aicut.newstomato.com/remember/static/waiting_kt.mp4';
-      await playVideoSimple(waitingVideoUrl, true); // loop = true
-
-      // 부드러운 전환을 위한 페이드 인
+      await playVideoWithAudio(WAITING_VIDEO_URL, true);
       await fadeInVideo();
 
       currentVideoState = 'WAITING';
@@ -1963,108 +2053,9 @@
     } catch (error) {
       console.error('❌ 대기 영상 복귀 실패:', error);
 
-      // 실패 시 강제 복구
       currentVideoState = 'WAITING';
       mainVideo.style.opacity = '1';
       updateStatusSmoothly('대기 중');
-    }
-  }
-
-  // ========== 음소거 기능 ==========
-
-  async function toggleMute() {
-    updateSessionActivity();
-
-    try {
-      if (!isAudioEnabled) {
-        await enableAudio();
-      } else {
-        disableAudio();
-      }
-    } catch (error) {
-      console.error('음소거 토글 오류:', error);
-      showErrorMessage('음성 설정에 실패했습니다.');
-    }
-  }
-
-  async function enableAudio() {
-    try {
-      console.log('🔊 오디오 활성화 시작');
-
-      // 단순하게 음소거 해제
-      mainVideo.muted = false;
-
-      if (BROWSER_INFO.isIOSSafari) {
-        // iOS Safari: 안전한 볼륨 설정
-        mainVideo.volume = 0.1;
-
-        // 재생 중이면 재생 상태 유지
-        if (!mainVideo.paused) {
-          try {
-            await mainVideo.play();
-          } catch (playError) {
-            console.warn('⚠️ iOS 오디오 재생 실패:', playError);
-          }
-        }
-
-        // 볼륨 정상 설정
-        mainVideo.volume = 0.8;
-
-      } else {
-        // Android/Desktop: 부드러운 볼륨 설정
-        mainVideo.volume = 0.01;
-
-        // 재생 중이면 재생 상태 유지
-        if (!mainVideo.paused) {
-          await mainVideo.play();
-        }
-
-        mainVideo.volume = 0.8;
-      }
-
-      isAudioEnabled = true;
-      muteIcon.textContent = '🔊';
-      muteBtn.classList.add('active');
-      muteBtn.classList.remove('pulse');
-
-      hideAudioGuide();
-      showSuccessMessage('음성이 활성화되었습니다!');
-      console.log('✅ 오디오 활성화 완료');
-
-    } catch (error) {
-      console.error('오디오 활성화 실패:', error);
-      showErrorMessage('음성 활성화에 실패했습니다.');
-    }
-  }
-
-  function disableAudio() {
-    isAudioEnabled = false;
-    mainVideo.muted = true;
-    muteIcon.textContent = '🔇';
-    muteBtn.classList.remove('active');
-    console.log('🔇 오디오 비활성화 완료');
-  }
-
-  // ========== 안내 메시지 ==========
-
-  function showAudioGuide() {
-    if (!isAudioEnabled) {
-      audioGuide.classList.add('show');
-      muteBtn.classList.add('pulse');
-
-      guideTimeout = setTimeout(() => {
-        hideAudioGuide();
-      }, 5000);
-    }
-  }
-
-  function hideAudioGuide() {
-    audioGuide.classList.remove('show');
-    muteBtn.classList.remove('pulse');
-
-    if (guideTimeout) {
-      clearTimeout(guideTimeout);
-      guideTimeout = null;
     }
   }
 
@@ -2133,10 +2124,7 @@
     setTimeout(() => infoDiv.remove(), 3000);
   }
 
-  // ========== 비디오 이벤트 및 오류 처리 ==========
-
   function setupVideoEventListeners() {
-    // 단순한 오류 처리만
     mainVideo.addEventListener('error', (e) => {
       console.error('비디오 오류:', e);
       if (currentVideoState === 'WAITING') {
@@ -2144,7 +2132,6 @@
       }
     });
 
-    // 기본 이벤트들
     mainVideo.addEventListener('loadstart', () => {
       console.log('🔄 비디오 로딩 시작');
     });
@@ -2201,19 +2188,13 @@
   async function handleResponseVideoError(error) {
     console.error('응답 영상 오류:', error);
 
-    if (error.name === 'NotAllowedError') {
-      console.log('🔊 자동재생 차단 - 음성 안내 표시');
-      showAudioGuide();
-    }
-
-    // 오류 발생 시 대기 영상으로 복귀
     try {
       console.log('🔄 오류 복구: 대기 영상으로 복귀');
-      const waitingVideoUrl = 'https://aicut.newstomato.com/remember/static/waiting_kt.mp4';
 
-      mainVideo.src = waitingVideoUrl;
+      mainVideo.src = WAITING_VIDEO_URL;
       mainVideo.loop = true;
-      mainVideo.muted = true;
+      mainVideo.muted = false;
+      mainVideo.volume = 0.8;
       mainVideo.currentTime = 0;
 
       await mainVideo.play();
@@ -2232,8 +2213,6 @@
       showStaticBackground();
     }
   }
-
-  // ========== iOS Safari 폴백 ==========
 
   function monitorIOSVideoState() {
     if (!BROWSER_INFO.isIOSSafari) return;
@@ -2254,7 +2233,6 @@
 
       console.log('📊 iOS Safari 비디오 상태:', state);
 
-      // 비정상 상태 감지 및 복구
       if (currentVideoState === 'RESPONSE' && mainVideo.paused && !mainVideo.ended) {
         console.warn('⚠️ iOS Safari 비정상 상태 감지 - 복구 시도');
 
@@ -2268,25 +2246,23 @@
         }, 500);
       }
 
-    }, 5000); // 5초마다 상태 체크
+    }, 5000);
   }
 
   async function fallbackToWaitingVideoOnly() {
     console.log('🆘 iOS Safari 폴백: 대기 영상만 재생');
 
     try {
-      const waitingVideoUrl = 'https://aicut.newstomato.com/remember/static/waiting_kt.mp4';
-
-      // 완전 초기화
       mainVideo.pause();
       mainVideo.removeAttribute('src');
       mainVideo.load();
 
       await new Promise(resolve => setTimeout(resolve, 300));
 
-      mainVideo.src = waitingVideoUrl;
+      mainVideo.src = WAITING_VIDEO_URL;
       mainVideo.loop = true;
-      mainVideo.muted = true;
+      mainVideo.muted = false;
+      mainVideo.volume = 0.8;
       mainVideo.playsInline = true;
       mainVideo.autoplay = false;
 
@@ -2297,12 +2273,10 @@
       currentVideoState = 'WAITING';
       updateStatusSmoothly('대기 중 (iOS 모드)');
 
-      // 응답 영상 재생 비활성화
       window.disableResponseVideo = true;
 
       console.log('✅ iOS Safari 폴백 완료');
 
-      // 사용자에게 알림
       showInfoMessage('iOS Safari에서 일부 기능이 제한됩니다.\n대기 영상만 재생됩니다.');
 
     } catch (error) {
@@ -2310,8 +2284,6 @@
       showStaticBackground();
     }
   }
-
-  // ========== 통화 종료 ==========
 
   function endCall() {
     if (confirm('영상통화를 종료하시겠습니까?')) {
@@ -2327,19 +2299,18 @@
       }
 
       sessionKey = null;
-      const hasOnboarding = hasCompletedOnboarding();
-      const redirectPath = hasOnboarding ? '/mobile/home' : '/mobile/onboarding';
 
-      console.log('🔄 페이지 리다이렉트:', {
-        hasCompletedOnboarding: hasOnboarding,
-        redirectPath: redirectPath
+      const contactKey = getCurrentContactKey();
+      const feedbackUrl = `/call/feedback?contact=${contactKey}`;
+
+      console.log('🔄 피드백 페이지로 리다이렉트:', {
+        contactKey: contactKey,
+        feedbackUrl: feedbackUrl
       });
 
-      window.location.href = redirectPath;
+      window.location.href = feedbackUrl;
     }
   }
-
-  // ========== 유틸리티 함수들 ==========
 
   function updateStatusSmoothly(newStatus) {
     statusText.style.transition = 'opacity 0.3s ease';
@@ -2352,10 +2323,20 @@
   }
 
   function getCurrentContactName() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const contactName = urlParams.get('contact') ||
-            localStorage.getItem('selectedContact') ||
-            '김근태';
+    let contactName = localStorage.getItem('selectedContactName');
+    if (contactName) {
+      return contactName;
+    }
+
+    const contactKey = getCurrentContactKey();
+    const keyToNameMap = {
+      'rohmoohyun': '노무현',
+      'kimgeuntae': '김근태'
+    };
+
+    contactName = keyToNameMap[contactKey] || '김근태';
+    console.log('Contact name mapped from key:', contactKey, '->', contactName);
+
     return contactName;
   }
 
@@ -2384,29 +2365,21 @@
   function enhancedCleanup() {
     console.log('🧹 강화된 리소스 정리 시작');
 
-    // 하트비트 정리
     if (heartbeatInterval) {
       clearInterval(heartbeatInterval);
       heartbeatInterval = null;
     }
 
-    // SSE 연결 정리
     if (sseEventSource) {
       sseEventSource.close();
       sseEventSource = null;
     }
 
-    // SessionStorage 정리
     sessionStorage.removeItem(SESSION_STORAGE_KEY);
     console.log('🗑️ SessionStorage 정리 완료');
 
     sessionKey = null;
     sseReconnectAttempts = 0;
-
-    if (guideTimeout) {
-      clearTimeout(guideTimeout);
-      guideTimeout = null;
-    }
 
     if (userMediaStream) {
       userMediaStream.getTracks().forEach(track => {
@@ -2422,12 +2395,10 @@
 
   // ========== 이벤트 리스너 및 생명주기 관리 ==========
 
-  // 주기적으로 세션 활동 업데이트
   setInterval(() => {
     updateSessionActivity();
   }, 60000);
 
-  // 페이지 visibility 변경 감지
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
       console.log('페이지가 숨겨짐');
@@ -2444,7 +2415,6 @@
     }
   });
 
-  // 터치 이벤트 최적화 (iOS Safari)
   if ('ontouchstart' in window) {
     document.addEventListener('touchstart', function () {
     }, {passive: true});
@@ -2459,12 +2429,10 @@
     }, false);
   }
 
-  // 페이지 로드 이벤트
   window.addEventListener('load', function () {
     console.log('🌐 페이지 로드 완료');
   });
 
-  // 페이지 언로드 이벤트
   window.addEventListener('beforeunload', () => {
     enhancedCleanup();
 
@@ -2473,7 +2441,6 @@
     }
   });
 
-  // 페이지 복원 이벤트
   window.addEventListener('pageshow', (event) => {
     if (event.persisted) {
       console.log('🔄 페이지 캐시에서 복원됨 - 전체 새로고침 필요');
@@ -2481,7 +2448,7 @@
     }
   });
 
-  console.log('🎬 권한 요청 기능이 포함된 영상통화 시스템 로드 완료');
+  console.log('🎬 개선된 영상통화 시스템 로드 완료');
 </script>
 </body>
 </html>

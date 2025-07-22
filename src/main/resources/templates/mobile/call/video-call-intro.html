@@ -1,295 +1,404 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>토마토리멤버 - 영상통화 체험</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>토마토리멤버 - 영상통화 체험</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-        body {
-            font-family: 'Apple SD Gothic Neo', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-        }
+    body {
+      font-family: 'Apple SD Gothic Neo', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      position: relative;
+    }
 
-        .container {
-            text-align: center;
-            max-width: 400px;
-            width: 90%;
-            padding: 40px 20px;
-        }
+    /* 🆕 도움말 버튼 스타일 */
+    .help-button {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 48px;
+      height: 48px;
+      background: rgba(255, 255, 255, 0.2);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      color: white;
+      font-size: 24px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(10px);
+      z-index: 1000;
+      text-decoration: none;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
 
-        .header {
-            margin-bottom: 40px;
-        }
+    .help-button:hover {
+      background: rgba(255, 255, 255, 0.3);
+      border-color: rgba(255, 255, 255, 0.5);
+      transform: scale(1.1);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    }
 
-        .logo {
-            font-size: 24px;
-            font-weight: bold;
-            margin-bottom: 8px;
-            letter-spacing: 1px;
-        }
+    .help-button:active {
+      transform: scale(0.95);
+    }
 
-        .subtitle {
-            font-size: 14px;
-            opacity: 0.9;
-            line-height: 1.4;
-        }
+    /* 도움말 버튼 펄스 애니메이션 (선택사항) */
+    .help-button.pulse {
+      animation: helpPulse 2s ease-in-out infinite;
+    }
 
-        .phone-container {
-            position: relative;
-            margin: 40px auto;
-            width: 200px;
-            height: 400px;
-        }
+    @keyframes helpPulse {
+      0% {
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2), 0 0 0 0 rgba(255, 255, 255, 0.4);
+      }
+      50% {
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2), 0 0 0 10px rgba(255, 255, 255, 0);
+      }
+      100% {
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2), 0 0 0 0 rgba(255, 255, 255, 0);
+      }
+    }
 
-        .phone-frame {
-            width: 100%;
-            height: 100%;
-            background: #2c3e50;
-            border-radius: 30px;
-            padding: 20px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-            position: relative;
-            overflow: hidden;
-        }
+    /* 모바일에서 도움말 버튼 크기 조정 */
+    @media (max-width: 768px) {
+      .help-button {
+        top: 15px;
+        right: 15px;
+        width: 44px;
+        height: 44px;
+        font-size: 22px;
+      }
+    }
 
-        .phone-screen {
-            width: 100%;
-            height: 100%;
-            background: #34495e;
-            border-radius: 20px;
-            position: relative;
-            overflow: hidden;
-        }
+    /* 기존 스타일들 유지 */
+    .container {
+      text-align: center;
+      max-width: 400px;
+      width: 90%;
+      padding: 40px 20px;
+    }
 
-        .contact-image {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            position: absolute;
-            top: 0;
-            left: 0;
-        }
+    .header {
+      margin-bottom: 40px;
+    }
 
-        .contact-name {
-            position: absolute;
-            bottom: 80px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 16px;
-            font-weight: 600;
-            color: white;
-            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
-            background: rgba(0, 0, 0, 0.3);
-            padding: 8px 16px;
-            border-radius: 20px;
-            backdrop-filter: blur(5px);
-        }
+    .logo {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 8px;
+      letter-spacing: 1px;
+    }
 
-        .navigation {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            display: flex;
-            justify-content: space-between;
-            width: 100%;
-            padding: 0 20px;
-        }
+    .subtitle {
+      font-size: 14px;
+      opacity: 0.9;
+      line-height: 1.4;
+    }
 
-        .nav-btn {
-            width: 40px;
-            height: 40px;
-            background: rgba(255, 255, 255, 0.2);
-            border: none;
-            border-radius: 20px;
-            color: white;
-            font-size: 18px;
-            cursor: pointer;
-            backdrop-filter: blur(10px);
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+    .phone-container {
+      position: relative;
+      margin: 40px auto;
+      width: 200px;
+      height: 400px;
+    }
 
-        .nav-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: scale(1.1);
-        }
+    .phone-frame {
+      width: 100%;
+      height: 100%;
+      background: #2c3e50;
+      border-radius: 30px;
+      padding: 20px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
 
-        .video-call-btn {
-            position: absolute;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 60px;
-            height: 60px;
-            background: #e74c3c;
-            border: none;
-            border-radius: 30px;
-            color: white;
-            font-size: 24px;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+    .phone-screen {
+      width: 100%;
+      height: 100%;
+      background: #34495e;
+      border-radius: 20px;
+      position: relative;
+      overflow: hidden;
+    }
 
-        .video-call-btn:hover {
-            background: #c0392b;
-            transform: translateX(-50%) scale(1.1);
-        }
+    .contact-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
 
-        .start-btn {
-            width: 100%;
-            padding: 16px;
-            background: #3498db;
-            border: none;
-            border-radius: 25px;
-            color: white;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-top: 20px;
-        }
+    .contact-name {
+      position: absolute;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 12px;
+      font-weight: 600;
+      color: white;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+      background: rgba(0, 0, 0, 0.3);
+      padding: 8px 16px;
+      border-radius: 20px;
+      backdrop-filter: blur(5px);
+    }
 
-        .start-btn:hover {
-            background: #2980b9;
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(52, 152, 219, 0.3);
-        }
+    .video-call-btn {
+      position: absolute;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60px;
+      height: 60px;
+      background: #e74c3c;
+      border: none;
+      border-radius: 30px;
+      color: white;
+      font-size: 24px;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
 
-        .badge {
-            position: absolute;
-            top: -5px;
-            right: -5px;
-            width: 20px;
-            height: 20px;
-            background: #e74c3c;
-            border-radius: 10px;
-            color: white;
-            font-size: 12px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-    </style>
+    .video-call-btn:hover {
+      background: #c0392b;
+      transform: translateX(-50%) scale(1.1);
+    }
+
+    .start-btn {
+      width: 100%;
+      padding: 16px;
+      background: #3498db;
+      border: none;
+      border-radius: 25px;
+      color: white;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-top: 20px;
+    }
+
+    .start-btn:hover {
+      background: #2980b9;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(52, 152, 219, 0.3);
+    }
+
+    /* 토스트 메시지 스타일 (선택사항) */
+    .toast-message {
+      position: fixed;
+      top: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255, 255, 255, 0.9);
+      color: #333;
+      padding: 12px 20px;
+      border-radius: 25px;
+      font-size: 14px;
+      font-weight: 500;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      z-index: 1001;
+      opacity: 0;
+      transition: all 0.3s ease;
+      pointer-events: none;
+    }
+
+    .toast-message.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(10px);
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <div class="logo">TOMATOREMEMBER</div>
-            <div class="subtitle">
-                소중한 추억을 영원히<br>
-                간직하세요
-            </div>
-        </div>
+<!-- 🆕 도움말 버튼 추가 -->
+<button class="help-button pulse"
+        onclick="openHelpVideo()"
+        title="사용법 동영상 보기"
+        aria-label="도움말 동영상 열기">
+  ?
+</button>
 
-        <div class="phone-container">
-            <div class="phone-frame">
-                <div class="phone-screen">
-                    <img id="contactImage" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Ccircle cx='60' cy='60' r='60' fill='%23bdc3c7'/%3E%3Ccircle cx='60' cy='45' r='20' fill='%23ecf0f1'/%3E%3Cpath d='M30 85 Q30 70 60 70 Q90 70 90 85 L90 120 L30 120 Z' fill='%23ecf0f1'/%3E%3C/svg%3E"
-                         alt="연락처" class="contact-image">
-                    <div id="contactName" class="contact-name">김근태</div>
-                    <button class="video-call-btn" onclick="goToVideoCall()">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
-                            <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
-                        </svg>
-                        <div class="badge">1</div>
-                    </button>
-                </div>
-            </div>
+<!-- 토스트 메시지 (선택사항) -->
+<div id="toastMessage" class="toast-message"></div>
 
-            <div class="navigation">
-                <button class="nav-btn" onclick="previousContact()">‹</button>
-                <button class="nav-btn" onclick="nextContact()">›</button>
-            </div>
-        </div>
-
-        <button class="start-btn" onclick="goToMainScreen()">토마토리멤버 시작하기</button>
+<div class="container">
+  <div class="header">
+    <div class="logo">TOMATOREMEMBER</div>
+    <div class="subtitle">
+      소중한 추억을 영원히<br>
+      간직하세요
     </div>
+  </div>
 
-    <script>
-        // 연락처 데이터
-        const contacts = [
-            {
-                name: "김근태",
-                image: "/images/kkt.png"
+  <div class="phone-container">
+    <div class="phone-frame">
+      <div class="phone-screen">
+        <!-- 모델에서 내려온 이미지와 이름을 th:src, th:alt, th:text로 바인딩 -->
+        <img id="contactImage"
+             th:src="@{${contact.image}}"
+             th:alt="${contact.name}"
+             class="contact-image"/>
+        <div id="contactName"
+             class="contact-name"
+             th:text="${contact.name}">
+          연락처명
+        </div>
+        <button class="video-call-btn" onclick="goToVideoCall()">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+            <path
+                d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <button class="start-btn" onclick="goToMainScreen()">토마토리멤버 시작하기</button>
+</div>
+
+<script th:inline="javascript">
+    // 영문명과 한글명 모두 받아오기
+    const contactKey = /*[[${contactKey}]]*/ '';      // 영문명 (rohmoohyun, kimgeuntae)
+    const contactName = /*[[${contact.name}]]*/ '';   // 한글명 (노무현, 김근태)
+
+    console.log('Contact Info:', {contactKey, contactName});
+
+    // 🆕 도움말 동영상 열기 함수
+    function openHelpVideo() {
+        console.log('🎥 도움말 동영상으로 이동');
+
+        // 토스트 메시지 (선택사항)
+        showToast('도움말 동영상으로 이동합니다', 'info', 1500);
+
+        // 현재 창에서 바로 유튜브로 이동
+        const youtubeUrl = 'https://youtu.be/-oSW4zhocY8';
+
+        // 약간의 딜레이 후 이동 (토스트 메시지 보여주기 위해)
+        setTimeout(() => {
+            window.location.href = youtubeUrl;
+        }, 500);
+    }
+
+    // 🆕 토스트 메시지 표시 함수 (선택사항)
+    function showToast(message, type = 'info', duration = 3000) {
+        const toast = document.getElementById('toastMessage');
+        if (!toast) {
+            return;
+        }
+
+        // 메시지 설정
+        toast.textContent = message;
+        toast.className = `toast-message show ${type}`;
+
+        // 자동 숨김
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, duration);
+
+        console.log(`📢 토스트: ${message}`);
+    }
+
+    // 🆕 페이지 로드 시 펄스 애니메이션 제거 (5초 후)
+    document.addEventListener('DOMContentLoaded', function () {
+        console.log('🚀 Info 페이지 로드 완료');
+
+        // 5초 후 펄스 애니메이션 제거 (사용자가 버튼을 인지했을 것으로 가정)
+        setTimeout(() => {
+            const helpButton = document.querySelector('.help-button');
+            if (helpButton) {
+                helpButton.classList.remove('pulse');
+                console.log('💫 도움말 버튼 펄스 애니메이션 제거');
             }
-        ];
+        }, 5000);
 
-        let currentContactIndex = 0;
-
-        // 연락처 전환
-        function updateContact() {
-            const contact = contacts[currentContactIndex];
-            document.getElementById('contactImage').src = contact.image;
-            document.getElementById('contactName').textContent = contact.name;
-        }
-
-        function previousContact() {
-            currentContactIndex = (currentContactIndex - 1 + contacts.length) % contacts.length;
-            updateContact();
-        }
-
-        function nextContact() {
-            currentContactIndex = (currentContactIndex + 1) % contacts.length;
-            updateContact();
-        }
-
-        // 메인 화면으로 이동
-        function goToMainScreen() {
-            const hasOnboarding = hasCompletedOnboarding();
-            const redirectPath = hasOnboarding ? '/mobile/home' : '/mobile/onboarding';
-
-            console.log('🔄 페이지 리다이렉트:', {
-                hasCompletedOnboarding: hasOnboarding,
-                redirectPath: redirectPath
+        // 도움말 버튼 클릭 시 펄스 제거
+        const helpButton = document.querySelector('.help-button');
+        if (helpButton) {
+            helpButton.addEventListener('click', function () {
+                this.classList.remove('pulse');
             });
+        }
+    });
 
-            window.location.href = redirectPath;
+    // ===== 기존 함수들 유지 =====
+
+    // 로그인 상태 확인
+    function checkLoginStatus() {
+        const accessToken = localStorage.getItem('accessToken');
+        const refreshToken = localStorage.getItem('refreshToken');
+        const hasTokenCookie = document.cookie.includes('accessToken') ||
+            document.cookie.includes('refreshToken');
+        const isLoggedInFromConfig = window.APP_CONFIG?.isLoggedIn ||
+            window.serverData?.isLoggedIn;
+
+        const isLoggedIn = !!(accessToken && refreshToken) || hasTokenCookie || isLoggedInFromConfig;
+
+        console.log('🔍 로그인 상태 확인:', {
+            hasTokens: !!(accessToken && refreshToken),
+            hasTokenCookie: hasTokenCookie,
+            configLoggedIn: isLoggedInFromConfig,
+            finalResult: isLoggedIn
+        });
+
+        return isLoggedIn;
+    }
+
+    // 로그인 페이지로 리다이렉트
+    function redirectToLogin() {
+        console.log('🔐 로그인이 필요합니다. 로그인 페이지로 이동');
+
+        const currentUrl = window.location.href;
+        localStorage.setItem('pendingRedirect', currentUrl);
+
+        const loginUrl = `/mobile/login?redirect=${encodeURIComponent(currentUrl)}`;
+        window.location.href = loginUrl;
+    }
+
+    // 영상통화 페이지로 이동 (로그인 체크 포함)
+    function goToVideoCall() {
+        console.log('🎬 영상통화 버튼 클릭');
+
+        if (!checkLoginStatus()) {
+            alert('영상통화 기능을 이용하려면 로그인이 필요합니다.');
+            redirectToLogin();
+            return;
         }
 
-        function hasCompletedOnboarding() {
-            try {
-                const onboardingData = localStorage.getItem('onboarding_completed');
-                if (!onboardingData) return false;
+        console.log('✅ 로그인 상태 확인됨. 영상통화 페이지로 이동');
 
-                const data = JSON.parse(onboardingData);
-                return data.completed === true;
-            } catch (error) {
-                console.error('온보딩 상태 확인 오류:', error);
-                return false;
-            }
-        }
+        localStorage.setItem('selectedContactKey', contactKey);
+        localStorage.setItem('selectedContactName', contactName);
+        window.location.href = `/mobile/video-call?contact=${contactKey}`;
+    }
 
-        // 영상통화 페이지로 이동 (권한 요청 제거)
-        function goToVideoCall() {
-            const contactName = contacts[currentContactIndex].name;
+    // 메인 화면으로 이동
+    function goToMainScreen() {
+        window.location.href = '/mobile/home';
+    }
 
-            // 연락처 정보를 localStorage에 저장
-            localStorage.setItem('selectedContact', contactName);
-
-            // 바로 영상통화 페이지로 이동
-            window.location.href = `/mobile/video-call?contact=${encodeURIComponent(contactName)}`;
-        }
-
-        // 초기화
-        updateContact();
-    </script>
+</script>
 </body>
 </html>

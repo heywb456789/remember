@@ -4,10 +4,8 @@ import com.tomato.remember.application.videocall.config.MemorialVideoSessionMana
 import com.tomato.remember.application.videocall.config.MemorialVideoWebSocketHandler;
 import com.tomato.remember.application.videocall.dto.MemorialVideoSession;
 import com.tomato.remember.application.videocall.service.MemorialVideoHeartbeatService;
-import com.tomato.remember.common.util.FileStorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,23 +22,19 @@ import java.util.concurrent.Executors;
  * 파일 업로드, 세션 관리, 외부 API 콜백 등 처리
  */
 @Slf4j
-@RestController
+//@RestController
 @RequestMapping("/api/memorial-video")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*")
 public class MemorialVideoRestController {
 
-    private MemorialVideoSessionManager sessionManager;
-
-    private MemorialVideoWebSocketHandler webSocketHandler;
-
-    private MemorialVideoHeartbeatService heartbeatService;
-
-    private FileStorageService fileStorageService;
+    private final MemorialVideoSessionManager sessionManager;
+    private final MemorialVideoWebSocketHandler webSocketHandler;
+    private final MemorialVideoHeartbeatService heartbeatService;
+    // private final FileStorageService fileStorageService; // TODO: 실제 구현 시 추가
 
     // TODO: 외부 API 서비스 주입
-    // @Autowired
-    // private ExternalVideoApiService externalVideoApiService;
+    // private final ExternalVideoApiService externalVideoApiService;
 
     private final ExecutorService executorService = Executors.newCachedThreadPool();
 
@@ -110,8 +104,9 @@ public class MemorialVideoRestController {
             log.info("📹 영상 처리 시작 - 세션: {} (나이: {}분), 파일: {}",
                     sessionKey, session.getAgeInMinutes(), videoFile.getOriginalFilename());
 
-            // 파일 저장
-            String savedFilePath = fileStorageService.uploadVideoCallRecording(videoFile, sessionKey);
+            // TODO: 파일 저장 로직 구현
+            String savedFilePath = "/uploads/memorial-video/" + sessionKey + "_" +
+                    System.currentTimeMillis() + "_" + videoFile.getOriginalFilename();
 
             // 세션 상태 업데이트
             session.setProcessing(savedFilePath);
@@ -260,21 +255,20 @@ public class MemorialVideoRestController {
         session.updateActivity();
         sessionManager.saveSession(session);
 
-        Map<String, Object> sessionResponse = Map.of(
-                "sessionKey", sessionKey,
-                "contactName", session.getContactName(),
-                "memorialId", session.getMemorialId() != null ? session.getMemorialId() : "",
-                "callerId", session.getCallerId() != null ? session.getCallerId() : "",
-                "status", session.getStatus(),
-                "createdAt", session.getCreatedAt().toString(),
-                "lastActivity", session.getLastActivity().toString(),
-                "ageInMinutes", session.getAgeInMinutes(),
-                "ttlRemaining", session.getRemainingTtlSeconds(),
-                "isConnected", session.isConnected(),
-                "reconnectCount", session.getReconnectCount(),
-                "savedFilePath", session.getSavedFilePath() != null ? session.getSavedFilePath() : "",
-                "responseVideoUrl", session.getResponseVideoUrl() != null ? session.getResponseVideoUrl() : ""
-        );
+        Map<String, Object> sessionResponse = new HashMap<>();
+        sessionResponse.put("sessionKey", sessionKey);
+        sessionResponse.put("contactName", session.getContactName());
+        sessionResponse.put("memorialId", session.getMemorialId() != null ? session.getMemorialId() : "");
+        sessionResponse.put("callerId", session.getCallerId() != null ? session.getCallerId() : "");
+        sessionResponse.put("status", session.getStatus());
+        sessionResponse.put("createdAt", session.getCreatedAt().toString());
+        sessionResponse.put("lastActivity", session.getLastActivity().toString());
+        sessionResponse.put("ageInMinutes", session.getAgeInMinutes());
+        sessionResponse.put("ttlRemaining", session.getRemainingTtlSeconds());
+        sessionResponse.put("isConnected", session.isConnected());
+        sessionResponse.put("reconnectCount", session.getReconnectCount());
+        sessionResponse.put("savedFilePath", session.getSavedFilePath() != null ? session.getSavedFilePath() : "");
+        sessionResponse.put("responseVideoUrl", session.getResponseVideoUrl() != null ? session.getResponseVideoUrl() : "");
 
         return ResponseEntity.ok(Map.of(
                 "status", Map.of("code", "OK_0000", "message", "세션 조회 완료"),

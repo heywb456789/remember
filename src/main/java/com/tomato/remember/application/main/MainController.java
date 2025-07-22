@@ -5,8 +5,11 @@ import com.tomato.remember.application.memorial.dto.MemorialListResponseDTO;
 import com.tomato.remember.application.memorial.dto.MemorialResponseDTO;
 import com.tomato.remember.application.memorial.service.MemorialService;
 import com.tomato.remember.application.security.MemberUserDetails;
+import com.tomato.remember.common.code.ResponseStatus;
 import com.tomato.remember.common.dto.ListDTO;
+import com.tomato.remember.common.exception.APIException;
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -19,6 +22,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 
 /**
  * 메인 페이지 컨트롤러 (개선된 버전)
@@ -36,12 +41,87 @@ public class MainController {
     @GetMapping("/")
     public String root() {
         log.info("Root path accessed, redirecting to /mobile/home");
-//        return "redirect:/mobile/home";
+        return "mobile/main/tomato_remember_onboarding";
+    }
+
+
+    private static final Map<String, Contact> CONTACT_MAP = Map.of(
+        "rohmoohyun", new Contact("노무현 님", "/images/roh.png", "rohmoohyun"),
+        "kimgeuntae", new Contact("김근태 님", "/images/kkt.png", "kimgeuntae")
+    );
+
+    @GetMapping("/call/{key}")
+    public String videoCallIntro(
+            @PathVariable String key,
+            Model model
+    ) {
+        Contact contact = CONTACT_MAP.get(key);
+        if (contact == null) {
+            // key가 없으면 404 또는 기본값 처리
+            throw new APIException(ResponseStatus.BAD_REQUEST);
+        }
+        model.addAttribute("contact", contact);
+        model.addAttribute("contactKey", key);
         return "mobile/call/video-call-intro";
     }
 
+    @GetMapping("/call/feedback")
+    public String videoCallFeedback(
+            @RequestParam(value = "contact", required = false, defaultValue = "kimgeuntae") String contactKey,
+            Model model) {
+
+        // contactKey 유효성 검증
+        if (!CONTACT_MAP.containsKey(contactKey)) {
+            contactKey = "kimgeuntae"; // 기본값
+        }
+
+        Contact contact = CONTACT_MAP.get(contactKey);
+
+        log.info("비디오콜 피드백 페이지 - contactKey: {}, contactName: {}", contactKey, contact.getName());
+
+        model.addAttribute("contactKey", contactKey);
+        model.addAttribute("contactName", contact.getName());
+
+        return "mobile/call/video-call-sample-feedback";
+    }
+
     @GetMapping("/mobile/video-call")
-    public String videoCall() {
+    public String videoCall(
+            @RequestParam(value = "contact", required = false, defaultValue = "kimgeuntae") String contactKey,
+            Model model
+    ) {
+        // contactKey 유효성 검증
+        if (!CONTACT_MAP.containsKey(contactKey)) {
+            contactKey = "kimgeuntae"; // 기본값
+        }
+
+        Contact contact = CONTACT_MAP.get(contactKey);
+
+        // contactKey에 따라 보여줄 대기 영상 파일명을 결정
+        String fileName;
+        switch (contactKey) {
+            case "rohmoohyun":
+                fileName = "waiting_no.mp4";
+                break;
+            case "kimgeuntae":
+                fileName = "waiting_kt.mp4";
+                break;
+            default:
+                fileName = "waiting_kt.mp4";
+                break;
+        }
+
+        // CDN 또는 로컬 스토리지에 올려둔 경로
+        String waitingVideoUrl = "https://remember.newstomato.com/static/" + fileName;
+
+        log.info("비디오콜 페이지 - contactKey: {}, contactName: {}, videoFile: {}",
+                contactKey, contact.getName(), fileName);
+
+        model.addAttribute("waitingVideoUrl", waitingVideoUrl);
+        model.addAttribute("contactKey", contactKey); // 영문명
+        model.addAttribute("contactName", contact.getName()); // 한글명
+        model.addAttribute("recordButtonImageUrl", "/images/mic.png");
+
         return "mobile/call/video-call-sample";
     }
 

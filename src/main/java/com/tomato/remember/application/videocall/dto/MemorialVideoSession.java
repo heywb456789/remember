@@ -1,165 +1,173 @@
 package com.tomato.remember.application.videocall.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
-import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 
 /**
- * Memorial Video Call 세션 정보
- * Redis에 저장되어 TTL 기반으로 관리됨
+ * Memorial Video Call 세션 엔티티
+ * Redis에 저장되는 세션 데이터
  */
 @Data
-@Builder
-@NoArgsConstructor 
+@NoArgsConstructor
 @AllArgsConstructor
-public class MemorialVideoSession {
-    
+public class MemorialVideoSession implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
+    // TTL 설정 (1시간 = 3600초)
+    private static final int TTL_SECONDS = 3600;
+    // 하트비트 간격 (30초)
+    private static final int HEARTBEAT_INTERVAL_SECONDS = 30;
+
+    // 기본 정보
     private String sessionKey;
     private String contactName;
     private Long memorialId;
     private Long callerId;
-    
+
+    // 상태 정보
+    private String status = "WAITING"; // WAITING, PROCESSING, COMPLETED, ERROR
     private LocalDateTime createdAt;
     private LocalDateTime lastActivity;
-    private String status; // WAITING, CONNECTING, CONNECTED, PROCESSING, COMPLETED, ERROR, DISCONNECTED
-    
+
+    // 연결 정보
+    private String socketId;
+    private int reconnectCount = 0;
+
+    // 파일 정보
     private String savedFilePath;
     private String responseVideoUrl;
-    
-    // WebSocket 연결 정보
-    private String socketId;
-    private boolean isConnected;
-    private int reconnectCount;
-    
-    // TTL 관리 (초 단위)
-    private static final long SESSION_TTL_SECONDS = 3600; // 1시간
-    private static final long HEARTBEAT_INTERVAL_SECONDS = 30; // 30초
-    
+
     /**
-     * 새로운 세션 생성
+     * 새 세션 생성
      */
     public static MemorialVideoSession createNew(String sessionKey, String contactName, Long memorialId, Long callerId) {
-        return MemorialVideoSession.builder()
-                .sessionKey(sessionKey)
-                .contactName(contactName)
-                .memorialId(memorialId)
-                .callerId(callerId)
-                .createdAt(LocalDateTime.now())
-                .lastActivity(LocalDateTime.now())
-                .status("WAITING")
-                .isConnected(false)
-                .reconnectCount(0)
-                .build();
+        MemorialVideoSession session = new MemorialVideoSession();
+        session.sessionKey = sessionKey;
+        session.contactName = contactName;
+        session.memorialId = memorialId;
+        session.callerId = callerId;
+        session.createdAt = LocalDateTime.now();
+        session.lastActivity = LocalDateTime.now();
+        session.status = "WAITING";
+        session.reconnectCount = 0;
+
+        return session;
     }
-    
+
     /**
-     * 활동 시간 업데이트 (TTL 갱신용)
-     */
-    public void updateActivity() {
-        this.lastActivity = LocalDateTime.now();
-    }
-    
-    /**
-     * 웹소켓 연결 설정
+     * WebSocket 연결 설정
      */
     public void setWebSocketConnection(String socketId) {
         this.socketId = socketId;
-        this.isConnected = true;
-        this.status = "CONNECTED";
-        updateActivity();
+        this.lastActivity = LocalDateTime.now();
     }
-    
+
     /**
-     * 웹소켓 연결 해제
+     * WebSocket 연결 해제
      */
     public void clearWebSocketConnection() {
         this.socketId = null;
-        this.isConnected = false;
-        this.status = "DISCONNECTED";
-        updateActivity();
+        this.lastActivity = LocalDateTime.now();
     }
-    
+
     /**
      * 재연결 처리
      */
     public void handleReconnect(String newSocketId) {
         this.socketId = newSocketId;
-        this.isConnected = true;
         this.reconnectCount++;
-        this.status = "CONNECTED";
-        updateActivity();
+        this.lastActivity = LocalDateTime.now();
     }
-    
-    /**
-     * 세션 나이 (분 단위)
-     */
-    public long getAgeInMinutes() {
-        return Duration.between(createdAt, LocalDateTime.now()).toMinutes();
-    }
-    
-    /**
-     * 비활성 시간 (분 단위)
-     */
-    public long getInactiveMinutes() {
-        return Duration.between(lastActivity, LocalDateTime.now()).toMinutes();
-    }
-    
-    /**
-     * 남은 TTL 시간 (초 단위)
-     */
-    public long getRemainingTtlSeconds() {
-        long inactiveSeconds = Duration.between(lastActivity, LocalDateTime.now()).getSeconds();
-        return Math.max(0, SESSION_TTL_SECONDS - inactiveSeconds);
-    }
-    
-    /**
-     * 세션 만료 여부 확인
-     */
-    public boolean isExpired() {
-        return getRemainingTtlSeconds() <= 0;
-    }
-    
+
     /**
      * 처리 중 상태로 변경
      */
     public void setProcessing(String filePath) {
         this.status = "PROCESSING";
         this.savedFilePath = filePath;
-        updateActivity();
+        this.lastActivity = LocalDateTime.now();
     }
-    
+
     /**
      * 완료 상태로 변경
      */
     public void setCompleted(String responseVideoUrl) {
         this.status = "COMPLETED";
         this.responseVideoUrl = responseVideoUrl;
-        updateActivity();
+        this.lastActivity = LocalDateTime.now();
     }
-    
+
     /**
      * 오류 상태로 변경
      */
     public void setError() {
         this.status = "ERROR";
-        updateActivity();
+        this.lastActivity = LocalDateTime.now();
     }
-    
+
     /**
-     * TTL 값 반환 (Redis 저장 시 사용)
+     * 활동 시간 업데이트
      */
-    public static long getTtlSeconds() {
-        return SESSION_TTL_SECONDS;
+    public void updateActivity() {
+        this.lastActivity = LocalDateTime.now();
     }
-    
+
     /**
-     * 하트비트 간격 반환
+     * 연결 여부 확인
      */
-    public static long getHeartbeatIntervalSeconds() {
+    public boolean isConnected() {
+        return this.socketId != null && !"ERROR".equals(this.status);
+    }
+
+    /**
+     * 세션 나이 (분)
+     */
+    @JsonIgnore
+    public long getAgeInMinutes() {
+        return ChronoUnit.MINUTES.between(createdAt, LocalDateTime.now());
+    }
+
+    /**
+     * 세션 만료 여부
+     */
+    @JsonIgnore
+    public boolean isExpired() {
+        return getAgeInMinutes() > (TTL_SECONDS / 60);
+    }
+
+    /**
+     * 남은 TTL (초)
+     */
+    @JsonIgnore
+    public long getRemainingTtlSeconds() {
+        long ageSeconds = ChronoUnit.SECONDS.between(lastActivity, LocalDateTime.now());
+        return Math.max(0, TTL_SECONDS - ageSeconds);
+    }
+
+    /**
+     * TTL 설정값 조회 (정적)
+     */
+    public static int getTtlSeconds() {
+        return TTL_SECONDS;
+    }
+
+    /**
+     * 하트비트 간격 조회 (정적)
+     */
+    public static int getHeartbeatIntervalSeconds() {
         return HEARTBEAT_INTERVAL_SECONDS;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("MemorialVideoSession{sessionKey='%s', contactName='%s', status='%s', age=%dmin, connected=%s}",
+                sessionKey, contactName, status, getAgeInMinutes(), isConnected());
     }
 }

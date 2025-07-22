@@ -30,6 +30,8 @@
   <!-- Common CSS -->
   <link th:href="@{/assets/mobile/css/common.css}" rel="stylesheet"/>
   <link th:href="@{/assets/mobile/css/layout.css}" rel="stylesheet"/>
+  <link th:href="@{/assets/mobile/css/tomatoGroup.css}" rel="stylesheet"/>
+  <link th:href="@{/assets/mobile/css/tomatoModal.css}" rel="stylesheet"/>
 
   <!-- Custom CSS -->
   <th:block th:replace="${customCSS}"></th:block>
@@ -152,40 +154,35 @@
 </main>
 
 <!-- 하단 앱 네비게이션만 유지 -->
-<nav class="mobile-app-nav" id="mobileAppNav">
-  <div class="app-nav-container">
-    <!-- 로딩 상태 -->
-    <div class="app-nav-loading" id="appNavLoading">
-      <div class="loading-spinner"></div>
-      <span>앱 목록 로딩중...</span>
-    </div>
+<!--<nav class="mobile-app-nav" id="mobileAppNav">-->
+<!--  <div class="app-nav-container">-->
+<!--    &lt;!&ndash; 로딩 상태 &ndash;&gt;-->
+<!--    <div class="app-nav-loading" id="appNavLoading">-->
+<!--      <div class="loading-spinner"></div>-->
+<!--      <span>앱 목록 로딩중...</span>-->
+<!--    </div>-->
 
-    <!-- 앱 목록 컨테이너 -->
-    <div class="app-nav-scroll" id="appNavScroll" style="display: none;">
-      <!-- JavaScript로 동적 생성 -->
-    </div>
+<!--    &lt;!&ndash; 앱 목록 컨테이너 &ndash;&gt;-->
+<!--    <div class="app-nav-scroll" id="appNavScroll" style="display: none;">-->
+<!--      &lt;!&ndash; JavaScript로 동적 생성 &ndash;&gt;-->
+<!--    </div>-->
 
-    <!-- 에러 상태 -->
-    <div class="app-nav-error" id="appNavError" style="display: none;">
-      <span>앱 목록을 불러올 수 없습니다</span>
-      <button class="retry-btn" onclick="window.initializeAppNavigation()">재시도</button>
-    </div>
+<!--    &lt;!&ndash; 에러 상태 &ndash;&gt;-->
+<!--    <div class="app-nav-error" id="appNavError" style="display: none;">-->
+<!--      <span>앱 목록을 불러올 수 없습니다</span>-->
+<!--      <button class="retry-btn" onclick="window.initializeAppNavigation()">재시도</button>-->
+<!--    </div>-->
 
-    <!-- 스크롤 인디케이터 -->
-    <div class="scroll-indicator" id="scrollIndicator" style="display: none;">
-      <div class="scroll-indicator-bar" id="scrollIndicatorBar"></div>
-    </div>
-  </div>
-</nav>
+<!--    &lt;!&ndash; 스크롤 인디케이터 &ndash;&gt;-->
+<!--    <div class="scroll-indicator" id="scrollIndicator" style="display: none;">-->
+<!--      <div class="scroll-indicator-bar" id="scrollIndicatorBar"></div>-->
+<!--    </div>-->
+<!--  </div>-->
+<!--</nav>-->
 
-<!-- 채팅 FAB 버튼 - 템플릿에서 제거하고 JavaScript로 동적 생성 -->
-<!-- 기존 코드 제거:
-<button class="chat-fab" id="chatFab" onclick="openChat()"
-        th:if="${currentUser != null}"
-        aria-label="채팅 열기">
-  <i class="fas fa-comments"></i>
-</button>
--->
+<!-- 🔧 FAB 버튼들은 템플릿에서 제거하고 JavaScript로 동적 생성 -->
+<!-- 체험하기 FAB: main.js에서 생성 (우선순위) -->
+<!-- 채팅 FAB: layout.js에서 생성 (체험하기 아래) -->
 
 <!-- 햄버거 메뉴 오버레이 (모바일 전용) -->
 <div class="menu-overlay d-lg-none" id="menuOverlay"></div>
@@ -362,6 +359,7 @@
 <!-- Common JS -->
 <script th:src="@{/assets/mobile/js/common.js}" type="module"></script>
 <script th:src="@{/assets/mobile/js/layout.js}" type="module"></script>
+<script th:src="@{/assets/mobile/js/tomatoGroupNavigation.js}" type="module"></script>
 
 <!-- Custom JS -->
 <th:block th:replace="${customJS}"></th:block>
@@ -429,7 +427,7 @@
       }
     },
 
-    // 채팅 열기 함수
+    // 채팅 열기 함수 (JavaScript에서 동적 생성된 FAB에서 호출)
     openChat: function() {
       console.log('💬 채팅 열기');
       // TODO: 채팅 기능 구현 후 주석 해제
@@ -489,7 +487,7 @@
 
   // 페이지 로드 완료 이벤트
   document.addEventListener('DOMContentLoaded', function() {
-    console.log('📱 토마토리멤버 완전 반응형 레이아웃 로드 완료');
+    console.log('📱 토마토리멤버 완전 반응형 레이아웃 로드 완료 (FAB JavaScript 관리)');
     console.log('👤 로그인 상태:', window.APP_CONFIG.isLoggedIn);
     console.log('📍 활성 메뉴:', window.APP_CONFIG.activeMenu);
     console.log('🖥️ 디바이스 타입:', window.APP_CONFIG.getDeviceType());
@@ -497,49 +495,10 @@
     // 초기 반응형 레이아웃 설정
     window.globalUtils.updateResponsiveLayout();
 
-    // 💬 채팅 FAB 동적 생성 (로그인한 경우만)
-    if (window.APP_CONFIG.isLoggedIn) {
-      setTimeout(() => {
-        console.log('💬 채팅 FAB 동적 생성 시작');
-
-        // 기존 FAB 제거
-        const existingFab = document.querySelector('.chat-fab');
-        if (existingFab) {
-          existingFab.remove();
-        }
-
-        // 새 FAB 생성
-        const chatFab = document.createElement('button');
-        chatFab.className = 'chat-fab';
-        chatFab.id = 'chatFab';
-        chatFab.setAttribute('aria-label', '채팅 열기');
-        chatFab.innerHTML = '<i class="fas fa-comments"></i>';
-
-        // 클릭 이벤트
-        chatFab.addEventListener('click', function(e) {
-          e.preventDefault();
-          e.stopPropagation();
-
-          // 클릭 효과
-          this.style.transform = 'scale(0.95)';
-          setTimeout(() => {
-            this.style.transform = '';
-          }, 150);
-
-          // 채팅 기능 (현재는 준비중)
-          if (window.showToast) {
-            window.showToast('채팅 기능 준비 중입니다.', 'info', 2000);
-          } else {
-            alert('채팅 기능 준비 중입니다.');
-          }
-        });
-
-        // body에 추가
-        document.body.appendChild(chatFab);
-
-        console.log('✅ 채팅 FAB 동적 생성 완료');
-      }, 1000);
-    }
+    // 🔧 FAB 버튼들은 이제 각각의 JavaScript 파일에서 관리
+    console.log('🚀 FAB 버튼들은 main.js와 layout.js에서 관리됩니다.');
+    console.log('   - 체험하기 FAB: main.js (우선순위, 위쪽)');
+    console.log('   - 채팅 FAB: layout.js (체험하기 아래쪽)');
 
     // 페이지별 초기화 로직
     if (window.pageInitializer) {
@@ -552,36 +511,25 @@
     if (!document.hidden) {
       console.log('👁️ 페이지 가시성 복원');
 
-      // 로그인한 경우 채팅 FAB 복구
-      if (window.APP_CONFIG.isLoggedIn) {
+      // FAB 버튼들 복구는 각 JavaScript 파일에서 처리
+      if (window.layoutManager && window.layoutManager.initializeChatFab) {
         setTimeout(() => {
           const chatFab = document.querySelector('.chat-fab');
           if (!chatFab) {
             console.log('💬 페이지 복원 시 채팅 FAB 재생성');
-            // 위의 채팅 FAB 생성 로직 재실행
-            const newChatFab = document.createElement('button');
-            newChatFab.className = 'chat-fab';
-            newChatFab.id = 'chatFab';
-            newChatFab.setAttribute('aria-label', '채팅 열기');
-            newChatFab.innerHTML = '<i class="fas fa-comments"></i>';
+            window.layoutManager.initializeChatFab();
+          }
+        }, 1000);
+      }
 
-            newChatFab.addEventListener('click', function(e) {
-              e.preventDefault();
-              e.stopPropagation();
-
-              this.style.transform = 'scale(0.95)';
-              setTimeout(() => {
-                this.style.transform = '';
-              }, 150);
-
-              if (window.showToast) {
-                window.showToast('채팅 기능 준비 중입니다.', 'info', 2000);
-              } else {
-                alert('채팅 기능 준비 중입니다.');
-              }
-            });
-
-            document.body.appendChild(newChatFab);
+      if (window.mainPageManager && window.mainPageManager.repositionFab) {
+        setTimeout(() => {
+          const experienceFab = document.querySelector('.experience-fab');
+          if (!experienceFab && window.APP_CONFIG.isLoggedIn) {
+            console.log('🚀 페이지 복원 시 체험하기 FAB 재생성');
+            if (window.forceCreateExperienceFab) {
+              window.forceCreateExperienceFab();
+            }
           }
         }, 1000);
       }
@@ -643,6 +591,11 @@
           closeBtn.click();
         }
       }
+
+      // 체험하기 확장 메뉴 닫기
+      if (window.mainPageManager && window.mainPageManager.closeExperience) {
+        window.mainPageManager.closeExperience();
+      }
     }
   });
 
@@ -658,12 +611,17 @@
     }
   });
 
-  // 윈도우 리사이즈 시 채팅 FAB 위치 재조정
+  // 윈도우 리사이즈 시 FAB 버튼들 위치 재조정
   window.addEventListener('resize', function() {
     setTimeout(() => {
-      const chatFab = document.querySelector('.chat-fab');
-      if (chatFab && window.forceChatFabStyles) {
-        window.forceChatFabStyles(chatFab);
+      // 채팅 FAB 위치 재조정
+      if (window.layoutManager && window.layoutManager.repositionChatFab) {
+        window.layoutManager.repositionChatFab();
+      }
+
+      // 체험하기 FAB 위치 재조정
+      if (window.mainPageManager && window.mainPageManager.repositionFab) {
+        window.mainPageManager.repositionFab();
       }
     }, 300);
   });
@@ -673,13 +631,15 @@
     console.log('🔧 디버그 모드 활성화');
     window.debugMode = true;
 
-    // 채팅 FAB 디버그 함수
-    window.debugChatFab = function() {
+    // FAB 버튼들 디버그 함수
+    window.debugFabButtons = function() {
       const chatFab = document.querySelector('.chat-fab');
+      const experienceFab = document.querySelector('.experience-fab');
 
-      console.group('💬 채팅 FAB 디버그 정보');
+      console.group('🎛️ FAB 버튼들 디버그 정보');
+
+      console.group('💬 채팅 FAB');
       console.log('요소 존재:', !!chatFab);
-
       if (chatFab) {
         const computedStyle = getComputedStyle(chatFab);
         console.log('스타일 정보:', {
@@ -691,12 +651,28 @@
           right: computedStyle.right,
           zIndex: computedStyle.zIndex,
           width: computedStyle.width,
-          height: computedStyle.height,
-          backgroundColor: computedStyle.backgroundColor
+          height: computedStyle.height
         });
-        console.log('클릭 이벤트:', !!chatFab.onclick || 'addEventListener로 등록됨');
-        console.log('부모 요소:', chatFab.parentElement?.tagName);
       }
+      console.groupEnd();
+
+      console.group('🚀 체험하기 FAB');
+      console.log('요소 존재:', !!experienceFab);
+      if (experienceFab) {
+        const computedStyle = getComputedStyle(experienceFab);
+        console.log('스타일 정보:', {
+          display: computedStyle.display,
+          visibility: computedStyle.visibility,
+          opacity: computedStyle.opacity,
+          position: computedStyle.position,
+          bottom: computedStyle.bottom,
+          right: computedStyle.right,
+          zIndex: computedStyle.zIndex,
+          width: computedStyle.width,
+          height: computedStyle.height
+        });
+      }
+      console.groupEnd();
 
       console.log('로그인 상태:', {
         'APP_CONFIG.isLoggedIn': window.APP_CONFIG?.isLoggedIn,
@@ -713,15 +689,12 @@
       console.log('APP_CONFIG:', window.APP_CONFIG);
       console.log('API_ENDPOINTS:', window.API_ENDPOINTS);
       console.log('Layout Manager:', window.layoutManager);
+      console.log('Main Page Manager:', window.mainPageManager);
       console.log('Current User:', window.APP_CONFIG.currentUser);
       console.log('Device Type:', window.APP_CONFIG.getDeviceType());
       console.log('Window Size:', {
         width: window.innerWidth,
         height: window.innerHeight
-      });
-      console.log('Token Info:', {
-        accessToken: localStorage.getItem('accessToken')?.substring(0, 20) + '...',
-        refreshToken: localStorage.getItem('refreshToken')?.substring(0, 20) + '...'
       });
       console.groupEnd();
     };
@@ -761,22 +734,6 @@
     border: 2px solid var(--border-light);
   }
 
-  /* 기본 네비게이션과 앱 네비게이션 구분 */
-  @media (max-width: 1023px) {
-    .mobile-app-nav .nav-container {
-      border-bottom: 1px solid var(--border-light);
-      padding-bottom: 12px;
-      margin-bottom: 8px;
-    }
-  }
-
-  /* PC에서 기본 네비게이션 숨김 처리 */
-  @media (min-width: 1024px) {
-    .mobile-app-nav .nav-container {
-      display: none;
-    }
-  }
-
   /* 디바이스별 스타일 */
   [data-device="mobile"] .pc-only { display: none !important; }
   [data-device="tablet"] .pc-only { display: none !important; }
@@ -807,6 +764,10 @@
     font-size: 16px;
     color: var(--text-secondary);
   }
+
+  /* 🔧 FAB 버튼들 관련 스타일은 이제 각 파일에서 강제 적용 */
+  /* main.js에서 체험하기 FAB 스타일 관리 */
+  /* layout.js에서 채팅 FAB 스타일 관리 */
 </style>
 
 </body>

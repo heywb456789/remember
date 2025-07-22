@@ -9,12 +9,12 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 /**
  * Memorial Video Call WebSocket 설정
  */
-@Configuration
-@EnableWebSocket
+//@Configuration
+//@EnableWebSocket
 @RequiredArgsConstructor
 public class WebSocketConfig implements WebSocketConfigurer {
 
-    private MemorialVideoWebSocketHandler memorialVideoWebSocketHandler;
+    private final MemorialVideoWebSocketHandler memorialVideoWebSocketHandler;
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {

@@ -16,13 +16,13 @@ import java.util.Set;
  * 주기적으로 하트비트를 전송하고 세션 정리를 수행
  */
 @Slf4j
-@Service
+//@Service
 @RequiredArgsConstructor
 public class MemorialVideoHeartbeatService {
     
-    private MemorialVideoSessionManager sessionManager;
+    private final MemorialVideoSessionManager sessionManager;
     
-    private MemorialVideoWebSocketHandler webSocketHandler;
+    private final MemorialVideoWebSocketHandler webSocketHandler;
     
     /**
      * 하트비트 전송 (30초마다)

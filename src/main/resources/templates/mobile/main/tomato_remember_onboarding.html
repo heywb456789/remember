@@ -1,6 +1,25 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+    <script>
+        // HTML 최상단에 즉시 실행
+        (function() {
+            try {
+                const onboardingData = localStorage.getItem('onboarding_completed');
+                if (onboardingData) {
+                    const data = JSON.parse(onboardingData);
+                    if (data.completed === true) {
+                        console.log('✅ 온보딩 완료 확인 - 홈으로 리다이렉트');
+                        window.location.href = '/mobile/home'; // 또는 '/main/home'
+                        return; // 더 이상 실행하지 않음
+                    }
+                }
+            } catch (error) {
+                console.error('온보딩 상태 확인 오류:', error);
+                // 오류 시에는 온보딩 진행
+            }
+        })();
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>토마토리멤버 - 디지털 추모 서비스</title>

@@ -15,7 +15,215 @@
   <customCSS>
     <link th:href="@{/assets/mobile/css/main.css}" rel="stylesheet">
     <style>
-      /* 메모리얼 선택 관련 스타일 - 기존 스타일 유지하면서 추가 */
+      /* ===== FAB 버튼 스타일 (PC 위치 수정) ===== */
+      :root {
+        --fab-size-mobile: 56px;
+        --fab-size-tablet: 60px;
+        --fab-size-desktop: 64px;
+        --fab-gap: 70px;
+        --nav-height: 80px;
+        --sidebar-width: 280px;
+        --fab-right-mobile: 20px;
+        --fab-right-tablet: 30px;
+        --fab-right-desktop: 40px;
+      }
+
+      /* 기본 FAB 스타일 */
+      .fab-button {
+        position: fixed;
+        border-radius: 50%;
+        border: none;
+        color: white;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1025;
+      }
+
+      .fab-button:hover {
+        transform: scale(1.1);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+      }
+
+      .fab-button:focus {
+        outline: none;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 3px rgba(255, 255, 255, 0.3);
+      }
+
+      /* 체험하기 FAB (위쪽, 우선순위) */
+      .experience-fab {
+        background: linear-gradient(135deg, #ff6b6b 0%, #ffa500 100%);
+        z-index: 1027;
+      }
+
+      .experience-fab.expanded {
+        background: #dc3545 !important;
+      }
+
+      /* 채팅 FAB (아래쪽) */
+      .chat-fab {
+        background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
+        z-index: 1024;
+      }
+
+      /* 체험하기 확장 옵션 */
+      .experience-options {
+        position: fixed;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(20px);
+        transition: all 0.3s ease;
+        pointer-events: none;
+        z-index: 1026;
+      }
+
+      .experience-options.show {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+        pointer-events: all;
+      }
+
+      .experience-option-btn {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 28px;
+        color: #333;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        transition: all 0.3s ease;
+        text-decoration: none;
+        min-width: 140px;
+        white-space: nowrap;
+      }
+
+      .experience-option-btn:hover {
+        transform: translateX(-8px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+        color: #333;
+        text-decoration: none;
+      }
+
+      .experience-option-btn img {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        object-fit: cover;
+        flex-shrink: 0;
+      }
+
+      /* ===== 반응형 FAB 위치 (PC 수정) ===== */
+
+      /* 모바일 (기본) */
+      .fab-button {
+        width: var(--fab-size-mobile);
+        height: var(--fab-size-mobile);
+        font-size: 24px;
+        right: var(--fab-right-mobile);
+      }
+
+      .experience-fab {
+        bottom: calc(var(--nav-height) + 100px);
+      }
+
+      .chat-fab {
+        bottom: calc(var(--nav-height) + 30px);
+      }
+
+      .experience-options {
+        bottom: calc(var(--nav-height) + 170px);
+        right: var(--fab-right-mobile);
+      }
+
+      /* 소형 모바일 (375px 이하) */
+      @media (max-width: 375px) {
+        :root {
+          --fab-size-mobile: 50px;
+          --fab-right-mobile: 16px;
+        }
+
+        .fab-button {
+          font-size: 22px;
+        }
+
+        .experience-fab {
+          bottom: calc(var(--nav-height) + 90px);
+        }
+
+        .chat-fab {
+          bottom: calc(var(--nav-height) + 25px);
+        }
+
+        .experience-options {
+          bottom: calc(var(--nav-height) + 150px);
+          right: var(--fab-right-mobile);
+        }
+      }
+
+      /* 태블릿 */
+      @media (min-width: 768px) and (max-width: 1023px) {
+        .fab-button {
+          width: var(--fab-size-tablet);
+          height: var(--fab-size-tablet);
+          font-size: 26px;
+          right: var(--fab-right-tablet);
+        }
+
+        .experience-fab {
+          bottom: calc(var(--nav-height) + 110px);
+        }
+
+        .chat-fab {
+          bottom: calc(var(--nav-height) + 40px);
+        }
+
+        .experience-options {
+          bottom: calc(var(--nav-height) + 180px);
+          right: var(--fab-right-tablet);
+        }
+      }
+
+      /* 🔧 데스크톱 (PC 사이드바 고려하여 수정) */
+      @media (min-width: 1024px) {
+        .fab-button {
+          width: var(--fab-size-desktop);
+          height: var(--fab-size-desktop);
+          font-size: 28px;
+          /* PC에서는 사이드바 고려하여 더 안쪽으로 */
+          right: calc(var(--fab-right-desktop) + 20px); /* 기존 40px + 20px = 60px */
+        }
+
+        .experience-fab {
+          bottom: 130px;
+        }
+
+        .chat-fab {
+          bottom: 50px;
+        }
+
+        .experience-options {
+          bottom: 210px;
+          /* PC에서는 사이드바 고려하여 더 안쪽으로 */
+          right: calc(var(--fab-right-desktop) + 20px); /* 기존 40px + 20px = 60px */
+        }
+
+        /* PC에서 레이아웃이 사이드바로 밀려있을 때 추가 조정 불필요 */
+        /* 이미 layout에서 margin-left로 사이드바만큼 밀려있기 때문 */
+      }
+
+      /* ===== 메모리얼 선택 관련 스타일 (기존 유지) ===== */
       .memorial-item.selected {
         border: 2px solid #ff6b6b !important;
         background: #fff5f5 !important;
@@ -34,7 +242,6 @@
         z-index: -1;
       }
 
-      /* 화살표 영역에 선택 아이콘 추가 */
       .memorial-arrow {
         position: relative;
         display: flex !important;
@@ -58,7 +265,6 @@
         display: none;
       }
 
-      /* 메모리얼 선택 안내 */
       .memorial-selection-guide {
         text-align: center;
         margin-bottom: 16px;
@@ -78,51 +284,8 @@
         margin-right: 8px;
       }
 
-      /* 상태 표시 아이콘 */
-      .memorial-status {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-
-      .status-indicators {
-        display: flex;
-        gap: 4px;
-      }
-
-      .status-icon {
-        font-size: 12px;
-        opacity: 0.7;
-      }
-
-      .status-icon.status-ok {
-        color: #28a745;
-      }
-
-      .status-icon.status-warning {
-        color: #ffc107;
-      }
-
-      /* 메모리얼 메타 정보 */
-      .memorial-meta {
-        font-size: 12px;
-        color: var(--text-light);
-        margin-top: 4px;
-        display: flex;
-        align-items: center;
-        gap: 4px;
-      }
-
-      .memorial-meta .separator {
-        opacity: 0.5;
-      }
-
       /* 반응형 개선 */
       @media (max-width: 768px) {
-        .status-icon {
-          font-size: 11px;
-        }
-
         .selection-icon {
           font-size: 18px;
         }
@@ -391,6 +554,34 @@
       </button>
     </div>
   </div>
+
+  <!-- ===== FAB 버튼들 (Thymeleaf 조건부 렌더링) ===== -->
+
+  <!-- 🚀 체험하기 FAB (항상 표시, 우선순위) -->
+  <button class="fab-button experience-fab" id="experienceFab" aria-label="체험하기">
+    <i class="fas fa-play"></i>
+  </button>
+
+  <!-- 🎯 체험하기 확장 옵션들 -->
+  <div class="experience-options" id="experienceOptions">
+    <a href="/call/rohmoohyun" class="experience-option-btn" data-name="노무현 님 체험">
+      <img src="/images/roh.png" alt="노무현"
+           onerror="this.style.display='none';">
+      <span>노무현 님 체험</span>
+    </a>
+    <a href="/call/kimgeuntae" class="experience-option-btn" data-name="김근태 님 체험">
+      <img src="/images/kkt.png" alt="김근태"
+           onerror="this.style.display='none';">
+      <span>김근태 님 체험</span>
+    </a>
+  </div>
+
+  <!-- 💬 채팅 FAB (로그인 시만 표시) -->
+  <button class="fab-button chat-fab" id="chatFab" aria-label="채팅하기"
+          th:if="${isLoggedIn}">
+    <i class="fas fa-comments"></i>
+  </button>
+
 </section>
 
 <!-- Custom JavaScript -->
@@ -435,7 +626,7 @@
     }
   </script>
 
-  <!-- 메인 페이지 JavaScript 로드 -->
+  <!-- 간소화된 메인 페이지 JavaScript -->
   <script th:src="@{/assets/mobile/js/main.js}" type="module"></script>
 </customJS>
 </body>

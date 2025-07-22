@@ -1,6 +1,7 @@
 package com.tomato.remember.application.videocall.config;
 
 import com.tomato.remember.application.videocall.dto.MemorialVideoSession;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -18,11 +19,11 @@ import java.util.stream.Collectors;
  * Redis 기반으로 TTL을 이용한 세션 생명주기 관리
  */
 @Slf4j
-@Component
+//@Component
+@RequiredArgsConstructor
 public class MemorialVideoSessionManager {
     
-    @Autowired
-    private RedisTemplate<String, Object> redisTemplate;
+    private final RedisTemplate<String, Object> redisTemplate;
     
     private static final String SESSION_KEY_PREFIX = "memorial:video:session:";
     private static final String SOCKET_MAPPING_PREFIX = "memorial:video:socket:";

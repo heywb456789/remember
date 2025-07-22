@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{mobile/layout/default :: html(
+        ~{::title},
+        ~{::section},
+        ~{::customCSS},
+        ~{::customJS},
+        'main',
+        'dashboard'
+      )}">
+<head>
+  <title>메인 - 토마토리멤버</title>
+
+  <!-- Custom CSS -->
+  <customCSS>
+    <link th:href="@{/assets/mobile/css/main.css}" rel="stylesheet">
+    <style>
+      /* 메모리얼 선택 관련 스타일 - 기존 스타일 유지하면서 추가 */
+      .memorial-item.selected {
+        border: 2px solid #ff6b6b !important;
+        background: #fff5f5 !important;
+        box-shadow: 0 4px 16px rgba(255, 107, 107, 0.3) !important;
+      }
+
+      .memorial-item.selected::before {
+        content: '';
+        position: absolute;
+        top: -2px;
+        left: -2px;
+        right: -2px;
+        bottom: -2px;
+        background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+        border-radius: var(--radius-md);
+        z-index: -1;
+      }
+
+      /* 화살표 영역에 선택 아이콘 추가 */
+      .memorial-arrow {
+        position: relative;
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+      }
+
+      .selection-icon {
+        color: #ff6b6b;
+        font-size: 20px;
+        display: none;
+      }
+
+      .memorial-item.selected .selection-icon {
+        display: block !important;
+      }
+
+      .memorial-item.selected .memorial-arrow i.fas.fa-chevron-right {
+        display: none;
+      }
+
+      /* 메모리얼 선택 안내 */
+      .memorial-selection-guide {
+        text-align: center;
+        margin-bottom: 16px;
+        padding: 12px;
+        background: #e3f2fd;
+        border-radius: 8px;
+        color: #1976d2;
+        font-size: 14px;
+        display: none;
+      }
+
+      .memorial-selection-guide.show {
+        display: block;
+      }
+
+      .memorial-selection-guide i {
+        margin-right: 8px;
+      }
+
+      /* 상태 표시 아이콘 */
+      .memorial-status {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .status-indicators {
+        display: flex;
+        gap: 4px;
+      }
+
+      .status-icon {
+        font-size: 12px;
+        opacity: 0.7;
+      }
+
+      .status-icon.status-ok {
+        color: #28a745;
+      }
+
+      .status-icon.status-warning {
+        color: #ffc107;
+      }
+
+      /* 메모리얼 메타 정보 */
+      .memorial-meta {
+        font-size: 12px;
+        color: var(--text-light);
+        margin-top: 4px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .memorial-meta .separator {
+        opacity: 0.5;
+      }
+
+      /* 반응형 개선 */
+      @media (max-width: 768px) {
+        .status-icon {
+          font-size: 11px;
+        }
+
+        .selection-icon {
+          font-size: 18px;
+        }
+      }
+    </style>
+  </customCSS>
+</head>
+<body>
+<section>
+  <div class="container">
+    <!-- 환영 메시지 -->
+    <div class="welcome-message" th:if="${!isLoggedIn or memorialCount == 0}">
+      <div class="welcome-text">'토마토리멤버'에 오신 것을 환영합니다.</div>
+      <div class="welcome-subtitle">소중한 분과의 영원한 추억을 만들어보세요.</div>
+    </div>
+
+    <!-- 로그인 전 - 디지털 추모 공간 카드 -->
+    <div class="logged-out-only" th:if="${!isLoggedIn}">
+      <div class="memorial-intro-card">
+        <div class="memorial-intro-icon">
+          <i class="fas fa-heart"></i>
+        </div>
+        <div class="memorial-intro-title">디지털 추모 공간</div>
+        <div class="memorial-intro-subtitle">
+          블록체인 기술로 안전하게 보관되는<br>
+          영원한 추모 공간을 만들어보세요.
+        </div>
+        <!-- 새 메모리얼 등록 버튼 -->
+        <button class="new-memorial-btn" type="button">
+          <i class="fas fa-plus"></i>
+          새 메모리얼 등록하기
+        </button>
+      </div>
+
+      <!-- 서비스 안내 -->
+      <div class="service-intro">
+        <div class="service-title">
+          <i class="fas fa-shield-alt"></i>
+          안전하고 투명한 서비스
+        </div>
+      </div>
+
+      <!-- 추가 서비스 카드들 -->
+      <div class="additional-services">
+        <!-- 블록체인 토큰 시스템 -->
+        <div class="service-card">
+          <div class="service-card-header">
+            <div class="service-card-icon blockchain">
+              <i class="fas fa-coins"></i>
+            </div>
+            <h4 class="service-card-title">블록체인 토큰 시스템</h4>
+          </div>
+          <p class="service-card-description">투명하고 공정한 서비스 이용</p>
+        </div>
+
+        <!-- 영구 보관 -->
+        <div class="service-card">
+          <div class="service-card-header">
+            <div class="service-card-icon storage">
+              <i class="fas fa-archive"></i>
+            </div>
+            <h4 class="service-card-title">영구 보관</h4>
+          </div>
+          <p class="service-card-description">소중한 추억을 영원히 안전하게 보관</p>
+        </div>
+
+        <!-- 가족 공유 -->
+        <div class="service-card">
+          <div class="service-card-header">
+            <div class="service-card-icon family">
+              <i class="fas fa-users"></i>
+            </div>
+            <h4 class="service-card-title">가족 공유</h4>
+          </div>
+          <p class="service-card-description">가족 구성원과 함께 추억 공유</p>
+        </div>
+      </div>
+
+      <!-- 3개월 무료체험 시작하기 -->
+      <div class="free-trial-section">
+        <button class="free-trial-btn" type="button">
+          <i class="fas fa-play"></i>
+          3개월 무료체험 시작하기
+        </button>
+      </div>
+
+      <!-- 약관 및 푸터 영역 -->
+      <div class="terms-footer-section">
+        <div class="terms-links">
+          <a href="/mobile/terms/service" class="terms-link">
+            <i class="fas fa-file-alt"></i>
+            이용약관
+          </a>
+          <a href="/mobile/terms/privacy" class="terms-link">
+            <i class="fas fa-shield-alt"></i>
+            개인정보처리방침
+          </a>
+          <a href="/mobile/support/contact" class="terms-link">
+            <i class="fas fa-phone"></i>
+            고객지원
+          </a>
+        </div>
+
+        <div class="footer-info">
+          <div class="company-info">
+            서울특별시 마포구 양화진 4길 32 이토마토빌딩 2층<br>
+            사업자등록번호 123-45-67890 | 대표 김토마토
+          </div>
+          <div class="contact-info">
+            전화번호: 02-2128-3838 | 이메일: tomatoai@etomato.com
+          </div>
+          <div class="copyright">
+            COPYRIGHT © 2025 TOMATOREMEMBER. ALL RIGHTS RESERVED.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 로그인 후 - 메모리얼 관리 -->
+    <div class="logged-in-only" th:if="${isLoggedIn}">
+      <!-- 새 메모리얼 등록 버튼 -->
+      <div class="add-memorial-section">
+        <button class="add-memorial-btn" type="button">
+          <i class="fas fa-user-plus"></i>
+          새 메모리얼 등록하기
+        </button>
+      </div>
+
+      <!-- 등록된 메모리얼이 있는 경우 -->
+      <div class="memorial-list-section" th:if="${memorialCount > 0}">
+        <!-- 메모리얼 선택 안내 (복수 메모리얼인 경우만) -->
+        <div class="memorial-selection-guide" th:if="${memorialCount > 1}">
+          <i class="fas fa-info-circle"></i>
+          영상통화할 메모리얼을 선택해주세요.
+        </div>
+
+        <!-- 메모리얼 리스트 컨테이너 -->
+        <div class="memorial-list-container">
+          <div id="memorialList" class="memorial-list">
+            <!-- 메모리얼 아이템 템플릿 -->
+            <div class="memorial-item" th:each="memorial, iterStat : ${memorialList}"
+                 th:data-memorial-id="${memorial.memorialId}">
+
+              <!-- 메모리얼 아바타 -->
+              <div class="memorial-avatar">
+                <!-- 프로필 이미지가 없는 경우 관계별 이모지 -->
+                <span class="memorial-emoji" th:switch="${memorial.relationshipDescription}">
+
+                  <!-- 부모님 관계 -->
+                  <span th:case="'부'" class="emoji">👨</span>
+                  <span th:case="'모'" class="emoji">👩</span>
+                  <span th:case="'배우자부'" class="emoji">👨</span>
+                  <span th:case="'배우자모'" class="emoji">👩</span>
+
+                  <!-- 조부모님 관계 -->
+                  <span th:case="'조부'" class="emoji">👴</span>
+                  <span th:case="'조모'" class="emoji">👵</span>
+                  <span th:case="'증조부'" class="emoji">👴</span>
+                  <span th:case="'증조모'" class="emoji">👵</span>
+
+                  <!-- 배우자 관계 -->
+                  <span th:case="'배우자'" class="emoji">💑</span>
+
+                  <!-- 자녀 관계 -->
+                  <span th:case="'자'" class="emoji">👶</span>
+                  <span th:case="'자부'" class="emoji">👰</span>
+                  <span th:case="'사위'" class="emoji">🤵</span>
+
+                  <!-- 형제/자매 관계 -->
+                  <span th:case="'형제/자매'" class="emoji">👫</span>
+
+                  <!-- 손자/증손 관계 -->
+                  <span th:case="'손'" class="emoji">👶</span>
+                  <span th:case="'증손'" class="emoji">👶</span>
+
+                  <!-- 본인 -->
+                  <span th:case="'본인'" class="emoji">😊</span>
+
+                  <!-- 동거인 -->
+                  <span th:case="'동거인'" class="emoji">🏠</span>
+
+                  <!-- 기타 또는 기본값 -->
+                  <span th:case="*" class="emoji">👤</span>
+                </span>
+              </div>
+
+              <!-- 메모리얼 정보 -->
+              <div class="memorial-info">
+                <div class="memorial-name" th:text="${memorial.name}">김순자</div>
+                <div class="memorial-relationship" th:text="${memorial.relationshipDescription ?: '관계 없음'}">할머니</div>
+              </div>
+
+              <!-- 화살표 아이콘 -->
+              <div class="memorial-arrow">
+                <i class="fas fa-chevron-right"></i>
+                <i class="fas fa-check-circle selection-icon" style="display: none;"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- 더보기 안내 텍스트 (5개 초과 시) -->
+          <div class="more-info" th:if="${hasMoreMemorials}">
+            <i class="fas fa-info-circle"></i>
+            메모리얼을 탭하여 선택하고 영상통화를 시작하세요.
+          </div>
+        </div>
+      </div>
+
+      <!-- 등록된 메모리얼이 없는 경우 -->
+      <div class="empty-state" th:if="${memorialCount == 0}">
+        <div class="empty-icon">
+          <i class="fas fa-heart"></i>
+        </div>
+        <h3>등록된 메모리얼이 없습니다.</h3>
+        <p>소중한 분과의 영원한 추억을 만들어보세요.</p>
+        <button class="btn empty-state-create-btn" type="button">
+          <i class="fas fa-plus"></i>
+          새 메모리얼 등록하기
+        </button>
+      </div>
+
+      <!-- 하단 영상통화 버튼 -->
+      <div class="bottom-actions">
+        <button class="video-call-btn" type="button" th:disabled="${memorialCount == 0}">
+          <i class="fas fa-video"></i>
+          영상통화
+        </button>
+      </div>
+    </div>
+
+    <!-- 로딩 스켈레톤 -->
+    <div class="loading-skeleton" id="loadingSkeleton" style="display: none;">
+      <div class="skeleton-item">
+        <div class="skeleton-avatar"></div>
+        <div class="skeleton-content">
+          <div class="skeleton-line"></div>
+          <div class="skeleton-line short"></div>
+        </div>
+      </div>
+      <div class="skeleton-item">
+        <div class="skeleton-avatar"></div>
+        <div class="skeleton-content">
+          <div class="skeleton-line"></div>
+          <div class="skeleton-line short"></div>
+        </div>
+      </div>
+      <div class="skeleton-item">
+        <div class="skeleton-avatar"></div>
+        <div class="skeleton-content">
+          <div class="skeleton-line"></div>
+          <div class="skeleton-line short"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 에러 상태 -->
+    <div class="error-state" id="errorState" style="display: none;">
+      <div class="error-icon">
+        <i class="fas fa-exclamation-triangle"></i>
+      </div>
+      <h4>오류가 발생했습니다</h4>
+      <p id="errorMessage">메모리얼 목록을 불러오는 중 오류가 발생했습니다.</p>
+      <button class="btn retry-btn" type="button">
+        <i class="fas fa-refresh"></i>
+        다시 시도
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- Custom JavaScript -->
+<customJS>
+  <!-- 서버 사이드 데이터 전달 -->
+  <script th:inline="javascript">
+    // 서버에서 전달받은 데이터
+    window.serverData = {
+      isLoggedIn: /*[[${isLoggedIn}]]*/ false,
+      memorialCount: /*[[${memorialCount}]]*/ 0,
+      memorialList: /*[[${memorialList}]]*/ [],
+      currentUser: /*[[${currentUser}]]*/ null,
+      hasMoreMemorials: /*[[${hasMoreMemorials}]]*/ false,
+      showTrialBanner: /*[[${showTrialBanner}]]*/ false,
+      trialDaysRemaining: /*[[${trialDaysRemaining}]]*/ 0,
+      freeTrialMonths: /*[[${freeTrialMonths}]]*/ 3,
+      maxFamilyMembers: /*[[${maxFamilyMembers}]]*/ 8,
+      urls: {
+        login: /*[[${loginUrl}]]*/ '/mobile/login',
+        register: /*[[${registerUrl}]]*/ '/mobile/register',
+        memorialCreate: /*[[${memorialCreateUrl}]]*/ '/mobile/memorial/create',
+        payment: /*[[${paymentUrl}]]*/ '/mobile/payment',
+        videocall: /*[[${videocallUrl}]]*/ '/mobile/videocall'
+      }
+    };
+
+    // 메모리얼이 여러개인 경우 선택 안내 표시
+    if (window.serverData.memorialCount > 1) {
+      document.addEventListener('DOMContentLoaded', function() {
+        const guide = document.querySelector('.memorial-selection-guide');
+        if (guide) {
+          guide.classList.add('show');
+        }
+      });
+    }
+
+    // 개발 모드 활성화
+    if (window.location.search.includes('debug=true')) {
+      window.debugMode = true;
+      console.log('메인 페이지 디버그 모드 활성화');
+      console.log('서버 데이터:', window.serverData);
+    }
+  </script>
+
+  <!-- 메인 페이지 JavaScript 로드 -->
+  <script th:src="@{/assets/mobile/js/main.js}" type="module"></script>
+</customJS>
+</body>
+</html>

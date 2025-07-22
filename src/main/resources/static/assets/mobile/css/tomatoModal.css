@@ -1,0 +1,512 @@
+/* ===== 토마토 그룹 모달 및 추가 스타일 ===== */
+
+/* 토마토 모달 기본 스타일 */
+.tomato-group-modal {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  z-index: 9999 !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.tomato-group-modal.show {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* 토마토 모달 배경 */
+.tomato-modal-backdrop {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(0, 0, 0, 0.6) !important;
+  backdrop-filter: blur(4px) !important;
+  cursor: pointer !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* 토마토 모달 다이얼로그 */
+.tomato-modal-dialog {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) scale(0.9) !important;
+  background: white !important;
+  border-radius: 16px !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3) !important;
+  max-width: 500px !important;
+  width: calc(100% - 40px) !important;
+  max-height: calc(100vh - 80px) !important;
+  overflow: hidden !important;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.tomato-group-modal.show .tomato-modal-dialog {
+  transform: translate(-50%, -50%) scale(1) !important;
+}
+
+/* 토마토 모달 헤더 */
+.tomato-modal-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 20px !important;
+  background: var(--tomato-primary-color, #ff6b35) !important;
+  color: white !important;
+  margin: 0 !important;
+  border-bottom: none !important;
+}
+
+.tomato-modal-header h4 {
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  margin: 0 !important;
+  color: white !important;
+}
+
+.tomato-modal-close {
+  background: none !important;
+  border: none !important;
+  color: white !important;
+  font-size: 20px !important;
+  cursor: pointer !important;
+  padding: 8px !important;
+  border-radius: 50% !important;
+  transition: all 0.2s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 36px !important;
+  height: 36px !important;
+  margin: 0 !important;
+}
+
+.tomato-modal-close:hover {
+  background: rgba(255, 255, 255, 0.2) !important;
+  transform: rotate(90deg) !important;
+}
+
+/* 토마토 모달 바디 */
+.tomato-modal-body {
+  padding: 20px !important;
+  max-height: 400px !important;
+  overflow-y: auto !important;
+  margin: 0 !important;
+}
+
+.tomato-modal-body::-webkit-scrollbar {
+  width: 6px !important;
+}
+
+.tomato-modal-body::-webkit-scrollbar-track {
+  background: #f1f1f1 !important;
+}
+
+.tomato-modal-body::-webkit-scrollbar-thumb {
+  background: var(--tomato-border-color, #ccc) !important;
+  border-radius: 3px !important;
+}
+
+.tomato-modal-body::-webkit-scrollbar-thumb:hover {
+  background: var(--tomato-primary-color, #ff6b35) !important;
+}
+
+/* 토마토 모달 그리드 */
+.tomato-modal-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)) !important;
+  gap: 16px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.tomato-modal-item {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 16px 8px !important;
+  background: white !important;
+  border: 2px solid #f0f0f0 !important;
+  border-radius: 12px !important;
+  text-decoration: none !important;
+  color: var(--tomato-text-primary, #333) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  cursor: pointer !important;
+  margin: 0 !important;
+  position: relative !important;
+}
+
+.tomato-modal-item:hover {
+  background: var(--tomato-bg-hover, rgba(255, 107, 53, 0.1)) !important;
+  border-color: var(--tomato-primary-color, #ff6b35) !important;
+  transform: translateY(-4px) !important;
+  box-shadow: 0 8px 20px rgba(255, 107, 53, 0.2) !important;
+  text-decoration: none !important;
+  color: var(--tomato-primary-color, #ff6b35) !important;
+}
+
+.tomato-modal-item img {
+  width: 48px !important;
+  height: 48px !important;
+  object-fit: cover !important;
+  border-radius: 8px !important;
+  border: 1px solid #f0f0f0 !important;
+  background: white !important;
+  transition: all 0.3s ease !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.tomato-modal-item:hover img {
+  transform: scale(1.1) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.tomato-modal-item span {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  text-align: center !important;
+  line-height: 1.3 !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  color: inherit !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* 토마토 모달 푸터 */
+.tomato-modal-footer {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 12px !important;
+  padding: 20px !important;
+  background: #f8f9fa !important;
+  border-top: 1px solid #e9ecef !important;
+  margin: 0 !important;
+}
+
+.tomato-modal-btn {
+  padding: 10px 20px !important;
+  border: none !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 80px !important;
+  margin: 0 !important;
+}
+
+.tomato-modal-btn.primary {
+  background: var(--tomato-primary-color, #ff6b35) !important;
+  color: white !important;
+}
+
+.tomato-modal-btn.primary:hover {
+  background: var(--tomato-secondary-color, #ff8c42) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3) !important;
+}
+
+.tomato-modal-btn.secondary {
+  background: #6c757d !important;
+  color: white !important;
+}
+
+.tomato-modal-btn.secondary:hover {
+  background: #5a6268 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3) !important;
+}
+
+/* ===== 토마토 드래그 앤 드롭 관련 스타일 ===== */
+
+/* 드래그 플레이스홀더 */
+.tomato-sort-placeholder {
+  background: var(--tomato-bg-hover, rgba(255, 107, 53, 0.1)) !important;
+  border: 2px dashed var(--tomato-primary-color, #ff6b35) !important;
+  border-radius: 8px !important;
+  margin: 8px 0 !important;
+  padding: 12px 8px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 50px !important;
+  transition: all 0.3s ease !important;
+}
+
+.placeholder-content {
+  color: var(--tomato-primary-color, #ff6b35) !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  opacity: 0.8 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* 드래그 중인 아이템 */
+.tomato-sortable-item.dragging {
+  opacity: 0.6 !important;
+  transform: rotate(3deg) !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25) !important;
+  z-index: 1000 !important;
+}
+
+/* 드래그 핸들 개선 */
+.tomato-drag-handle {
+  color: var(--tomato-text-muted, #999) !important;
+  cursor: grab !important;
+  font-size: 16px !important;
+  padding: 4px !important;
+  border-radius: 4px !important;
+  transition: all 0.2s ease !important;
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.tomato-drag-handle:hover {
+  color: var(--tomato-primary-color, #ff6b35) !important;
+  background: var(--tomato-bg-hover, rgba(255, 107, 53, 0.1)) !important;
+}
+
+.tomato-drag-handle:active {
+  cursor: grabbing !important;
+  transform: scale(1.1) !important;
+}
+
+/* ===== 반응형 모달 스타일 ===== */
+
+/* 태블릿 */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .tomato-modal-dialog {
+    max-width: 600px !important;
+  }
+
+  .tomato-modal-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)) !important;
+    gap: 20px !important;
+  }
+
+  .tomato-modal-item {
+    padding: 20px 12px !important;
+  }
+
+  .tomato-modal-item img {
+    width: 56px !important;
+    height: 56px !important;
+  }
+
+  .tomato-modal-item span {
+    font-size: 13px !important;
+  }
+}
+
+/* 데스크톱 */
+@media (min-width: 1024px) {
+  .tomato-modal-dialog {
+    max-width: 700px !important;
+  }
+
+  .tomato-modal-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important;
+    gap: 24px !important;
+  }
+
+  .tomato-modal-item {
+    padding: 24px 16px !important;
+  }
+
+  .tomato-modal-item img {
+    width: 64px !important;
+    height: 64px !important;
+  }
+
+  .tomato-modal-item span {
+    font-size: 14px !important;
+  }
+}
+
+/* 작은 모바일 */
+@media (max-width: 375px) {
+  .tomato-modal-dialog {
+    width: calc(100% - 20px) !important;
+  }
+
+  .tomato-modal-header {
+    padding: 16px !important;
+  }
+
+  .tomato-modal-header h4 {
+    font-size: 16px !important;
+  }
+
+  .tomato-modal-body {
+    padding: 16px !important;
+  }
+
+  .tomato-modal-footer {
+    padding: 16px !important;
+  }
+
+  .tomato-modal-grid {
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)) !important;
+    gap: 12px !important;
+  }
+
+  .tomato-modal-item {
+    padding: 12px 6px !important;
+  }
+
+  .tomato-modal-item img {
+    width: 40px !important;
+    height: 40px !important;
+  }
+
+  .tomato-modal-item span {
+    font-size: 11px !important;
+  }
+
+  .tomato-modal-btn {
+    padding: 8px 16px !important;
+    font-size: 13px !important;
+    min-width: 70px !important;
+  }
+}
+
+/* ===== 접근성 및 포커스 스타일 ===== */
+.tomato-modal-item:focus,
+.tomato-modal-close:focus,
+.tomato-modal-btn:focus {
+  outline: 2px solid var(--tomato-primary-color, #ff6b35) !important;
+  outline-offset: 2px !important;
+}
+
+.tomato-sortable-item:focus {
+  outline: 2px solid var(--tomato-primary-color, #ff6b35) !important;
+  outline-offset: 1px !important;
+}
+
+/* 키보드 네비게이션 개선 */
+.tomato-modal-item:focus-visible {
+  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.3) !important;
+}
+
+/* ===== 애니메이션 ===== */
+@keyframes tomatoModalFadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes tomatoItemBounce {
+  0%, 20%, 53%, 80%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+  40%, 43% {
+    transform: translate3d(0, -8px, 0);
+  }
+  70% {
+    transform: translate3d(0, -4px, 0);
+  }
+  90% {
+    transform: translate3d(0, -2px, 0);
+  }
+}
+
+.tomato-modal-item:hover {
+  animation: none !important; /* hover 시에는 bounce 비활성화 */
+}
+
+.tomato-modal-item:active {
+  animation: tomatoItemBounce 0.6s ease !important;
+}
+
+/* ===== 로딩 상태 ===== */
+.tomato-group-loading {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 40px 20px !important;
+  color: var(--tomato-text-secondary, #666) !important;
+  font-size: 14px !important;
+  gap: 12px !important;
+  margin: 0 !important;
+}
+
+.tomato-loading-spinner {
+  width: 24px !important;
+  height: 24px !important;
+  border: 3px solid #f0f0f0 !important;
+  border-top: 3px solid var(--tomato-primary-color, #ff6b35) !important;
+  border-radius: 50% !important;
+  animation: tomatoSpin 1s linear infinite !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+@keyframes tomatoSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ===== 다크 모드 지원 ===== */
+@media (prefers-color-scheme: dark) {
+  .tomato-modal-dialog {
+    background: #2d3748 !important;
+    color: #e2e8f0 !important;
+  }
+
+  .tomato-modal-footer {
+    background: #1a202c !important;
+    border-top-color: #4a5568 !important;
+  }
+
+  .tomato-modal-item {
+    background: #4a5568 !important;
+    border-color: #718096 !important;
+    color: #e2e8f0 !important;
+  }
+
+  .tomato-modal-item:hover {
+    background: rgba(255, 107, 53, 0.2) !important;
+  }
+
+  .tomato-sort-placeholder {
+    background: rgba(255, 107, 53, 0.2) !important;
+  }
+}
+
+/* ===== 인쇄 시 숨김 ===== */
+@media print {
+  .tomato-group-modal,
+  .tomato-sort-placeholder {
+    display: none !important;
+  }
+}

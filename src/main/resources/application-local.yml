@@ -50,7 +50,21 @@ spring:
       connection-test-query: SELECT 1
       idle-timeout: 600000
       pool-name: ${spring.application.name}-pool
-
+  # =======================================================
+  # redis 환경별 설정
+  # =======================================================
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-wait: -1ms
+          max-idle: 8
+          min-idle: 0
   # =======================================================
   # 파일 업로드/표시 설정 (기존 FTP → 로컬 파일시스템)
   # =======================================================
@@ -60,8 +74,8 @@ app:
     base-url: http://192.168.20.22:8080
   external-api:
     video:
-      base-url: http://110.93.190.10:6063
-      process-endpoint: /downvideo
+      base-url: https://remember.newstomato.com/
+      process-endpoint: /downvideo-v2
       timeout: 30
       retry-count: 3
 #      ftp:
@@ -102,3 +116,5 @@ springdoc:
     deep-linking: true
     display-operation-id: true
     show-extensions: true
+
+
