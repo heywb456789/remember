@@ -26,13 +26,13 @@ public class ExternalVideoApiService {
     @Autowired
     private WebClient webClient;
 
-    @Value("${app.external-api.video.base-url:https://api.example.com}")
+    @Value("${app.external-api.video.base-url:https://remember.newstomato.com/}")
     private String externalApiBaseUrl;
 
-    @Value("${app.external-api.video.process-endpoint:/api/v1/video/process}")
+    @Value("${app.external-api.video.process-endpoint:/downvideo-v2}")
     private String processEndpoint;
 
-    @Value("${app.external-api.video.timeout:10}")  // ✅ 짧은 타임아웃
+    @Value("${app.external-api.video.timeout:15}")  // ✅ 짧은 타임아웃
     private int timeoutSeconds;
 
     @Value("${app.file.base-url:http://localhost:8080}")

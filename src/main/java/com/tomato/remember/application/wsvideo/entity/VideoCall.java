@@ -1,6 +1,6 @@
-package com.tomato.remember.application.videocall.entity;
+package com.tomato.remember.application.wsvideo.entity;
 
-import com.tomato.remember.application.family.code.DeviceType;
+import com.tomato.remember.application.wsvideo.code.DeviceType;
 import com.tomato.remember.application.family.code.FeedbackCategory;
 import com.tomato.remember.application.member.entity.Member;
 import com.tomato.remember.application.memorial.entity.Memorial;

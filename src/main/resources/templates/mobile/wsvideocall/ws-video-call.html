@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>토마토리멤버 - WebSocket 영상통화</title>
+
+    <!-- External Libraries -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.8.1/font/bootstrap-icons.min.css">
+
+    <!-- Styles -->
+    <link rel="stylesheet" th:href="@{/assets/mobile/css/ws-video-call.css}">
+</head>
+<body>
+    <!-- 권한 요청 모달 -->
+    <div id="permissionModal" class="permission-modal">
+        <div class="permission-dialog">
+            <div id="permissionIcon" class="permission-icon">🎥</div>
+            <div id="permissionTitle" class="permission-title">미디어 권한 필요</div>
+            <div id="permissionMessage" class="permission-message">
+                영상통화를 위해 카메라와 마이크 권한이 필요합니다.<br>
+                최적의 경험을 위해 권한을 허용해주세요.
+            </div>
+            <div class="permission-buttons">
+                <button class="permission-btn deny" onclick="denyPermission()">나중에</button>
+                <button class="permission-btn allow" onclick="requestPermissions()">허용</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 통화 시작 모달 -->
+    <div id="callStartModal" class="call-start-modal">
+        <div class="call-start-dialog">
+            <div class="call-start-icon">📹</div>
+            <div class="call-start-title">통화를 시작하시겠습니까?</div>
+            <div class="call-start-message">
+                <!-- 👈 여기만 변경 -->
+                <span id="contactNameDisplay" th:text="${contactName}">연결 준비 중...</span>님과의 영상통화를<br>
+                시작할 준비가 되었습니다.
+            </div>
+            <div class="call-start-buttons">
+                <button class="call-start-btn cancel" onclick="cancelCall()">취소</button>
+                <button class="call-start-btn start" onclick="startCall()">통화 시작하기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 로딩 모달 -->
+    <div id="loadingModal" class="loading-modal">
+        <div class="loading-dialog">
+            <div class="loading-spinner"></div>
+            <div id="loadingTitle" class="loading-title">연결 준비 중...</div>
+            <div id="loadingMessage" class="loading-message">
+                잠시만 기다려주세요
+            </div>
+        </div>
+    </div>
+
+    <!-- 녹화 카운트다운 모달 -->
+    <div id="countdownModal" class="countdown-modal">
+        <div class="countdown-dialog">
+            <div id="countdownNumber" class="countdown-number">3</div>
+            <div class="countdown-message">녹화가 시작됩니다</div>
+        </div>
+    </div>
+
+    <!-- 처리 진행률 모달 -->
+    <div id="progressModal" class="progress-modal">
+        <div class="progress-dialog">
+            <div class="progress-icon">🤖</div>
+            <div class="progress-title">AI 처리 중</div>
+            <div class="progress-bar">
+                <div id="progressFill" class="progress-fill"></div>
+            </div>
+            <div id="progressText" class="progress-text">처리를 시작하고 있습니다...</div>
+            <div id="progressPercent" class="progress-percent">0%</div>
+        </div>
+    </div>
+
+    <!-- 상태 표시 -->
+    <div id="statusIndicator" class="status-indicator">
+        <span class="status-dot"></span>
+        <span id="statusText">초기화 중...</span>
+    </div>
+
+    <!-- 세션 정보 -->
+    <div id="sessionInfo" class="session-info" style="display: none;">
+        <span id="sessionId">세션: 준비중...</span>
+    </div>
+
+    <!-- 메인 비디오 컨테이너 -->
+    <div class="main-video-container">
+        <!-- 👈 여기만 변경 -->
+        <video id="mainVideo" class="main-video" autoplay loop muted playsinline style="display: none;">
+            <source th:src="${waitingVideoUrl}" type="video/mp4" th:if="${waitingVideoUrl}">
+            대기 영상을 불러올 수 없습니다.
+        </video>
+
+        <!-- 영상 로딩 오버레이 -->
+        <div id="videoLoadingOverlay" class="video-loading-overlay">
+            <div class="video-loading-spinner"></div>
+            <div class="video-loading-text">영상 로딩 중...</div>
+        </div>
+    </div>
+
+    <!-- 내 카메라 -->
+    <div id="myCameraContainer" class="my-camera-container">
+        <video id="myCamera" class="my-camera" autoplay muted playsinline style="display: none;"></video>
+        <div id="cameraPlaceholder" class="camera-placeholder">📹</div>
+    </div>
+
+    <!-- 통화 종료 버튼 -->
+    <div class="end-call-container">
+        <button class="end-call-x-btn" onclick="endCall()" title="통화 종료">✕</button>
+    </div>
+
+    <!-- 하단 컨트롤 -->
+    <div id="controlBar" class="control-bar">
+        <button id="recordBtn" class="control-btn record-btn" onclick="toggleRecording()" title="녹화/중지">
+            <i class="fas fa-microphone" id="recordIcon"></i>
+        </button>
+    </div>
+
+    <!-- 연결 상태 표시 -->
+    <div id="connectionStatus" class="connection-status">
+        <i class="fas fa-wifi" id="connectionIcon"></i>
+        <span id="connectionText">연결 중...</span>
+    </div>
+
+    <!-- 디버그 정보 (개발용) -->
+    <div id="debugInfo" class="debug-info" style="display: none;">
+        <div>상태: <span id="debugState">-</span></div>
+        <div>WebSocket: <span id="debugWS">-</span></div>
+        <div>디바이스: <span id="debugDevice">-</span></div>
+        <div>세션 TTL: <span id="debugTTL">-</span></div>
+    </div>
+
+    <!-- 👈 오류 메시지 표시 (선택적) -->
+    <div th:if="${errorMessage}" class="alert alert-warning" style="position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 3000;">
+        <span th:text="${errorMessage}"></span>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" th:src="@{/assets/mobile/js/commonFetch.js}"></script>
+    <script th:src="@{/assets/mobile/js/ws-video-call-config.js}" type="module"></script>
+    <script th:src="@{/assets/mobile/js/ws-video-call-websocket.js}" type="module"></script>
+    <script th:src="@{/assets/mobile/js/ws-video-call-media.js}" type="module"></script>
+    <script th:src="@{/assets/mobile/js/ws-video-call-ui.js}" type="module"></script>
+    <script th:src="@{/assets/mobile/js/ws-video-call-main.js}" type="module"></script>
+
+    <!-- 👈 서버에서 내려준 데이터를 JavaScript 변수로 전달 -->
+    <script th:inline="javascript">
+        // 서버에서 내려준 데이터를 JavaScript 전역 변수로 설정
+        window.SERVER_DATA = {
+            memberId: /*[[${memberId}]]*/ '1',
+            memorialId: /*[[${memorialId}]]*/ '1',
+            contactName: /*[[${contactName}]]*/ '김근태',
+            waitingVideoUrl: /*[[${waitingVideoUrl}]]*/ 'https://remember.newstomato.com/static/waiting_no.mp4',
+            memberName: /*[[${memberName}]]*/ '사용자'
+        };
+
+        console.log('🎬 서버 데이터:', window.SERVER_DATA);
+    </script>
+
+    <script type="module">
+        import { checkLoginStatus, syncTokensFromPage } from '/assets/mobile/js/commonFetch.js';
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🎬 WebSocket 영상통화 시스템 시작');
+
+            // 토큰 동기화
+            // syncTokensFromPage();
+
+            // 로그인 상태 확인
+            if (!checkLoginStatus()) {
+                alert('로그인이 필요합니다.');
+                window.location.href = '/mobile/login?redirect=' + encodeURIComponent(window.location.href);
+                return;
+            }
+
+            // 👈 서버 데이터 사용 (URL 파라미터 대신)
+            const { memberId, memorialId, contactName, waitingVideoUrl } = window.SERVER_DATA;
+
+            console.log('📋 서버에서 받은 파라미터:', { memberId, memorialId, contactName });
+
+            // 전역 변수 설정
+            window.INITIAL_PARAMS = {
+                memberId,
+                memorialId,
+                contactName,
+                waitingVideoUrl
+            };
+
+            // 메인 초기화 시작
+            if (typeof initializeVideoCall === 'function') {
+                initializeVideoCall();
+            } else {
+                console.error('❌ initializeVideoCall 함수를 찾을 수 없습니다');
+            }
+        });
+
+        // 페이지 언로드 시 정리
+        window.addEventListener('beforeunload', function() {
+            console.log('🧹 페이지 언로드 - 리소스 정리');
+            if (typeof cleanup === 'function') {
+                cleanup();
+            }
+        });
+
+        // 네트워크 상태 모니터링
+        window.addEventListener('online', function() {
+            console.log('🌐 네트워크 연결됨');
+            if (typeof handleNetworkOnline === 'function') {
+                handleNetworkOnline();
+            }
+        });
+
+        window.addEventListener('offline', function() {
+            console.log('📵 네트워크 연결 끊김');
+            if (typeof handleNetworkOffline === 'function') {
+                handleNetworkOffline();
+            }
+        });
+
+        // 앱 활성화/비활성화 모니터링
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                console.log('📱 앱 비활성화');
+                if (typeof handleAppHidden === 'function') {
+                    handleAppHidden();
+                }
+            } else {
+                console.log('📱 앱 활성화');
+                if (typeof handleAppVisible === 'function') {
+                    handleAppVisible();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

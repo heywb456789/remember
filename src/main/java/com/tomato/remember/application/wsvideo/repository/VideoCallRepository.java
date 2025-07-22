@@ -1,12 +1,12 @@
-package com.tomato.remember.application.videocall.repository;
+package com.tomato.remember.application.wsvideo.repository;
 
-import com.tomato.remember.application.family.code.DeviceType;
+import com.tomato.remember.application.wsvideo.code.DeviceType;
 import com.tomato.remember.application.family.code.FeedbackCategory;
 import com.tomato.remember.application.videocall.code.CallStatus;
 import com.tomato.remember.application.videocall.code.CallType;
 import com.tomato.remember.application.videocall.code.ConversationTopic;
 import com.tomato.remember.application.videocall.code.EmotionType;
-import com.tomato.remember.application.videocall.entity.VideoCall;
+import com.tomato.remember.application.wsvideo.entity.VideoCall;
 import com.tomato.remember.application.memorial.entity.Memorial;
 import com.tomato.remember.application.member.entity.Member;
 import org.springframework.data.domain.Page;

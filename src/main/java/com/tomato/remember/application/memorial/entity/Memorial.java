@@ -8,7 +8,7 @@ import com.tomato.remember.application.member.entity.Member;
 import com.tomato.remember.application.memorial.code.AiTrainingStatus;
 import com.tomato.remember.application.memorial.code.MemorialFileType;
 import com.tomato.remember.application.memorial.code.MemorialStatus;
-import com.tomato.remember.application.videocall.entity.VideoCall;
+import com.tomato.remember.application.wsvideo.entity.VideoCall;
 import com.tomato.remember.common.audit.Audit;
 import jakarta.persistence.*;
 import java.util.Objects;

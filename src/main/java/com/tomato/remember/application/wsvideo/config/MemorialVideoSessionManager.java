@@ -1,11 +1,9 @@
-package com.tomato.remember.application.videocall.config;
+package com.tomato.remember.application.wsvideo.config;
 
-import com.tomato.remember.application.videocall.dto.MemorialVideoSession;
+import com.tomato.remember.application.wsvideo.dto.MemorialVideoSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -13,13 +11,14 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import org.springframework.stereotype.Component;
 
 /**
  * Memorial Video Call 세션 관리자
  * Redis 기반으로 TTL을 이용한 세션 생명주기 관리
  */
 @Slf4j
-//@Component
+@Component
 @RequiredArgsConstructor
 public class MemorialVideoSessionManager {
     

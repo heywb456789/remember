@@ -1,5 +1,8 @@
-package com.tomato.remember.application.videocall.config;
+package com.tomato.remember.application.wsvideo.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,7 +16,7 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
  * Redis 설정 클래스
  * Memorial Video Call WebSocket 시스템용 Redis 설정
  */
-//@Configuration
+@Configuration
 public class RedisConfig {
     
     @Value("${spring.data.redis.host:localhost}")
@@ -42,19 +45,22 @@ public class RedisConfig {
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
-        
-        // Key는 String으로 직렬화
+
+        // ObjectMapper 설정
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+        // JSON Serializer 설정
+        GenericJackson2JsonRedisSerializer serializer =
+            new GenericJackson2JsonRedisSerializer(objectMapper);
+
+        template.setDefaultSerializer(serializer);
         template.setKeySerializer(new StringRedisSerializer());
         template.setHashKeySerializer(new StringRedisSerializer());
-        
-        // Value는 JSON으로 직렬화 (MemorialVideoSession 객체 저장용)
-        GenericJackson2JsonRedisSerializer jsonSerializer = new GenericJackson2JsonRedisSerializer();
-        template.setValueSerializer(jsonSerializer);
-        template.setHashValueSerializer(jsonSerializer);
-        
-        // 기본 직렬화 설정
-        template.setDefaultSerializer(jsonSerializer);
-        
+        template.setValueSerializer(serializer);
+        template.setHashValueSerializer(serializer);
+
         template.afterPropertiesSet();
         return template;
     }

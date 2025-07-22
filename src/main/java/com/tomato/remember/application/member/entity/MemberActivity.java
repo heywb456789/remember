@@ -1,6 +1,6 @@
 package com.tomato.remember.application.member.entity;
 
-import com.tomato.remember.application.family.code.DeviceType;
+import com.tomato.remember.application.wsvideo.code.DeviceType;
 import com.tomato.remember.application.member.code.ActivityCategory;
 import com.tomato.remember.application.member.code.ActivityStatus;
 import com.tomato.remember.application.member.code.ActivityType;

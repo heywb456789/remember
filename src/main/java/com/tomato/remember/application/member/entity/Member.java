@@ -5,7 +5,7 @@ import com.tomato.remember.admin.user.dto.AppUserResponse;
 import com.tomato.remember.application.family.entity.FamilyMember;
 import com.tomato.remember.application.member.dto.MemberDTO;
 import com.tomato.remember.application.memorial.entity.Memorial;
-import com.tomato.remember.application.videocall.entity.VideoCall;
+import com.tomato.remember.application.wsvideo.entity.VideoCall;
 import com.tomato.remember.common.audit.Audit;
 import com.tomato.remember.common.code.MemberRole;
 import com.tomato.remember.common.code.MemberStatus;
