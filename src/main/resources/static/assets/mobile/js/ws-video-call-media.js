@@ -424,17 +424,38 @@ class SimpleRecordingManager {
         mediaRecorder.ondataavailable = (event) => {
             if (event.data.size > 0) {
                 WS_VIDEO_STATE.recordedChunks.push(event.data);
+                WS_VIDEO_LOGGER.debug('녹화 데이터 수신:', event.data.size, 'bytes');
             }
         };
 
         mediaRecorder.onstop = () => {
-            WS_VIDEO_LOGGER.info('녹화 완료');
+            WS_VIDEO_LOGGER.info('🎬 MediaRecorder 중지됨 - 업로드 진행');
+
+            // 타이머 정리
+            if (this.recordingTimeout) {
+                clearTimeout(this.recordingTimeout);
+                this.recordingTimeout = null;
+            }
+
+            // 🔧 중지 이유와 상관없이 항상 업로드 진행
             this.processRecordedVideo();
         };
 
         mediaRecorder.onerror = (event) => {
             WS_VIDEO_LOGGER.error('녹화 중 오류', event.error);
             this.handleRecordingError(event.error);
+        };
+
+        mediaRecorder.onstart = () => {
+            WS_VIDEO_LOGGER.info('🔴 MediaRecorder 시작됨');
+        };
+
+        mediaRecorder.onpause = () => {
+            WS_VIDEO_LOGGER.info('⏸️ MediaRecorder 일시정지됨');
+        };
+
+        mediaRecorder.onresume = () => {
+            WS_VIDEO_LOGGER.info('▶️ MediaRecorder 재개됨');
         };
     }
 
@@ -493,6 +514,62 @@ class SimpleRecordingManager {
         showErrorMessage('녹화 중 오류가 발생했습니다');
     }
 
+    forceStopRecording(reason = 'FORCE_STOP') {
+        WS_VIDEO_LOGGER.warn('🛑 녹화 중지:', reason);
+
+        try {
+            // 타이머 정리
+            if (this.recordingTimeout) {
+                clearTimeout(this.recordingTimeout);
+                this.recordingTimeout = null;
+            }
+
+            // MediaRecorder 상태 확인 후 중지
+            if (WS_VIDEO_STATE.mediaRecorder &&
+                (WS_VIDEO_STATE.mediaRecorder.state === 'recording' ||
+                 WS_VIDEO_STATE.mediaRecorder.state === 'paused')) {
+
+                // 🔧 사용자 중지든 자동 중지든 상관없이 모두 업로드하도록
+                // _userStop 플래그 제거 (더 이상 구분하지 않음)
+                WS_VIDEO_STATE.mediaRecorder.stop();
+                WS_VIDEO_LOGGER.info('MediaRecorder.stop() 호출됨 - 업로드 진행 예정');
+            }
+
+            // 상태 즉시 업데이트
+            this.isRecording = false;
+            WS_VIDEO_STATE.isRecording = false;
+
+            updateRecordingUI(false);
+
+            // 🔧 중지 이유에 따른 메시지 표시
+            if (reason === 'USER_STOP') {
+                updateStatus('사용자가 녹화를 중지했습니다');
+                showInfoMessage('녹화가 중지되었습니다. 업로드 중...');
+            } else {
+                updateStatus('녹화 완료');
+                showInfoMessage('녹화가 완료되었습니다. 업로드 중...');
+            }
+
+            const duration = this.startTime ? Math.floor((Date.now() - this.startTime) / 1000) : 0;
+            WS_VIDEO_LOGGER.info('🛑 녹화 중지 완료', { duration, reason, willUpload: true });
+
+            // 🔧 서버에 PROCESSING 상태 알림 (업로드 준비)
+            if (wsVideoClient) {
+                wsVideoClient.sendMessage({
+                    type: 'CLIENT_STATE_CHANGE',
+                    newState: 'PROCESSING',
+                    reason: reason,
+                    duration: duration,
+                    timestamp: Date.now()
+                });
+            }
+
+        } catch (error) {
+            WS_VIDEO_LOGGER.error('녹화 중지 중 오류', error);
+            this.handleRecordingError(error);
+        }
+    }
+
     // 🔧 상태 초기화 (강화됨)
     resetRecordingState() {
         this.isRecording = false;
@@ -517,18 +594,23 @@ class SimpleRecordingManager {
         }
 
         try {
-            WS_VIDEO_LOGGER.info('녹화 영상 처리 시작');
-            updateStatus('영상 처리 중...');
+            WS_VIDEO_LOGGER.info('📤 녹화 영상 업로드 시작');
+            updateStatus('영상 업로드 중...');
 
             const blob = new Blob(WS_VIDEO_STATE.recordedChunks, { type: 'video/webm' });
             const fileSize = WS_VIDEO_UTILS.formatFileSize(blob.size);
+            const duration = this.startTime ? Math.floor((Date.now() - this.startTime) / 1000) : 0;
 
-            WS_VIDEO_LOGGER.info('녹화 파일 생성 완료', { size: fileSize });
+            WS_VIDEO_LOGGER.info('📊 녹화 파일 정보', {
+                size: fileSize,
+                duration: `${duration}초`,
+                chunks: WS_VIDEO_STATE.recordedChunks.length
+            });
 
             await this.uploadRecordedVideo(blob);
 
         } catch (error) {
-            WS_VIDEO_LOGGER.error('녹화 영상 처리 실패', error);
+            WS_VIDEO_LOGGER.error('❌ 녹화 영상 처리 실패', error);
 
             if (wsVideoClient) {
                 wsVideoClient.sendMessage({
@@ -539,7 +621,7 @@ class SimpleRecordingManager {
                 });
             }
 
-            showErrorMessage('영상 처리 중 오류가 발생했습니다');
+            showErrorMessage('영상 업로드 중 오류가 발생했습니다');
         }
     }
 

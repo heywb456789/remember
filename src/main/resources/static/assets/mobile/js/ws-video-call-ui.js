@@ -39,6 +39,7 @@ class SimpleWSVideoUIManager {
         this.openModals = [];
         this.lastRecordingToggle = 0; // 녹화 버튼 중복 클릭 방지
         this.recordingToggleThrottle = 2000;
+        this.currentVideoUrl = null;
     }
 
     // === 모달 관리 (3개만) ===
@@ -108,6 +109,7 @@ class SimpleWSVideoUIManager {
             recording: { color: '#e74c3c', icon: '🔴' },
             success: { color: '#27ae60', icon: '✅' },
             loading: { color: '#f39c12', icon: '⏳' },
+            processing: { color: '#3498db', icon: '🤖' },
             info: { color: '#3498db', icon: '' }
         };
 
@@ -195,13 +197,19 @@ class SimpleWSVideoUIManager {
     // === 영상 로딩 오버레이 ===
     showVideoLoadingOverlay() {
         if (domCache.videoLoadingOverlay) {
-            domCache.videoLoadingOverlay.classList.add('show');
+            // 🔧 PROCESSING 상태가 아닐 때만 오버레이 표시
+            const currentState = WS_VIDEO_STATE_UTILS?.getCurrentState();
+            if (currentState?.name !== 'PROCESSING') {
+                domCache.videoLoadingOverlay.classList.add('show');
+                WS_VIDEO_LOGGER.debug('📺 비디오 로딩 오버레이 표시');
+            }
         }
     }
 
     hideVideoLoadingOverlay() {
         if (domCache.videoLoadingOverlay) {
             domCache.videoLoadingOverlay.classList.remove('show');
+            WS_VIDEO_LOGGER.debug('📺 비디오 로딩 오버레이 숨김');
         }
     }
 
@@ -360,14 +368,29 @@ class SimpleWSVideoUIManager {
     // 부드러운 영상 전환 (대기영상 ↔ 응답영상)
     async transitionVideo(newUrl, loop = false, unmuted = false) {
         try {
-            WS_VIDEO_LOGGER.info('부드러운 영상 전환 시작:', newUrl);
+            WS_VIDEO_LOGGER.info('🎬 영상 전환 시작:', newUrl);
 
-            await this.fadeOutVideo();
-            const success = await this.switchVideoSafely(newUrl, loop, unmuted);
+            // 🔧 동일한 URL인 경우 스킵
+            if (this.currentVideoUrl === newUrl) {
+                WS_VIDEO_LOGGER.info('📝 동일한 URL - 전환 스킵');
+                return true;
+            }
+
+            const browserInfo = getBrowserInfo();
+            let success = false;
+
+            // 🔧 OS별 영상 교체 방식 선택
+            if (browserInfo?.isIOSSafari) {
+                success = await this.switchVideoForIOS(newUrl, loop, unmuted);
+            } else if (browserInfo?.isAndroid) {
+                success = await this.switchVideoForAndroid(newUrl, loop, unmuted);
+            } else {
+                success = await this.switchVideoForDesktop(newUrl, loop, unmuted);
+            }
 
             if (success) {
-                await this.fadeInVideo();
-                WS_VIDEO_LOGGER.info('영상 전환 완료');
+                this.currentVideoUrl = newUrl;
+                WS_VIDEO_LOGGER.info('✅ 영상 전환 완료:', newUrl);
 
                 // 응답영상이고 자동 복귀가 필요한 경우
                 if (!loop && unmuted) {
@@ -376,14 +399,220 @@ class SimpleWSVideoUIManager {
 
                 return true;
             } else {
-                WS_VIDEO_LOGGER.error('영상 전환 실패 - 대기영상으로 복귀');
+                WS_VIDEO_LOGGER.error('❌ 영상 전환 실패 - 대기영상으로 복귀');
                 await this.returnToWaitingVideo();
                 return false;
             }
 
         } catch (error) {
-            WS_VIDEO_LOGGER.error('영상 전환 중 오류:', error);
+            WS_VIDEO_LOGGER.error('❌ 영상 전환 중 오류:', error);
             await this.returnToWaitingVideo();
+            return false;
+        }
+    }
+
+    async switchVideoForIOS(newUrl, loop = false, unmuted = false) {
+        WS_VIDEO_LOGGER.info('🍎 iOS Safari 영상 교체 시작');
+
+        const mainVideo = document.getElementById('mainVideo');
+        if (!mainVideo) return false;
+
+        try {
+            this.showVideoLoadingOverlay();
+
+            return new Promise((resolve, reject) => {
+                const cleanup = () => {
+                    mainVideo.removeEventListener('loadeddata', onLoaded);
+                    mainVideo.removeEventListener('error', onError);
+                    if (timeout) clearTimeout(timeout);
+                    this.hideVideoLoadingOverlay();
+                };
+
+                const onLoaded = async () => {
+                    try {
+                        cleanup();
+
+                        // iOS Safari는 명시적으로 load() 후 play() 호출 필요
+                        mainVideo.load();
+                        await mainVideo.play();
+
+                        mainVideo.style.display = 'block';
+                        WS_VIDEO_LOGGER.info('✅ iOS Safari 영상 재생 성공');
+                        resolve(true);
+                    } catch (playError) {
+                        WS_VIDEO_LOGGER.error('❌ iOS Safari 재생 실패:', playError);
+                        if (playError.name === 'NotAllowedError') {
+                            this.showTouchToPlayGuide(resolve, reject);
+                        } else {
+                            reject(playError);
+                        }
+                    }
+                };
+
+                const onError = () => {
+                    cleanup();
+                    WS_VIDEO_LOGGER.error('❌ iOS Safari 영상 로딩 실패:', newUrl);
+                    reject(new Error('iOS Safari 영상 로딩 실패'));
+                };
+
+                // iOS Safari 설정 (중요!)
+                mainVideo.src = newUrl;
+                mainVideo.loop = loop;
+                mainVideo.muted = !unmuted;
+                mainVideo.playsInline = true; // iOS 필수
+                mainVideo.autoplay = true;
+
+                if (unmuted) {
+                    mainVideo.volume = 0.8;
+                }
+
+                mainVideo.addEventListener('loadeddata', onLoaded); // iOS는 loadeddata 이벤트 사용
+                mainVideo.addEventListener('error', onError);
+
+                // 타임아웃 설정
+                const timeout = setTimeout(() => {
+                    cleanup();
+                    reject(new Error('iOS Safari 영상 로딩 타임아웃'));
+                }, 10000); // iOS는 더 짧은 타임아웃
+
+                // iOS Safari는 반드시 load() 호출
+                mainVideo.load();
+                WS_VIDEO_LOGGER.info('🍎 iOS Safari load() 호출 완료');
+            });
+
+        } catch (error) {
+            this.hideVideoLoadingOverlay();
+            WS_VIDEO_LOGGER.error('❌ iOS Safari 영상 교체 실패:', error);
+            return false;
+        }
+    }
+
+    async switchVideoForAndroid(newUrl, loop = false, unmuted = false) {
+        WS_VIDEO_LOGGER.info('🤖 Android 영상 교체 시작');
+
+        const mainVideo = document.getElementById('mainVideo');
+        if (!mainVideo) return false;
+
+        try {
+            // Android는 부드러운 전환 사용
+            await this.fadeOutVideo();
+
+            return new Promise((resolve, reject) => {
+                const cleanup = () => {
+                    mainVideo.removeEventListener('canplay', onCanPlay);
+                    mainVideo.removeEventListener('error', onError);
+                    if (timeout) clearTimeout(timeout);
+                };
+
+                const onCanPlay = async () => {
+                    try {
+                        cleanup();
+                        await mainVideo.play();
+                        await this.fadeInVideo();
+
+                        WS_VIDEO_LOGGER.info('✅ Android 영상 재생 성공');
+                        resolve(true);
+                    } catch (playError) {
+                        WS_VIDEO_LOGGER.error('❌ Android 재생 실패:', playError);
+                        reject(playError);
+                    }
+                };
+
+                const onError = () => {
+                    cleanup();
+                    WS_VIDEO_LOGGER.error('❌ Android 영상 로딩 실패:', newUrl);
+                    reject(new Error('Android 영상 로딩 실패'));
+                };
+
+                // Android 설정
+                mainVideo.src = newUrl;
+                mainVideo.loop = loop;
+                mainVideo.muted = !unmuted;
+                mainVideo.playsInline = true;
+
+                if (unmuted) {
+                    mainVideo.volume = 0.8;
+                }
+
+                mainVideo.addEventListener('canplay', onCanPlay);
+                mainVideo.addEventListener('error', onError);
+
+                // 타임아웃 설정
+                const timeout = setTimeout(() => {
+                    cleanup();
+                    reject(new Error('Android 영상 로딩 타임아웃'));
+                }, 15000);
+
+                // Android는 자동 로딩
+                WS_VIDEO_LOGGER.info('🤖 Android 자동 로딩 시작');
+            });
+
+        } catch (error) {
+            WS_VIDEO_LOGGER.error('❌ Android 영상 교체 실패:', error);
+            return false;
+        }
+    }
+
+    async switchVideoForDesktop(newUrl, loop = false, unmuted = false) {
+        WS_VIDEO_LOGGER.info('🖥️ 데스크톱 영상 교체 시작');
+
+        const mainVideo = document.getElementById('mainVideo');
+        if (!mainVideo) return false;
+
+        try {
+            await this.fadeOutVideo();
+
+            return new Promise((resolve, reject) => {
+                const cleanup = () => {
+                    mainVideo.removeEventListener('loadedmetadata', onLoaded);
+                    mainVideo.removeEventListener('error', onError);
+                    if (timeout) clearTimeout(timeout);
+                };
+
+                const onLoaded = async () => {
+                    try {
+                        cleanup();
+                        await mainVideo.play();
+                        await this.fadeInVideo();
+
+                        WS_VIDEO_LOGGER.info('✅ 데스크톱 영상 재생 성공');
+                        resolve(true);
+                    } catch (playError) {
+                        WS_VIDEO_LOGGER.error('❌ 데스크톱 재생 실패:', playError);
+                        reject(playError);
+                    }
+                };
+
+                const onError = () => {
+                    cleanup();
+                    WS_VIDEO_LOGGER.error('❌ 데스크톱 영상 로딩 실패:', newUrl);
+                    reject(new Error('데스크톱 영상 로딩 실패'));
+                };
+
+                // 데스크톱 설정
+                mainVideo.src = newUrl;
+                mainVideo.loop = loop;
+                mainVideo.muted = !unmuted;
+                mainVideo.playsInline = true;
+
+                if (unmuted) {
+                    mainVideo.volume = 0.8;
+                }
+
+                mainVideo.addEventListener('loadedmetadata', onLoaded);
+                mainVideo.addEventListener('error', onError);
+
+                // 타임아웃 설정
+                const timeout = setTimeout(() => {
+                    cleanup();
+                    reject(new Error('데스크톱 영상 로딩 타임아웃'));
+                }, 15000);
+
+                WS_VIDEO_LOGGER.info('🖥️ 데스크톱 자동 로딩 시작');
+            });
+
+        } catch (error) {
+            WS_VIDEO_LOGGER.error('❌ 데스크톱 영상 교체 실패:', error);
             return false;
         }
     }
@@ -394,7 +623,7 @@ class SimpleWSVideoUIManager {
         if (!mainVideo) return;
 
         const onVideoEnded = async () => {
-            WS_VIDEO_LOGGER.info('응답영상 종료 - 대기영상으로 복귀');
+            WS_VIDEO_LOGGER.info('📺 응답영상 종료 - 대기영상으로 복귀');
             mainVideo.removeEventListener('ended', onVideoEnded);
 
             // WebSocket 알림
@@ -404,37 +633,46 @@ class SimpleWSVideoUIManager {
                 });
             }
 
-            await this.returnToWaitingVideo();
+            // 🔧 즉시 복귀하지 않고 0.5초 대기 (자연스러운 전환)
+            setTimeout(async () => {
+                await this.returnToWaitingVideo();
+            }, 500);
         };
 
         mainVideo.addEventListener('ended', onVideoEnded);
+
+        // 🔧 추가 안전장치: 영상이 10초 이상 재생되지 않으면 강제 복귀
+        setTimeout(() => {
+            if (mainVideo.currentTime === 0 || mainVideo.paused) {
+                WS_VIDEO_LOGGER.warn('⚠️ 응답영상이 재생되지 않음 - 강제 복귀');
+                onVideoEnded();
+            }
+        }, 10000);
     }
 
     // 대기영상으로 복귀
     async returnToWaitingVideo() {
         if (!WS_VIDEO_STATE.waitingVideoUrl) {
-            WS_VIDEO_LOGGER.warn('대기영상 URL이 없어 복귀 불가');
+            WS_VIDEO_LOGGER.warn('⚠️ 대기영상 URL이 없어 복귀 불가');
             return;
         }
 
         try {
-            WS_VIDEO_LOGGER.info('대기영상으로 복귀 시작');
+            WS_VIDEO_LOGGER.info('🔄 대기영상으로 복귀 시작');
             updateStatus('대기영상으로 복귀 중...');
 
-            await this.fadeOutVideo();
-            const success = await this.switchVideoSafely(WS_VIDEO_STATE.waitingVideoUrl, true, true);
+            const success = await this.transitionVideo(WS_VIDEO_STATE.waitingVideoUrl, true, true);
 
             if (success) {
-                await this.fadeInVideo();
                 updateStatus('대기 중');
-                WS_VIDEO_LOGGER.info('대기영상 복귀 완료');
+                WS_VIDEO_LOGGER.info('✅ 대기영상 복귀 완료');
             } else {
-                WS_VIDEO_LOGGER.error('대기영상 복귀 실패');
+                WS_VIDEO_LOGGER.error('❌ 대기영상 복귀 실패');
                 updateStatus('영상 오류');
             }
 
         } catch (error) {
-            WS_VIDEO_LOGGER.error('대기영상 복귀 실패', error);
+            WS_VIDEO_LOGGER.error('❌ 대기영상 복귀 실패', error);
             updateStatus('영상 오류');
         }
     }
@@ -594,8 +832,8 @@ window.toggleRecording = async function() {
 
         // 🔧 현재 녹화 중인지 확인하여 시작/중지 결정
         if (WS_VIDEO_STATE.isRecording || wsVideoRecordingManager?.isRecording) {
-            // 녹화 중이면 중지
-            WS_VIDEO_LOGGER.info('🛑 사용자 요청으로 녹화 중지');
+            // 녹화 중이면 중지 (업로드 진행)
+            WS_VIDEO_LOGGER.info('🛑 사용자 요청으로 녹화 중지 - 업로드 진행');
             await stopRecordingByUser();
             return;
         }
@@ -642,35 +880,22 @@ window.toggleRecording = async function() {
 
 window.stopRecordingByUser = async function() {
     try {
-        WS_VIDEO_LOGGER.info('🛑 사용자가 녹화 중지 요청');
+        WS_VIDEO_LOGGER.info('🛑 사용자가 녹화 중지 요청 - 업로드 진행');
 
-        // 1. 클라이언트 녹화 즉시 중지
+        // 🔧 사용자 중지도 forceStopRecording 호출하여 업로드 진행
         if (wsVideoRecordingManager && wsVideoRecordingManager.isRecording) {
             wsVideoRecordingManager.forceStopRecording('USER_STOP');
         }
 
-        // 2. 서버에 중지 알림
-        if (wsVideoClient && wsVideoClient.websocket && wsVideoClient.websocket.readyState === WebSocket.OPEN) {
-            wsVideoClient.sendMessage({
-                type: 'CLIENT_STATE_CHANGE',
-                newState: 'PROCESSING',
-                reason: 'USER_STOP_RECORDING',
-                timestamp: Date.now()
-            });
-        }
-
-        // 3. UI 즉시 업데이트
-        updateRecordingUI(false);
-        updateStatus('사용자가 녹화를 중지했습니다');
-        showInfoMessage('녹화가 중지되었습니다');
-
-        WS_VIDEO_LOGGER.info('✅ 사용자 녹화 중지 완료');
+        // 🔧 UI는 forceStopRecording에서 이미 업데이트됨
+        WS_VIDEO_LOGGER.info('✅ 사용자 녹화 중지 완료 - 업로드 진행 중');
 
     } catch (error) {
         WS_VIDEO_LOGGER.error('사용자 녹화 중지 중 오류:', error);
         showErrorMessage('녹화 중지 중 오류가 발생했습니다');
     }
 };
+
 
 
 window.requestPermissions = async function() {

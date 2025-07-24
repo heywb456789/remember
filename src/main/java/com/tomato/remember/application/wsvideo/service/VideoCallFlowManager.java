@@ -341,8 +341,9 @@ public class VideoCallFlowManager {
             "type", WebSocketMessageType.PROCESSING_PROGRESS.name(),
             "sessionKey", sessionKey,
             "message", "AI가 응답을 생성하고 있습니다...",
-            "showLoading", true,
-            "disableAllButtons", true
+            "showLoading", false, // 🔧 오버레이 표시하지 않음
+                "disableAllButtons", false, // 🔧 버튼도 비활성화하지 않음
+                "processingInBackground", true // 🔧 백그라운드 처리 표시
         );
         deviceManager.broadcastToAllDevices(sessionKey, message);
     }
