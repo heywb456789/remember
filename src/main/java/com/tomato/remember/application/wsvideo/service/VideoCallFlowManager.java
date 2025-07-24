@@ -360,10 +360,12 @@ public class VideoCallFlowManager {
                 "type", WebSocketMessageType.PLAY_RESPONSE_VIDEO.name(),
                 "sessionKey", sessionKey,
                 "responseVideoUrl", session.getResponseVideoUrl(),
+                "videoUrl" , session.getResponseVideoUrl(),
                 "contactName", session.getContactName(),
                 "autoPlayNext", false,
                 "disableRecordButton", true
             );
+            log.info("📤 응답영상 메시지 전송: {}", message);
             deviceManager.broadcastToAllDevices(sessionKey, message);
         } else {
             log.error("❌ 응답영상 URL 없음 - 오류 상태로 전환: {}", sessionKey);

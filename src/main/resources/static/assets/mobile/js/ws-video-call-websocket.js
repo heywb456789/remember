@@ -89,9 +89,43 @@ class WSVideoWebSocketClient {
 
         // 5. 응답영상 재생 명령
         this.messageHandlers.set('PLAY_RESPONSE_VIDEO', (message) => {
-            WS_VIDEO_LOGGER.info('🎬 응답영상 재생 명령');
-            playResponseVideo(message.videoUrl);
+            WS_VIDEO_LOGGER.info('🎬 응답영상 재생 명령 수신:', message);
+
+            // 여러 가능한 키에서 URL 추출 시도
+            const videoUrl = message.responseVideoUrl || message.videoUrl || message.url;
+
+            WS_VIDEO_LOGGER.info('📋 추출된 비디오 URL:', videoUrl);
+
+            if (!videoUrl) {
+                WS_VIDEO_LOGGER.error('❌ 응답영상 URL을 찾을 수 없음:', message);
+                return;
+            }
+
+            if (typeof playResponseVideo === 'function') {
+                playResponseVideo(videoUrl);
+            } else {
+                WS_VIDEO_LOGGER.error('❌ playResponseVideo 함수를 찾을 수 없음');
+            }
         });
+
+        // this.messageHandlers.set('RESPONSE_VIDEO', (message) => {
+        //     WS_VIDEO_LOGGER.info('🎬 RESPONSE_VIDEO 메시지 수신:', message);
+        //
+        //     const videoUrl = message.videoUrl || message.responseVideoUrl || message.url;
+        //
+        //     WS_VIDEO_LOGGER.info('📋 추출된 비디오 URL:', videoUrl);
+        //
+        //     if (!videoUrl) {
+        //         WS_VIDEO_LOGGER.error('❌ 응답영상 URL을 찾을 수 없음:', message);
+        //         return;
+        //     }
+        //
+        //     if (typeof playResponseVideo === 'function') {
+        //         playResponseVideo(videoUrl);
+        //     } else {
+        //         WS_VIDEO_LOGGER.error('❌ playResponseVideo 함수를 찾을 수 없음');
+        //     }
+        // });
 
         // 6. 하트비트
         this.messageHandlers.set('HEARTBEAT', (message) => {
