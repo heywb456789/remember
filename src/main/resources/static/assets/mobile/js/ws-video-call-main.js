@@ -1,11 +1,11 @@
 /**
- * WebSocket 기반 영상통화 시스템 - 간소화된 메인 초기화 로직
- * 복잡한 모니터링 클래스들 제거, 핵심 초기화만 유지
+ * WebSocket 기반 영상통화 시스템 - 사용자 액션 보장 방식 메인 초기화 로직
+ * 🔧 권한 확인 후 영상 재생 제거, 통화시작 버튼에서만 영상 재생
  */
 import { authFetch, handleFetchError, checkLoginStatus } from './commonFetch.js';
 
-// ========== 간소화된 메인 컨트롤러 ==========
-class SimpleMainController {
+// ========== 사용자 액션 보장 방식 메인 컨트롤러 ==========
+class UserActionGuaranteedMainController {
     constructor() {
         this.initializationInProgress = false;
         this.sessionCreated = false;
@@ -22,7 +22,7 @@ class SimpleMainController {
         this.initializationInProgress = true;
 
         try {
-            WS_VIDEO_LOGGER.info('WebSocket 영상통화 시스템 초기화 시작');
+            WS_VIDEO_LOGGER.info('🚀 사용자 액션 보장 방식 초기화 시작');
 
             // 1. 로그인 상태 확인
             if (!checkLoginStatus()) {
@@ -44,7 +44,7 @@ class SimpleMainController {
             // 6. 토큰 모니터링 시작
             this.startAuthMonitoring();
 
-            WS_VIDEO_LOGGER.info('시스템 초기화 완료');
+            WS_VIDEO_LOGGER.info('✅ 사용자 액션 보장 방식 초기화 완료');
 
         } catch (error) {
             WS_VIDEO_LOGGER.error('시스템 초기화 실패', error);
@@ -68,7 +68,8 @@ class SimpleMainController {
             memberId: WS_VIDEO_STATE.memberId,
             memorialId: WS_VIDEO_STATE.memorialId,
             contactName: WS_VIDEO_STATE.contactName,
-            deviceType: WS_VIDEO_STATE.deviceType
+            deviceType: WS_VIDEO_STATE.deviceType,
+            waitingVideoUrl: WS_VIDEO_STATE.waitingVideoUrl
         });
     }
 
@@ -136,19 +137,17 @@ class SimpleMainController {
         }
     }
 
-    // 권한이 있을 때 초기화
+    // 🔧 권한이 있을 때 초기화 (영상 재생 제거)
     async initializeWithPermissions() {
         try {
-            WS_VIDEO_LOGGER.info('권한 기반 초기화 시작');
+            WS_VIDEO_LOGGER.info('✅ 권한 기반 초기화 - 영상 재생은 통화시작 버튼에서만');
 
             // 🔧 변경: 영상 재생 제거, 모달만 표시
-            // const success = await wsVideoUIManager.transitionVideo(...) // 제거
-
-            // ✅ 대신 바로 통화 시작 모달 표시
             updateStatus('준비 완료');
+
             setTimeout(() => {
                 showCallStartModal();
-            }, 500); // 바로 표시
+            }, 500);
 
             WS_VIDEO_LOGGER.info('✅ 권한 확인 완료 - 통화 시작 대기');
 
@@ -348,7 +347,7 @@ class SimpleMainController {
 }
 
 // ========== 전역 메인 컨트롤러 인스턴스 ==========
-window.wsVideoMainController = new SimpleMainController();
+window.wsVideoMainController = new UserActionGuaranteedMainController();
 
 // ========== 전역 함수 내보내기 ==========
 window.initializeVideoCall = () => wsVideoMainController.initialize();
@@ -469,4 +468,4 @@ if (WS_VIDEO_CONFIG.DEBUG.ENABLED) {
     WS_VIDEO_LOGGER.info('디버그 모드 활성화 - window.WS_VIDEO_DEBUG 사용 가능');
 }
 
-WS_VIDEO_LOGGER.info('간소화된 메인 컨트롤러 초기화 완료');
+WS_VIDEO_LOGGER.info('🎯 사용자 액션 보장 방식 메인 컨트롤러 초기화 완료');
