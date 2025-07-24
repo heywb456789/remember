@@ -708,6 +708,10 @@ public class MemorialVideoWebSocketHandler extends TextWebSocketHandler {
         try {
             VideoCallFlowState newState = VideoCallFlowState.valueOf(newStateStr);
 
+            if ("RESPONSE_VIDEO_ENDED".equals(reason) && newState == VideoCallFlowState.WAITING) {
+                log.info("🔄 응답영상 종료로 인한 대기 상태 전환: {}", sessionKey);
+            }
+
             // 중복 감지 및 throttle 체크
             if (!shouldProcessStateChange(sessionKey, newState, reason)) {
                 return;

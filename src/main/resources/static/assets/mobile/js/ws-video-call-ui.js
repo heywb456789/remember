@@ -544,9 +544,64 @@ window.playWaitingVideo = (url, loop = true) => {
     return wsVideoUIManager.transitionVideo(url, loop, true);  // unmuted=true
 };
 
-window.playResponseVideo = (url, autoReturn = true) => {
-    WS_VIDEO_LOGGER.info('🎬 응답영상 재생 요청 (사용자 액션 컨텍스트)');
-    return wsVideoUIManager.transitionVideo(url, false, true);  // unmuted=true
+window.playResponseVideo = async (url, autoReturn = true) => {
+    WS_VIDEO_LOGGER.info('🎬 응답영상 재생 요청:', url);
+
+    if (!url) {
+        WS_VIDEO_LOGGER.error('❌ 응답영상 URL이 없습니다');
+        return false;
+    }
+
+    try {
+        const success = await wsVideoUIManager.transitionVideo(url, false, true); // loop=false, unmuted=true
+
+        if (success) {
+            WS_VIDEO_LOGGER.info('✅ 응답영상 재생 시작');
+
+            // 응답영상 종료 후 대기영상으로 자동 복귀
+            const mainVideo = document.getElementById('mainVideo');
+            if (mainVideo) {
+                const onVideoEnded = async () => {
+                    WS_VIDEO_LOGGER.info('📺 응답영상 종료 - 대기영상 복귀');
+                    mainVideo.removeEventListener('ended', onVideoEnded);
+
+                    // WebSocket으로 종료 알림
+                    if (wsVideoClient) {
+                        wsVideoClient.sendMessage({
+                            type: 'CLIENT_STATE_CHANGE',
+                            newState: 'WAITING',
+                            reason: 'RESPONSE_VIDEO_ENDED',
+                            timestamp: Date.now()
+                        });
+                    }
+
+                    // 대기영상으로 복귀
+                    if (WS_VIDEO_STATE.waitingVideoUrl) {
+                        await wsVideoUIManager.transitionVideo(WS_VIDEO_STATE.waitingVideoUrl, true, true);
+                        updateStatus('대기 중');
+                    }
+                };
+
+                mainVideo.addEventListener('ended', onVideoEnded);
+
+                // 30초 후 강제 종료 (안전장치)
+                setTimeout(() => {
+                    if (!mainVideo.ended && mainVideo.currentTime > 0) {
+                        WS_VIDEO_LOGGER.warn('⏰ 응답영상 30초 제한 - 강제 종료');
+                        onVideoEnded();
+                    }
+                }, 30000);
+            }
+
+            return true;
+        }
+
+        return false;
+
+    } catch (error) {
+        WS_VIDEO_LOGGER.error('❌ 응답영상 재생 실패:', error);
+        return false;
+    }
 };
 
 window.showSuccessMessage = (message) => wsVideoUIManager.showMessage(message, 'success');
