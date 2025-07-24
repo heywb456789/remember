@@ -315,11 +315,17 @@ class SimpleWSVideoUIManager {
     }
 
     // 터치하여 재생 가이드 (iOS용)
-    showTouchToPlayGuide(resolve, reject) {
+    showTouchToPlayGuide(resolve, reject, loop = true, unmuted = false) {
+    // 기존 가이드 제거
+        const existingGuide = document.getElementById('touchGuide');
+        if (existingGuide) {
+            existingGuide.remove();
+        }
+
         const guide = document.createElement('div');
         guide.id = 'touchGuide';
         guide.style.cssText = `
-            position: absolute;
+            position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
@@ -337,23 +343,46 @@ class SimpleWSVideoUIManager {
         guide.innerHTML = `
             <div style="font-size: 64px; margin-bottom: 20px;">🎬</div>
             <div style="font-size: 20px; font-weight: 600; margin-bottom: 12px;">화면을 터치해주세요</div>
-            <div style="font-size: 14px; opacity: 0.8;">영상을 시작하려면 터치가 필요합니다</div>
+            <div style="font-size: 14px; opacity: 0.8;">
+                ${unmuted ? '소리와 함께 ' : ''}영상을 시작하려면 터치가 필요합니다
+            </div>
         `;
 
+        // 🔧 핵심: 터치 이벤트에서 영상 재생 (성공 케이스 방식)
         guide.onclick = async () => {
             try {
-                await domCache.mainVideo.play();
+                const mainVideo = document.getElementById('mainVideo');
+
+                // 🔧 중요: 터치 시점에서 영상 설정 최종 확인
+                mainVideo.loop = loop;
+                mainVideo.muted = !unmuted;
+                if (unmuted) {
+                    mainVideo.volume = 0.8;
+                }
+
+                // 🔧 사용자 터치 후 재생 (성공 패턴)
+                await mainVideo.play();
+
                 guide.remove();
-                domCache.mainVideo.style.display = 'block';
-                WS_VIDEO_LOGGER.info('사용자 터치로 영상 재생 시작');
+                mainVideo.style.display = 'block';
+
+                WS_VIDEO_LOGGER.info('✅ Android 사용자 터치로 영상 재생 시작');
+                WS_VIDEO_LOGGER.info('🔊 오디오 상태:', {
+                    muted: mainVideo.muted,
+                    volume: mainVideo.volume,
+                    loop: mainVideo.loop
+                });
+
                 resolve(true);
+
             } catch (error) {
                 guide.remove();
-                WS_VIDEO_LOGGER.error('터치 가이드 재생 실패:', error);
+                WS_VIDEO_LOGGER.error('❌ Android 터치 가이드 재생 실패:', error);
                 reject(error);
             }
         };
 
+        // 컨테이너에 추가
         document.querySelector('.main-video-container').appendChild(guide);
 
         // 10초 후 자동 제거
@@ -363,6 +392,8 @@ class SimpleWSVideoUIManager {
                 reject(new Error('사용자 터치 타임아웃'));
             }
         }, 10000);
+
+        WS_VIDEO_LOGGER.info('🤖 Android 터치 가이드 표시됨');
     }
 
     // 부드러운 영상 전환 (대기영상 ↔ 응답영상)
@@ -514,7 +545,14 @@ class SimpleWSVideoUIManager {
                         resolve(true);
                     } catch (playError) {
                         WS_VIDEO_LOGGER.error('❌ Android 재생 실패:', playError);
-                        reject(playError);
+
+                        // 🔧 Android도 NotAllowedError 처리 추가
+                        if (playError.name === 'NotAllowedError') {
+                            WS_VIDEO_LOGGER.info('🤖 Android - 사용자 터치 필요');
+                            this.showTouchToPlayGuide(resolve, reject, loop, unmuted);
+                        } else {
+                            reject(playError);
+                        }
                     }
                 };
 
@@ -527,11 +565,11 @@ class SimpleWSVideoUIManager {
                 // Android 설정
                 mainVideo.src = newUrl;
                 mainVideo.loop = loop;
-                mainVideo.muted = !unmuted;
+                mainVideo.muted = !unmuted;  // 🔧 중요: unmuted=true면 소리 활성화
                 mainVideo.playsInline = true;
 
                 if (unmuted) {
-                    mainVideo.volume = 0.8;
+                    mainVideo.volume = 0.8;  // 🔧 소리 볼륨 설정
                 }
 
                 mainVideo.addEventListener('canplay', onCanPlay);
@@ -809,8 +847,14 @@ window.showVideoLoadingOverlay = () => wsVideoUIManager.showVideoLoadingOverlay(
 window.hideVideoLoadingOverlay = () => wsVideoUIManager.hideVideoLoadingOverlay();
 
 // 영상 전환 관련 전역 함수들 추가
-window.playWaitingVideo = (url, loop = true) => wsVideoUIManager.transitionVideo(url, loop, true);
-window.playResponseVideo = (url, autoReturn = true) => wsVideoUIManager.transitionVideo(url, false, true);
+window.playWaitingVideo = (url, loop = true) => {
+    // 🔧 중요: 대기영상은 항상 소리 활성화
+    return wsVideoUIManager.transitionVideo(url, loop, true);  // unmuted=true
+};
+window.playResponseVideo = (url, autoReturn = true) => {
+    // 🔧 중요: 응답영상도 소리 활성화
+    return wsVideoUIManager.transitionVideo(url, false, true);  // unmuted=true
+};
 window.switchVideoSafely = (url, loop, unmuted) => wsVideoUIManager.switchVideoSafely(url, loop, unmuted);
 
 window.showSuccessMessage = (message) => wsVideoUIManager.showMessage(message, 'success');
@@ -976,7 +1020,11 @@ window.initializeWithoutPermission = async function() {
     updateStatus('체험 모드');
 
     try {
-        await playWaitingVideo(WS_VIDEO_CONFIG?.DEFAULT_WAITING_VIDEO || 'default.mp4', true);
+        // 🔧 체험 모드에서도 소리 활성화
+        await playWaitingVideo(
+            WS_VIDEO_CONFIG?.DEFAULT_WAITING_VIDEO || 'default.mp4',
+            true  // loop=true, 그리고 내부적으로 unmuted=true
+        );
         setTimeout(() => showCallStartModal(), 2000);
     } catch (error) {
         WS_VIDEO_LOGGER.error('체험 모드 초기화 실패', error);

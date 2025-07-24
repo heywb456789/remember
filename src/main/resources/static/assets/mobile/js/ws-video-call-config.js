@@ -466,6 +466,18 @@ window.WS_VIDEO_STATE_UTILS = {
             hideVideoLoadingOverlay();
         }
 
+        if (newState.name === 'WAITING' || newState.name === 'RESPONSE_PLAYING') {
+            const mainVideo = document.getElementById('mainVideo');
+            if (mainVideo && !mainVideo.muted) {
+                mainVideo.volume = 0.8;  // 볼륨 보장
+                WS_VIDEO_LOGGER.info('🔊 오디오 활성화 보장:', {
+                    state: newState.name,
+                    muted: mainVideo.muted,
+                    volume: mainVideo.volume
+                });
+            }
+        }
+
         // 3. 녹화 버튼 상태 제어
         const recordBtn = document.getElementById('recordBtn');
         if (recordBtn) {

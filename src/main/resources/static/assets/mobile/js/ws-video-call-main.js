@@ -141,15 +141,21 @@ class SimpleMainController {
         try {
             WS_VIDEO_LOGGER.info('권한 기반 초기화 시작');
 
-            // 대기영상 재생 시작
-            await playWaitingVideo(WS_VIDEO_STATE.waitingVideoUrl, true);
+            // 🔧 대기영상 재생 시 unmuted=true로 소리 활성화
+            const success = await this.transitionVideo(
+                WS_VIDEO_STATE.waitingVideoUrl,
+                true,   // loop
+                true    // unmuted - 소리 활성화!
+            );
 
-            updateStatus('준비 완료');
-
-            // 통화 시작 모달 표시
-            setTimeout(() => {
-                showCallStartModal();
-            }, 1000);
+            if (success) {
+                updateStatus('준비 완료');
+                setTimeout(() => {
+                    showCallStartModal();
+                }, 1000);
+            } else {
+                throw new Error('대기영상 재생 실패');
+            }
 
         } catch (error) {
             WS_VIDEO_LOGGER.error('권한 기반 초기화 실패', error);
