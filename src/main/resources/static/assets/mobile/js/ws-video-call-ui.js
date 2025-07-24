@@ -837,7 +837,18 @@ window.wsVideoUIManager = new SimpleWSVideoUIManager();
 // ========== 전역 함수들 (간소화) ==========
 window.showPermissionModal = () => wsVideoUIManager.showPermissionModal();
 window.hidePermissionModal = () => wsVideoUIManager.hidePermissionModal();
-window.showCallStartModal = () => wsVideoUIManager.showCallStartModal();
+window.showCallStartModal = () => {
+    const contactName = WS_VIDEO_STATE.contactName || '연결 준비 중...';
+    const display = document.getElementById('contactNameDisplay');
+    if (display) display.textContent = contactName;
+
+    // 🔧 버튼 상태 업데이트
+    setTimeout(() => {
+        updateCallStartModal();
+    }, 100); // DOM 업데이트 후 실행
+
+    wsVideoUIManager.showCallStartModal();
+};
 window.hideCallStartModal = () => wsVideoUIManager.hideCallStartModal();
 window.showLoadingModal = (title, message) => wsVideoUIManager.showLoadingModal(title, message);
 window.hideLoadingModal = () => wsVideoUIManager.hideLoadingModal();
@@ -952,6 +963,7 @@ window.requestPermissions = async function() {
         const granted = await wsVideoPermissionManager?.requestPermissions();
         if (granted) {
             setupCamera();
+            // 🔧 권한 획득 후 모달 버튼 상태 업데이트
             showCallStartModal();
         }
     } catch (error) {
@@ -977,14 +989,74 @@ window.startCall = async function() {
     hideCallStartModal();
 
     try {
+        WS_VIDEO_LOGGER.info('📞 통화 시작 - 사용자 액션으로 영상 초기화');
+
+        // 🔧 핵심: 사용자 클릭 직후 즉시 영상 재생 (액션 보장!)
+        const videoSuccess = await wsVideoUIManager.transitionVideo(
+            WS_VIDEO_STATE.waitingVideoUrl,
+            true,   // loop
+            true    // unmuted - 소리 활성화!
+        );
+
+        if (!videoSuccess) {
+            throw new Error('대기영상 재생 실패');
+        }
+
+        WS_VIDEO_LOGGER.info('✅ 사용자 액션으로 영상 재생 성공');
+
+        // 이제 세션 생성
         if (typeof startVideoCallSession === 'function') {
             await startVideoCallSession();
         }
+
     } catch (error) {
         WS_VIDEO_LOGGER.error('통화 시작 실패', error);
         showErrorMessage('통화 시작에 실패했습니다');
+
+        // 실패 시 모달 다시 표시
+        setTimeout(() => showCallStartModal(), 1000);
     }
 };
+
+window.startCallWithoutPermission = async function() {
+    hideCallStartModal();
+
+    try {
+        WS_VIDEO_LOGGER.info('📞 체험 모드 통화 시작');
+
+        // 🔧 사용자 액션으로 체험 모드 영상 재생
+        const videoSuccess = await wsVideoUIManager.transitionVideo(
+            WS_VIDEO_CONFIG?.DEFAULT_WAITING_VIDEO || WS_VIDEO_STATE.waitingVideoUrl,
+            true,   // loop
+            true    // unmuted
+        );
+
+        if (videoSuccess) {
+            updateStatus('체험 모드 - 연결됨');
+            WS_VIDEO_LOGGER.info('✅ 체험 모드 영상 재생 성공');
+        } else {
+            WS_VIDEO_LOGGER.warn('⚠️ 체험 모드 영상 재생 실패');
+            updateStatus('체험 모드 - 영상 없음');
+        }
+
+    } catch (error) {
+        WS_VIDEO_LOGGER.error('체험 모드 시작 실패', error);
+        showErrorMessage('체험 모드 시작에 실패했습니다');
+    }
+};
+
+function updateCallStartModal() {
+    const startButton = document.querySelector('.call-start-btn.start');
+    if (startButton && !WS_VIDEO_STATE.cameraPermissionGranted) {
+        startButton.onclick = startCallWithoutPermission;
+        startButton.textContent = '체험 모드로 시작';
+        startButton.style.background = '#f39c12'; // 체험 모드 색상
+    } else {
+        startButton.onclick = startCall;
+        startButton.textContent = '통화 시작하기';
+        startButton.style.background = '#27ae60'; // 정상 모드 색상
+    }
+}
 
 window.endCall = function() {
     if (confirm('영상통화를 종료하시겠습니까?')) {
@@ -1022,16 +1094,11 @@ window.goBack = function() {
 window.initializeWithoutPermission = async function() {
     updateStatus('체험 모드');
 
-    try {
-        // 🔧 체험 모드에서도 소리 활성화
-        await playWaitingVideo(
-            WS_VIDEO_CONFIG?.DEFAULT_WAITING_VIDEO || 'default.mp4',
-            true  // loop=true, 그리고 내부적으로 unmuted=true
-        );
-        setTimeout(() => showCallStartModal(), 2000);
-    } catch (error) {
-        WS_VIDEO_LOGGER.error('체험 모드 초기화 실패', error);
-    }
+    // 🔧 변경: 영상 재생 제거, 모달만 표시
+    setTimeout(() => {
+        showCallStartModal();
+        showInfoMessage('체험 모드로 실행됩니다.\n녹화 기능은 권한이 필요합니다.');
+    }, 1000);
 };
 
 // ========== 키보드 단축키 (간소화) ==========

@@ -141,21 +141,16 @@ class SimpleMainController {
         try {
             WS_VIDEO_LOGGER.info('권한 기반 초기화 시작');
 
-            // 🔧 수정: wsVideoUIManager의 transitionVideo 메서드 사용
-            const success = await wsVideoUIManager.transitionVideo(
-                WS_VIDEO_STATE.waitingVideoUrl,
-                true,   // loop
-                true    // unmuted - 소리 활성화!
-            );
+            // 🔧 변경: 영상 재생 제거, 모달만 표시
+            // const success = await wsVideoUIManager.transitionVideo(...) // 제거
 
-            if (success) {
-                updateStatus('준비 완료');
-                setTimeout(() => {
-                    showCallStartModal();
-                }, 1000);
-            } else {
-                throw new Error('대기영상 재생 실패');
-            }
+            // ✅ 대신 바로 통화 시작 모달 표시
+            updateStatus('준비 완료');
+            setTimeout(() => {
+                showCallStartModal();
+            }, 500); // 바로 표시
+
+            WS_VIDEO_LOGGER.info('✅ 권한 확인 완료 - 통화 시작 대기');
 
         } catch (error) {
             WS_VIDEO_LOGGER.error('권한 기반 초기화 실패', error);
