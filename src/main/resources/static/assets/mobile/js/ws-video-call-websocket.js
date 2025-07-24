@@ -1,8 +1,6 @@
-console.log('🔥 EMERGENCY_FIX_20250125_1530 🔥');
-console.log('BUILD_TIMESTAMP:', Date.now());
 /**
- * WebSocket 기반 영상통화 시스템 - 완전 수정된 WebSocket 통신 관리
- * 🔧 중복 메시지 방지 및 누락된 메시지 타입 추가
+ * WebSocket 기반 영상통화 시스템 - 완성된 WebSocket 통신 관리
+ * 🔧 START_RECORDING 명령 처리 완성
  */
 
 class WSVideoWebSocketClient {
@@ -20,7 +18,7 @@ class WSVideoWebSocketClient {
         this.setupMessageHandlers();
     }
 
-    // ========== 완전 수정된 메시지 핸들러 ==========
+    // ========== 완성된 메시지 핸들러 ==========
     setupMessageHandlers() {
         // 1. 인증 성공
         this.messageHandlers.set('AUTH_SUCCESS', (message) => {
@@ -37,10 +35,9 @@ class WSVideoWebSocketClient {
             setTimeout(() => this.sendDeviceInfo(), 1000);
         });
 
-        // 2. 상태 전환 (핵심 - 수정됨)
+        // 2. 상태 전환 (핵심)
         this.messageHandlers.set('STATE_TRANSITION', (message) => {
             WS_VIDEO_LOGGER.info('🔄 상태 전환:', message.previousState, '→', message.newState);
-
             this.updateUIForState(message);
         });
 
@@ -50,10 +47,44 @@ class WSVideoWebSocketClient {
             playWaitingVideo(message.waitingVideoUrl, message.loop);
         });
 
-        // 4. 녹화 시작 명령 (수정됨)
+        // 4. 🔧 완성된 녹화 시작 명령 (실제 녹화 시작)
         this.messageHandlers.set('START_RECORDING', (message) => {
-            WS_VIDEO_LOGGER.info('🔴 녹화 시작 명령 수신');
+            WS_VIDEO_LOGGER.info('🔴 서버에서 녹화 시작 명령 수신');
 
+            const maxDuration = message.maxDuration || 10;
+            const allowUserStop = message.allowUserStop !== false; // 기본값: true
+
+            // 🔧 실제 녹화 시작 함수 호출
+            if (typeof startActualRecording === 'function') {
+                startActualRecording(maxDuration).then(() => {
+                    WS_VIDEO_LOGGER.info('✅ 실제 녹화 시작 완료 - 최대 {}초', maxDuration);
+
+                    // 🔧 사용자 중지 가능하도록 버튼 활성화
+                    if (allowUserStop) {
+                        this.enableUserStopRecording();
+                    }
+                }).catch(error => {
+                    WS_VIDEO_LOGGER.error('❌ 실제 녹화 시작 실패:', error);
+
+                    // 실패 시 서버에 알림
+                    this.sendMessage({
+                        type: 'CLIENT_STATE_CHANGE',
+                        newState: 'ERROR',
+                        reason: 'RECORDING_START_FAILED',
+                        error: error.message || error,
+                        timestamp: Date.now()
+                    });
+                });
+            } else {
+                WS_VIDEO_LOGGER.error('❌ startActualRecording 함수를 찾을 수 없음');
+                this.sendMessage({
+                    type: 'CLIENT_STATE_CHANGE',
+                    newState: 'ERROR',
+                    reason: 'FUNCTION_NOT_FOUND',
+                    error: 'startActualRecording function not available',
+                    timestamp: Date.now()
+                });
+            }
         });
 
         // 5. 응답영상 재생 명령
@@ -71,11 +102,10 @@ class WSVideoWebSocketClient {
             });
         });
 
-        // 7. 🆕 처리 진행 상황 (누락된 메시지 타입 추가)
+        // 7. 처리 진행 상황
         this.messageHandlers.set('PROCESSING_PROGRESS', (message) => {
             WS_VIDEO_LOGGER.info('🤖 처리 진행 상황:', message.message);
             updateStatus(message.message || 'AI 처리 중...', 'loading');
-
         });
 
         // 8. 메시지들 (통합)
@@ -109,6 +139,24 @@ class WSVideoWebSocketClient {
             WS_VIDEO_LOGGER.info('✅ 토큰 갱신 완료');
             showSuccessMessage('인증이 갱신되었습니다');
         });
+    }
+
+    // 🆕 사용자 중지 기능 활성화
+    enableUserStopRecording() {
+        const recordBtn = document.getElementById('recordBtn');
+        if (recordBtn) {
+            // 버튼을 중지 모드로 변경
+            recordBtn.disabled = false;
+            recordBtn.classList.add('recording', 'user-stop-enabled');
+            recordBtn.title = '녹화 중지하기 (언제든 클릭 가능)';
+
+            const recordIcon = document.getElementById('recordIcon');
+            if (recordIcon) {
+                recordIcon.className = 'fas fa-stop';
+            }
+
+            WS_VIDEO_LOGGER.info('🔴 사용자 중지 기능 활성화 - 버튼 클릭으로 언제든 중지 가능');
+        }
     }
 
     // 상태별 UI 업데이트 (기존과 동일)
@@ -157,7 +205,7 @@ class WSVideoWebSocketClient {
         }
     }
 
-    // 🔧 throttle된 메시지 전송 (수정됨)
+    // 🔧 throttle된 메시지 전송 (기존과 동일)
     sendMessage(message, allowThrottle = false) {
         if (!this.websocket || this.websocket.readyState !== WebSocket.OPEN) {
             WS_VIDEO_LOGGER.warn('WebSocket 연결되지 않음 - 메시지 전송 실패', message);
@@ -219,7 +267,7 @@ class WSVideoWebSocketClient {
         }
     }
 
-    // ========== 간소화된 알림 메서드들 ==========
+    // ========== 간소화된 알림 메서드들 (기존과 동일) ==========
 
     notifyWaitingVideoEvent(eventType, data = {}) {
         this.sendMessage({
@@ -629,4 +677,4 @@ window.handleAppHidden = function() {
     }
 };
 
-WS_VIDEO_LOGGER.info('완전 수정된 WebSocket 클라이언트 초기화 완료 - 중복 방지 및 누락 메시지 추가');
+WS_VIDEO_LOGGER.info('완성된 WebSocket 클라이언트 초기화 완료 - START_RECORDING 처리 완성');

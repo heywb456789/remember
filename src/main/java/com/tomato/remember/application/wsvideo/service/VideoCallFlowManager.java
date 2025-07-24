@@ -317,6 +317,16 @@ public class VideoCallFlowManager {
      */
     private void handleRecording(String sessionKey, MemorialVideoSession session) {
         log.info("🔴 녹화 상태 처리: {}", sessionKey);
+         Map<String, Object> message = Map.of(
+            "type", WebSocketMessageType.START_RECORDING.name(),
+            "sessionKey", sessionKey,
+            "maxDuration", 10, // 최대 10초
+            "allowUserStop", true, // 사용자가 중간에 중지 가능
+            "timestamp", System.currentTimeMillis(),
+            "message", "녹화를 시작합니다"
+        );
+
+         deviceManager.broadcastToAllDevices(sessionKey, message);
         log.debug("🔴 녹화 상태 활성화 완료: {} (클라이언트에서 이미 녹화 시작)", sessionKey);
     }
 

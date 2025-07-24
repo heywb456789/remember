@@ -158,30 +158,39 @@ class SimpleWSVideoUIManager {
     }
 
     // === 녹화 UI 업데이트 ===
-    updateRecordingUI(isRecording) {
-        if (!domCache.recordBtn || !domCache.recordIcon) return;
+    updateRecordingUI = function(isRecording) {
+    if (!domCache.recordBtn || !domCache.recordIcon) return;
 
-        if (isRecording) {
-            domCache.recordBtn.classList.add('recording');
-            domCache.recordBtn.disabled = true;
-            domCache.recordIcon.className = 'fas fa-stop';
-            document.body.classList.add('recording-active');
+    if (isRecording) {
+        domCache.recordBtn.classList.add('recording', 'user-stop-enabled');
+        domCache.recordBtn.disabled = false; // 🔧 중요: 녹화 중에도 버튼 활성화 (중지용)
+        domCache.recordIcon.className = 'fas fa-stop';
+        document.body.classList.add('recording-active');
 
-            domCache.recordBtn.title = '녹화 중... (자동으로 중지됩니다)';
-        } else {
-            domCache.recordBtn.classList.remove('recording');
-            domCache.recordIcon.className = 'fas fa-microphone';
-            document.body.classList.remove('recording-active');
+        domCache.recordBtn.title = '녹화 중지하기 (클릭하여 중지)';
 
-            // 녹화 가능 여부에 따라 버튼 활성화
-            setTimeout(() => {
-                const canRecord = WS_VIDEO_STATE_UTILS?.canRecord() || false;
-                domCache.recordBtn.disabled = !canRecord;
-                domCache.recordBtn.classList.toggle('disabled', !canRecord);
-                domCache.recordBtn.title = canRecord ? '녹화하기' : '녹화할 수 없습니다';
-            }, 500); // 0.5초 후 버튼 상태 확인
-        }
+        // 🆕 중지 가능 시각적 표시 추가
+        domCache.recordBtn.style.background = 'linear-gradient(45deg, #e74c3c, #c0392b)';
+        domCache.recordBtn.style.animation = 'recordingPulse 2s ease-in-out infinite';
+
+    } else {
+        domCache.recordBtn.classList.remove('recording', 'user-stop-enabled');
+        domCache.recordIcon.className = 'fas fa-microphone';
+        document.body.classList.remove('recording-active');
+
+        // 스타일 초기화
+        domCache.recordBtn.style.background = '';
+        domCache.recordBtn.style.animation = '';
+
+        // 녹화 가능 여부에 따라 버튼 활성화
+        setTimeout(() => {
+            const canRecord = WS_VIDEO_STATE_UTILS?.canRecord() || false;
+            domCache.recordBtn.disabled = !canRecord;
+            domCache.recordBtn.classList.toggle('disabled', !canRecord);
+            domCache.recordBtn.title = canRecord ? '녹화하기' : '녹화할 수 없습니다';
+        }, 500); // 0.5초 후 버튼 상태 확인
     }
+};
 
     // === 영상 로딩 오버레이 ===
     showVideoLoadingOverlay() {
@@ -472,10 +481,10 @@ class SimpleWSVideoUIManager {
     }
 
     // === 기본 애니메이션 스타일 추가 ===
-    addBasicStyles() {
-        if (document.getElementById('ws-video-basic-styles')) return;
+    addBasicStyles = function() {
+    if (document.getElementById('ws-video-basic-styles')) return;
 
-        const style = document.createElement('style');
+    const style = document.createElement('style');
         style.id = 'ws-video-basic-styles';
         style.textContent = `
             .recording-blink {
@@ -508,10 +517,39 @@ class SimpleWSVideoUIManager {
                 80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
                 100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
             }
+    
+            /* 🆕 녹화 버튼 애니메이션 */
+            @keyframes recordingPulse {
+                0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7); }
+                50% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(231, 76, 60, 0); }
+                100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
+            }
+    
+            /* 🆕 사용자 중지 가능 버튼 스타일 */
+            .control-btn.user-stop-enabled {
+                cursor: pointer !important;
+                transition: all 0.3s ease;
+            }
+    
+            .control-btn.user-stop-enabled:hover {
+                transform: scale(1.1);
+                box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
+            }
+    
+            .control-btn.user-stop-enabled::after {
+                content: "중지";
+                position: absolute;
+                bottom: -25px;
+                left: 50%;
+                transform: translateX(-50%);
+                font-size: 10px;
+                color: #e74c3c;
+                font-weight: bold;
+            }
         `;
 
         document.head.appendChild(style);
-    }
+    };
 }
 
 // ========== 전역 UI 매니저 인스턴스 ==========
@@ -554,17 +592,18 @@ window.toggleRecording = async function() {
         }
         wsVideoUIManager.lastRecordingToggle = now;
 
+        // 🔧 현재 녹화 중인지 확인하여 시작/중지 결정
+        if (WS_VIDEO_STATE.isRecording || wsVideoRecordingManager?.isRecording) {
+            // 녹화 중이면 중지
+            WS_VIDEO_LOGGER.info('🛑 사용자 요청으로 녹화 중지');
+            await stopRecordingByUser();
+            return;
+        }
+
         // 현재 상태 확인
         const currentState = WS_VIDEO_STATE_UTILS?.getCurrentState();
         if (!currentState?.allowRecording) {
             showInfoMessage(`현재 상태에서는 녹화할 수 없습니다: ${currentState?.display || '알 수 없음'}`);
-            return;
-        }
-
-        // 이미 녹화 중인지 확인
-        if (WS_VIDEO_STATE.isRecording || wsVideoRecordingManager?.isRecording) {
-            WS_VIDEO_LOGGER.warn('이미 녹화 중입니다');
-            showWarningMessage('이미 녹화가 진행 중입니다');
             return;
         }
 
@@ -600,6 +639,39 @@ window.toggleRecording = async function() {
         }
     }
 };
+
+window.stopRecordingByUser = async function() {
+    try {
+        WS_VIDEO_LOGGER.info('🛑 사용자가 녹화 중지 요청');
+
+        // 1. 클라이언트 녹화 즉시 중지
+        if (wsVideoRecordingManager && wsVideoRecordingManager.isRecording) {
+            wsVideoRecordingManager.forceStopRecording('USER_STOP');
+        }
+
+        // 2. 서버에 중지 알림
+        if (wsVideoClient && wsVideoClient.websocket && wsVideoClient.websocket.readyState === WebSocket.OPEN) {
+            wsVideoClient.sendMessage({
+                type: 'CLIENT_STATE_CHANGE',
+                newState: 'PROCESSING',
+                reason: 'USER_STOP_RECORDING',
+                timestamp: Date.now()
+            });
+        }
+
+        // 3. UI 즉시 업데이트
+        updateRecordingUI(false);
+        updateStatus('사용자가 녹화를 중지했습니다');
+        showInfoMessage('녹화가 중지되었습니다');
+
+        WS_VIDEO_LOGGER.info('✅ 사용자 녹화 중지 완료');
+
+    } catch (error) {
+        WS_VIDEO_LOGGER.error('사용자 녹화 중지 중 오류:', error);
+        showErrorMessage('녹화 중지 중 오류가 발생했습니다');
+    }
+};
+
 
 window.requestPermissions = async function() {
     hidePermissionModal();
@@ -697,7 +769,11 @@ document.addEventListener('keydown', function(event) {
             break;
         case 'Escape':
             event.preventDefault();
-            endCall();
+            if (WS_VIDEO_STATE.isRecording) {
+                stopRecordingByUser(); // 녹화 중이면 중지
+            } else {
+                endCall(); // 아니면 통화 종료
+            }
             break;
     }
 });
