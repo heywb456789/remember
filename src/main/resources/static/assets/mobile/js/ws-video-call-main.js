@@ -141,8 +141,8 @@ class SimpleMainController {
         try {
             WS_VIDEO_LOGGER.info('권한 기반 초기화 시작');
 
-            // 🔧 대기영상 재생 시 unmuted=true로 소리 활성화
-            const success = await this.transitionVideo(
+            // 🔧 수정: wsVideoUIManager의 transitionVideo 메서드 사용
+            const success = await wsVideoUIManager.transitionVideo(
                 WS_VIDEO_STATE.waitingVideoUrl,
                 true,   // loop
                 true    // unmuted - 소리 활성화!

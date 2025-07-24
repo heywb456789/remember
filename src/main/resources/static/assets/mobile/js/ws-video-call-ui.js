@@ -316,7 +316,7 @@ class SimpleWSVideoUIManager {
 
     // 터치하여 재생 가이드 (iOS용)
     showTouchToPlayGuide(resolve, reject, loop = true, unmuted = false) {
-    // 기존 가이드 제거
+        // 기존 가이드 제거
         const existingGuide = document.getElementById('touchGuide');
         if (existingGuide) {
             existingGuide.remove();
@@ -356,6 +356,8 @@ class SimpleWSVideoUIManager {
                 // 🔧 중요: 터치 시점에서 영상 설정 최종 확인
                 mainVideo.loop = loop;
                 mainVideo.muted = !unmuted;
+                mainVideo.playsInline = true; // 모바일 필수
+
                 if (unmuted) {
                     mainVideo.volume = 0.8;
                 }
@@ -366,18 +368,19 @@ class SimpleWSVideoUIManager {
                 guide.remove();
                 mainVideo.style.display = 'block';
 
-                WS_VIDEO_LOGGER.info('✅ Android 사용자 터치로 영상 재생 시작');
+                WS_VIDEO_LOGGER.info('✅ 사용자 터치로 영상 재생 시작 (Android/iOS)');
                 WS_VIDEO_LOGGER.info('🔊 오디오 상태:', {
                     muted: mainVideo.muted,
                     volume: mainVideo.volume,
-                    loop: mainVideo.loop
+                    loop: mainVideo.loop,
+                    src: mainVideo.src
                 });
 
                 resolve(true);
 
             } catch (error) {
                 guide.remove();
-                WS_VIDEO_LOGGER.error('❌ Android 터치 가이드 재생 실패:', error);
+                WS_VIDEO_LOGGER.error('❌ 터치 가이드 재생 실패:', error);
                 reject(error);
             }
         };
@@ -385,15 +388,15 @@ class SimpleWSVideoUIManager {
         // 컨테이너에 추가
         document.querySelector('.main-video-container').appendChild(guide);
 
-        // 10초 후 자동 제거
+        // 15초 후 자동 제거 (조금 더 여유있게)
         setTimeout(() => {
             if (guide.parentNode) {
                 guide.remove();
                 reject(new Error('사용자 터치 타임아웃'));
             }
-        }, 10000);
+        }, 15000);
 
-        WS_VIDEO_LOGGER.info('🤖 Android 터치 가이드 표시됨');
+        WS_VIDEO_LOGGER.info('📱 터치 가이드 표시됨 (모든 플랫폼 대응)');
     }
 
     // 부드러운 영상 전환 (대기영상 ↔ 응답영상)
