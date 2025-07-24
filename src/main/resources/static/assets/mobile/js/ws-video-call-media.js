@@ -1,19 +1,20 @@
 /**
- * WebSocket 기반 영상통화 시스템 - 미디어 관리 (권한, 녹화, 영상 재생)
+ * WebSocket 기반 영상통화 시스템 - 완전 수정된 미디어 관리
+ * 🔧 중복 상태 변경 요청 완전 차단
  */
+import { authFetch } from './commonFetch.js';
 
-// ========== 권한 관리 ==========
-class WSVideoPermissionManager {
+// ========== 권한 관리 (기존과 동일) ==========
+class SimplePermissionManager {
     constructor() {
         this.permissionRequestInProgress = false;
     }
 
     // 기존 권한 확인
     async checkExistingPermissions() {
-        WS_VIDEO_LOGGER.info('기존 권한 확인 시작');
+        WS_VIDEO_LOGGER.info('권한 확인 시작');
 
         try {
-            // 저장된 권한 상태 확인
             const storedStatus = this.getStoredPermissionStatus();
             if (storedStatus === true) {
                 const quickTest = await this.quickMediaTest();
@@ -25,15 +26,11 @@ class WSVideoPermissionManager {
                 }
             }
 
-            // Permissions API 확인 (지원하는 브라우저)
             if (navigator.permissions) {
                 const apiResult = await this.checkPermissionsAPI();
-                if (apiResult !== null) {
-                    return apiResult;
-                }
+                if (apiResult !== null) return apiResult;
             }
 
-            // 직접 미디어 접근 테스트
             return await this.testMediaAccess();
 
         } catch (error) {
@@ -42,7 +39,6 @@ class WSVideoPermissionManager {
         }
     }
 
-    // 빠른 미디어 테스트
     async quickMediaTest() {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
@@ -54,26 +50,18 @@ class WSVideoPermissionManager {
 
             WS_VIDEO_STATE.cameraPermissionGranted = true;
             WS_VIDEO_STATE.microphonePermissionGranted = true;
-
             return true;
         } catch (error) {
-            WS_VIDEO_LOGGER.debug('빠른 테스트 실패', error.name);
             return false;
         }
     }
 
-    // Permissions API 확인
     async checkPermissionsAPI() {
         try {
             const [cameraPermission, micPermission] = await Promise.all([
                 navigator.permissions.query({ name: 'camera' }),
                 navigator.permissions.query({ name: 'microphone' })
             ]);
-
-            WS_VIDEO_LOGGER.debug('Permissions API 결과', {
-                camera: cameraPermission.state,
-                microphone: micPermission.state
-            });
 
             const hasPermissions = cameraPermission.state === 'granted' &&
                                  micPermission.state === 'granted';
@@ -88,70 +76,47 @@ class WSVideoPermissionManager {
                 return false;
             }
 
-            return null; // prompt 상태 - 직접 테스트 필요
+            return null;
 
         } catch (error) {
-            WS_VIDEO_LOGGER.debug('Permissions API 미지원', error);
             return null;
         }
     }
 
-    // 미디어 접근 테스트
     async testMediaAccess() {
         try {
-            WS_VIDEO_LOGGER.info('미디어 접근 테스트 시작');
-
             const constraints = this.getMediaConstraints();
             const stream = await navigator.mediaDevices.getUserMedia(constraints);
 
-            WS_VIDEO_LOGGER.info('미디어 접근 성공 - 권한 있음');
-
-            // 스트림 정리
-            stream.getTracks().forEach(track => {
-                track.stop();
-                WS_VIDEO_LOGGER.debug('트랙 정리', track.kind);
-            });
+            stream.getTracks().forEach(track => track.stop());
 
             this.updatePermissionStorage(true);
             WS_VIDEO_STATE.cameraPermissionGranted = true;
             WS_VIDEO_STATE.microphonePermissionGranted = true;
-
             return true;
 
         } catch (error) {
-            WS_VIDEO_LOGGER.info('미디어 접근 실패', error.name);
-
             if (error.name === 'NotAllowedError') {
                 this.updatePermissionStorage(false);
                 WS_VIDEO_STATE.cameraPermissionGranted = false;
                 WS_VIDEO_STATE.microphonePermissionGranted = false;
                 return false;
-            } else if (error.name === 'NotFoundError') {
-                WS_VIDEO_LOGGER.warn('미디어 장치 없음');
-                return false;
-            } else {
-                // 기타 오류 - 권한 요청 필요
-                return false;
             }
+            return false;
         }
     }
 
-    // 미디어 제약조건 가져오기
     getMediaConstraints() {
         const deviceType = WS_VIDEO_STATE.deviceType;
         const constraints = WS_VIDEO_CONFIG.VIDEO_CONSTRAINTS[deviceType] ||
                           WS_VIDEO_CONFIG.VIDEO_CONSTRAINTS.WEB;
 
         return {
-            video: {
-                ...constraints.video,
-                facingMode: 'user'
-            },
+            video: { ...constraints.video, facingMode: 'user' },
             audio: constraints.audio
         };
     }
 
-    // 권한 요청
     async requestPermissions() {
         if (this.permissionRequestInProgress) {
             WS_VIDEO_LOGGER.warn('권한 요청이 이미 진행 중');
@@ -167,8 +132,7 @@ class WSVideoPermissionManager {
             const constraints = this.getMediaConstraints();
             const browserInfo = getBrowserInfo();
 
-            // iOS Safari는 단계별 권한 요청
-            if (browserInfo.isIOSSafari) {
+            if (browserInfo?.isIOSSafari) {
                 await this.requestPermissionsIOS(constraints);
             } else {
                 await this.requestPermissionsStandard(constraints);
@@ -178,14 +142,8 @@ class WSVideoPermissionManager {
             WS_VIDEO_STATE.cameraPermissionGranted = true;
             WS_VIDEO_STATE.microphonePermissionGranted = true;
 
-            // WebSocket으로 권한 상태 전송
-            if (wsVideoClient) {
-                wsVideoClient.notifyPermissionStatus(true, true);
-            }
-
             WS_VIDEO_LOGGER.info('권한 요청 성공');
             updateStatus('권한 설정 완료');
-
             return true;
 
         } catch (error) {
@@ -193,49 +151,31 @@ class WSVideoPermissionManager {
             this.updatePermissionStorage(false);
             this.handlePermissionError(error);
             return false;
-
         } finally {
             this.permissionRequestInProgress = false;
         }
     }
 
-    // iOS Safari 권한 요청
     async requestPermissionsIOS(constraints) {
-        WS_VIDEO_LOGGER.info('iOS Safari 단계별 권한 요청');
-
-        // 1단계: 비디오 권한
         const videoStream = await navigator.mediaDevices.getUserMedia({
             video: constraints.video
         });
-        WS_VIDEO_LOGGER.info('카메라 권한 획득');
 
-        // 2단계: 오디오 권한
         const audioStream = await navigator.mediaDevices.getUserMedia({
             audio: constraints.audio
         });
-        WS_VIDEO_LOGGER.info('마이크 권한 획득');
 
-        // 통합 스트림 생성
         const tracks = [...videoStream.getTracks(), ...audioStream.getTracks()];
         WS_VIDEO_STATE.userMediaStream = new MediaStream(tracks);
 
-        WS_VIDEO_LOGGER.info('iOS Safari 권한 요청 완료', {
-            tracks: WS_VIDEO_STATE.userMediaStream.getTracks().map(t => t.kind)
-        });
+        videoStream.getTracks().forEach(track => track.stop());
+        audioStream.getTracks().forEach(track => track.stop());
     }
 
-    // 표준 권한 요청
     async requestPermissionsStandard(constraints) {
-        WS_VIDEO_LOGGER.info('표준 권한 요청');
-
         WS_VIDEO_STATE.userMediaStream = await navigator.mediaDevices.getUserMedia(constraints);
-
-        WS_VIDEO_LOGGER.info('표준 권한 요청 완료', {
-            tracks: WS_VIDEO_STATE.userMediaStream.getTracks().map(t => t.kind)
-        });
     }
 
-    // 권한 오류 처리
     handlePermissionError(error) {
         let errorMessage = '미디어 권한 요청 중 오류가 발생했습니다';
 
@@ -254,20 +194,17 @@ class WSVideoPermissionManager {
                 break;
         }
 
-        showPermissionErrorDialog(errorMessage);
+        showErrorMessage(errorMessage);
         updateStatus('권한 오류');
     }
 
-    // 권한 상태 저장/조회
     updatePermissionStorage(hasPermission) {
         try {
             WS_VIDEO_UTILS.storage.set('mediaPermissionStatus', {
                 camera: hasPermission,
                 microphone: hasPermission,
                 userAgent: navigator.userAgent.substring(0, 100)
-            }, 24 * 60 * 60 * 1000); // 24시간
-
-            WS_VIDEO_LOGGER.debug('권한 상태 저장', hasPermission);
+            }, 24 * 60 * 60 * 1000);
         } catch (error) {
             WS_VIDEO_LOGGER.warn('권한 상태 저장 실패', error);
         }
@@ -278,7 +215,6 @@ class WSVideoPermissionManager {
             const data = WS_VIDEO_UTILS.storage.get('mediaPermissionStatus');
             if (!data) return null;
 
-            // User-Agent 검증 (브라우저 변경 감지)
             if (!data.userAgent || !navigator.userAgent.includes(data.userAgent.substring(0, 50))) {
                 WS_VIDEO_UTILS.storage.remove('mediaPermissionStatus');
                 return null;
@@ -286,7 +222,6 @@ class WSVideoPermissionManager {
 
             return data.camera && data.microphone;
         } catch (error) {
-            WS_VIDEO_LOGGER.warn('저장된 권한 상태 확인 실패', error);
             return null;
         }
     }
@@ -296,93 +231,157 @@ class WSVideoPermissionManager {
     }
 }
 
-// ========== 녹화 관리 ==========
-class WSVideoRecordingManager {
+// ========== 완전 수정된 녹화 관리 ==========
+class SimpleRecordingManager {
     constructor() {
         this.isRecording = false;
         this.startTime = null;
-        this.countdownInterval = null;
         this.recordingTimeout = null;
+        this.recordingStateRequested = false; // 🔧 중복 방지 플래그
+        this.lastStateRequestTime = 0; // 🔧 시간 기반 중복 방지
     }
 
-    // 녹화 준비 확인
-    async prepareRecording() {
-        if (!WS_VIDEO_STATE.cameraPermissionGranted || !WS_VIDEO_STATE.userMediaStream) {
-            throw new Error('녹화를 위한 미디어 스트림이 필요합니다');
+    // 🔧 녹화 상태 요청 가능 여부 확인
+    canRequestRecordingState() {
+        const now = Date.now();
+
+        // 1. 이미 플래그가 설정되어 있으면 불가
+        if (this.recordingStateRequested) {
+            WS_VIDEO_LOGGER.warn('🚫 녹화 상태 요청 거부: 이미 요청됨 (플래그)');
+            return false;
         }
 
-        WS_VIDEO_LOGGER.info('녹화 준비 완료');
+        // 2. 3초 내 중복 요청 방지
+        if (now - this.lastStateRequestTime < 3000) {
+            WS_VIDEO_LOGGER.warn('🚫 녹화 상태 요청 거부: 너무 빠른 재요청 ({}ms 전)',
+                                now - this.lastStateRequestTime);
+            return false;
+        }
+
+        // 3. 이미 녹화 중이면 불가
+        if (this.isRecording || WS_VIDEO_STATE.isRecording) {
+            WS_VIDEO_LOGGER.warn('🚫 녹화 상태 요청 거부: 이미 녹화 중');
+            return false;
+        }
+
         return true;
     }
 
-    // 녹화 시작 (카운트다운 포함)
-    async startRecordingWithCountdown(countdownSeconds = 3, maxDuration = 10) {
+    // 🔧 녹화 상태 요청 완료 처리
+    markStateRequestCompleted() {
+        this.recordingStateRequested = false;
+        WS_VIDEO_LOGGER.debug('✅ 녹화 상태 요청 플래그 해제');
+    }
+
+    // 녹화 준비
+    async prepareRecording() {
+        if (!WS_VIDEO_STATE.cameraPermissionGranted) {
+            throw new Error('녹화를 위한 카메라 권한이 필요합니다');
+        }
+
+        if (WS_VIDEO_STATE.userMediaStream) {
+            const videoTracks = WS_VIDEO_STATE.userMediaStream.getVideoTracks();
+            const audioTracks = WS_VIDEO_STATE.userMediaStream.getAudioTracks();
+
+            const hasActiveVideo = videoTracks.some(track => track.readyState === 'live');
+            const hasActiveAudio = audioTracks.some(track => track.readyState === 'live');
+
+            if (hasActiveVideo && hasActiveAudio) {
+                WS_VIDEO_LOGGER.info('기존 스트림으로 녹화 준비 완료');
+                return true;
+            } else {
+                WS_VIDEO_STATE.userMediaStream.getTracks().forEach(track => track.stop());
+                WS_VIDEO_STATE.userMediaStream = null;
+            }
+        }
+
         try {
-            await this.prepareRecording();
+            const constraints = wsVideoPermissionManager.getMediaConstraints();
+            WS_VIDEO_STATE.userMediaStream = await navigator.mediaDevices.getUserMedia(constraints);
 
-            WS_VIDEO_LOGGER.info('녹화 카운트다운 시작', { countdownSeconds, maxDuration });
-
-            // 카운트다운 UI 표시
-            showCountdownModal();
-
-            await this.runCountdown(countdownSeconds);
-
-            // 실제 녹화 시작
-            await this.startRecording(maxDuration);
-
-        } catch (error) {
-            WS_VIDEO_LOGGER.error('녹화 시작 실패', error);
-            hideCountdownModal();
-
-            if (wsVideoClient) {
-                wsVideoClient.notifyRecordingError(error);
+            const myCamera = document.getElementById('myCamera');
+            if (myCamera) {
+                myCamera.srcObject = WS_VIDEO_STATE.userMediaStream;
             }
 
+            WS_VIDEO_LOGGER.info('녹화 준비 완료 - 새 스트림 생성됨');
+            return true;
+
+        } catch (error) {
+            WS_VIDEO_LOGGER.error('녹화용 스트림 생성 실패', error);
+            throw new Error(`녹화용 미디어 스트림 생성 실패: ${error.message}`);
+        }
+    }
+
+    // 🔧 완전 수정된 녹화 시작
+    async startRecording(maxDuration = 10) {
+        try {
+            if (this.recordingStateRequested) {
+                WS_VIDEO_LOGGER.warn('⚠️ 중복 startRecording 호출 무시');
+                return;
+            }
+            // 🔧 녹화 상태 요청 가능 여부 확인
+            if (!this.canRequestRecordingState()) {
+                return; // 조용히 무시
+            }
+
+            // 🔧 플래그 설정 및 시간 기록
+            this.recordingStateRequested = true;
+            this.lastStateRequestTime = Date.now();
+
+            WS_VIDEO_LOGGER.info('🔴 녹화 시작 - 상태 변경 요청 전송');
+
+            // ✅ WebSocket으로 서버에 녹화 상태 변경 요청 (한 번만)
+            if (wsVideoClient && wsVideoClient.websocket && wsVideoClient.websocket.readyState === WebSocket.OPEN) {
+                const sent = wsVideoClient.sendMessage({
+                    type: 'CLIENT_STATE_CHANGE',
+                    newState: 'RECORDING',
+                    reason: 'USER_REQUEST',
+                    timestamp: Date.now()
+                });
+
+                if (!sent) {
+                    WS_VIDEO_LOGGER.error('❌ 상태 변경 메시지 전송 실패');
+                    this.markStateRequestCompleted();
+                    throw new Error('상태 변경 메시지 전송 실패');
+                }
+            } else {
+                WS_VIDEO_LOGGER.error('❌ WebSocket 연결되지 않음');
+                this.markStateRequestCompleted();
+                throw new Error('WebSocket 연결되지 않음');
+            }
+
+            // 🔧 실제 녹화 시작은 서버 응답 후에 처리
+            // (handleServerRecordingCommand에서 처리)
+
+        } catch (error) {
+            WS_VIDEO_LOGGER.error('녹화 시작 오류', error);
+            this.markStateRequestCompleted();
+            this.resetRecordingState();
             throw error;
         }
     }
 
-    // 카운트다운 실행
-    async runCountdown(seconds) {
-        return new Promise((resolve) => {
-            let remaining = seconds;
-
-            const updateCountdown = () => {
-                updateCountdownNumber(remaining);
-
-                if (remaining <= 0) {
-                    hideCountdownModal();
-                    resolve();
-                    return;
-                }
-
-                remaining--;
-                this.countdownInterval = setTimeout(updateCountdown, 1000);
-            };
-
-            updateCountdown();
-        });
-    }
-
-    // 실제 녹화 시작
-    async startRecording(maxDuration) {
+    // 🆕 서버 명령에 의한 실제 녹화 시작
+    async handleServerRecordingCommand(maxDuration = 10) {
         try {
+            WS_VIDEO_LOGGER.info('🔴 서버 명령으로 실제 녹화 시작');
+
             WS_VIDEO_STATE.recordedChunks = [];
 
-            // MediaRecorder 설정
             const options = this.getRecordingOptions();
             WS_VIDEO_STATE.mediaRecorder = new MediaRecorder(WS_VIDEO_STATE.userMediaStream, options);
 
-            // 이벤트 리스너 설정
             this.setupRecordingEventListeners();
 
-            // 녹화 시작
             WS_VIDEO_STATE.mediaRecorder.start();
             this.isRecording = true;
             this.startTime = Date.now();
             WS_VIDEO_STATE.isRecording = true;
 
-            // UI 업데이트
+            // 🔧 상태 요청 완료 처리
+            this.markStateRequestCompleted();
+
             updateRecordingUI(true);
             updateStatus('녹화 중...');
 
@@ -391,48 +390,40 @@ class WSVideoRecordingManager {
                 this.stopRecording();
             }, maxDuration * 1000);
 
-            // WebSocket 알림
-            if (wsVideoClient) {
-                wsVideoClient.notifyRecordingStarted();
-            }
-
-            WS_VIDEO_LOGGER.info('녹화 시작됨', { maxDuration });
+            WS_VIDEO_LOGGER.info('✅ 실제 녹화 시작 완료', { maxDuration });
 
         } catch (error) {
-            WS_VIDEO_LOGGER.error('녹화 시작 오류', error);
-            this.isRecording = false;
-            WS_VIDEO_STATE.isRecording = false;
+            WS_VIDEO_LOGGER.error('실제 녹화 시작 오류', error);
+            this.markStateRequestCompleted();
+            this.resetRecordingState();
             throw error;
         }
     }
 
-    // 녹화 옵션 설정
+    // 녹화 옵션
     getRecordingOptions() {
         const mimeTypes = WS_VIDEO_CONFIG.RECORDING.MIME_TYPES;
 
         for (const mimeType of mimeTypes) {
             if (MediaRecorder.isTypeSupported(mimeType)) {
-                WS_VIDEO_LOGGER.debug('선택된 MIME 타입', mimeType);
                 return {
                     mimeType: mimeType,
-                    videoBitsPerSecond: 2500000, // 2.5 Mbps
-                    audioBitsPerSecond: 128000   // 128 Kbps
+                    videoBitsPerSecond: 2500000,
+                    audioBitsPerSecond: 128000
                 };
             }
         }
 
-        WS_VIDEO_LOGGER.warn('지원되는 MIME 타입 없음 - 기본값 사용');
         return {};
     }
 
-    // 녹화 이벤트 리스너 설정
+    // 녹화 이벤트 리스너
     setupRecordingEventListeners() {
         const mediaRecorder = WS_VIDEO_STATE.mediaRecorder;
 
         mediaRecorder.ondataavailable = (event) => {
             if (event.data.size > 0) {
                 WS_VIDEO_STATE.recordedChunks.push(event.data);
-                WS_VIDEO_LOGGER.debug('녹화 데이터 청크 수신', event.data.size);
             }
         };
 
@@ -455,33 +446,19 @@ class WSVideoRecordingManager {
         }
 
         try {
-            // 타이머 정리
             if (this.recordingTimeout) {
                 clearTimeout(this.recordingTimeout);
                 this.recordingTimeout = null;
             }
 
-            if (this.countdownInterval) {
-                clearTimeout(this.countdownInterval);
-                this.countdownInterval = null;
-            }
-
-            // 녹화 중지
             WS_VIDEO_STATE.mediaRecorder.stop();
             this.isRecording = false;
             WS_VIDEO_STATE.isRecording = false;
 
-            // 녹화 시간 계산
             const duration = this.startTime ? Math.floor((Date.now() - this.startTime) / 1000) : 0;
 
-            // UI 업데이트
             updateRecordingUI(false);
             updateStatus('녹화 완료');
-
-            // WebSocket 알림
-            if (wsVideoClient) {
-                wsVideoClient.notifyRecordingStopped(duration);
-            }
 
             WS_VIDEO_LOGGER.info('녹화 중지됨', { duration });
 
@@ -495,29 +472,43 @@ class WSVideoRecordingManager {
     handleRecordingError(error) {
         this.isRecording = false;
         WS_VIDEO_STATE.isRecording = false;
+        this.markStateRequestCompleted();
 
-        // 타이머 정리
         if (this.recordingTimeout) {
             clearTimeout(this.recordingTimeout);
         }
-        if (this.countdownInterval) {
-            clearTimeout(this.countdownInterval);
-        }
 
-        // UI 업데이트
         updateRecordingUI(false);
-        hideCountdownModal();
         updateStatus('녹화 오류');
 
-        // WebSocket 알림
         if (wsVideoClient) {
-            wsVideoClient.notifyRecordingError(error);
+            wsVideoClient.sendMessage({
+                type: 'CLIENT_STATE_CHANGE',
+                newState: 'ERROR',
+                reason: 'RECORDING_ERROR',
+                error: error.message || error
+            });
         }
 
         showErrorMessage('녹화 중 오류가 발생했습니다');
     }
 
-    // 녹화된 영상 처리
+    // 🔧 상태 초기화 (강화됨)
+    resetRecordingState() {
+        this.isRecording = false;
+        this.recordingStateRequested = false;
+        this.lastStateRequestTime = 0;
+        WS_VIDEO_STATE.isRecording = false;
+
+        if (this.recordingTimeout) {
+            clearTimeout(this.recordingTimeout);
+            this.recordingTimeout = null;
+        }
+
+        WS_VIDEO_LOGGER.info('✅ 녹화 상태 완전 초기화');
+    }
+
+    // 녹화 영상 처리
     async processRecordedVideo() {
         if (!WS_VIDEO_STATE.recordedChunks || WS_VIDEO_STATE.recordedChunks.length === 0) {
             WS_VIDEO_LOGGER.error('녹화된 데이터가 없습니다');
@@ -529,27 +520,30 @@ class WSVideoRecordingManager {
             WS_VIDEO_LOGGER.info('녹화 영상 처리 시작');
             updateStatus('영상 처리 중...');
 
-            // Blob 생성
             const blob = new Blob(WS_VIDEO_STATE.recordedChunks, { type: 'video/webm' });
             const fileSize = WS_VIDEO_UTILS.formatFileSize(blob.size);
 
             WS_VIDEO_LOGGER.info('녹화 파일 생성 완료', { size: fileSize });
 
-            // 서버로 업로드
             await this.uploadRecordedVideo(blob);
 
         } catch (error) {
             WS_VIDEO_LOGGER.error('녹화 영상 처리 실패', error);
 
             if (wsVideoClient) {
-                wsVideoClient.notifyVideoUploadError(error);
+                wsVideoClient.sendMessage({
+                    type: 'CLIENT_STATE_CHANGE',
+                    newState: 'ERROR',
+                    reason: 'UPLOAD_ERROR',
+                    error: error.message || error
+                });
             }
 
             showErrorMessage('영상 처리 중 오류가 발생했습니다');
         }
     }
 
-    // 녹화 영상 업로드
+    // 영상 업로드
     async uploadRecordedVideo(blob) {
         if (!WS_VIDEO_STATE.sessionKey) {
             throw new Error('세션 키가 없습니다');
@@ -559,15 +553,11 @@ class WSVideoRecordingManager {
             WS_VIDEO_LOGGER.info('서버로 영상 업로드 시작');
             updateStatus('업로드 중...');
 
-            // FormData 생성
             const formData = new FormData();
             const filename = `recorded_video_${WS_VIDEO_STATE.sessionKey}_${Date.now()}.webm`;
             formData.append('video', blob, filename);
+            formData.append('contactKey', 'rohmoohyun');
 
-            // 추가 정보
-            formData.append('contactKey', WS_VIDEO_STATE.memberId || 'default');
-
-            // 업로드 요청
             const response = await authFetch(
                 `${WS_VIDEO_CONFIG.API_BASE_URL}/process/${WS_VIDEO_STATE.sessionKey}`,
                 {
@@ -577,14 +567,6 @@ class WSVideoRecordingManager {
             );
 
             WS_VIDEO_LOGGER.info('영상 업로드 완료', response);
-
-            // WebSocket 알림
-            if (wsVideoClient) {
-                wsVideoClient.notifyVideoUploadComplete(
-                    response.response?.filePath || 'uploaded'
-                );
-            }
-
             updateStatus('AI 처리 대기 중...');
 
         } catch (error) {
@@ -594,303 +576,72 @@ class WSVideoRecordingManager {
     }
 }
 
-// ========== 영상 재생 관리 ==========
-class WSVideoPlayerManager {
-    constructor() {
-        this.currentVideoState = 'WAITING';
-        this.transitionInProgress = false;
-        this.browserInfo = getBrowserInfo();
-    }
-
-    // 대기영상 재생
-    async playWaitingVideo(videoUrl, loop = true) {
-        if (this.transitionInProgress) {
-            WS_VIDEO_LOGGER.warn('영상 전환 중 - 대기영상 재생 지연');
-            await WS_VIDEO_UTILS.delay(500);
-        }
-
-        try {
-            this.transitionInProgress = true;
-            WS_VIDEO_LOGGER.info('대기영상 재생 시작', videoUrl);
-
-            WS_VIDEO_STATE.waitingVideoUrl = videoUrl;
-            this.currentVideoState = 'WAITING';
-
-            await this.playVideoSafely(videoUrl, loop, true);
-
-            // WebSocket 알림
-            if (wsVideoClient) {
-                wsVideoClient.notifyWaitingVideoStarted();
-            }
-
-            WS_VIDEO_LOGGER.info('대기영상 재생 성공');
-
-        } catch (error) {
-            WS_VIDEO_LOGGER.error('대기영상 재생 실패', error);
-
-            if (wsVideoClient) {
-                wsVideoClient.notifyWaitingVideoError(error);
-            }
-
-            this.showVideoFallback();
-
-        } finally {
-            this.transitionInProgress = false;
-        }
-    }
-
-    // 응답영상 재생
-    async playResponseVideo(videoUrl, autoReturn = true) {
-        if (this.transitionInProgress) {
-            WS_VIDEO_LOGGER.warn('영상 전환 중 - 응답영상 재생 지연');
-            await WS_VIDEO_UTILS.delay(500);
-        }
-
-        try {
-            this.transitionInProgress = true;
-            WS_VIDEO_LOGGER.info('응답영상 재생 시작', videoUrl);
-
-            WS_VIDEO_STATE.responseVideoUrl = videoUrl;
-            this.currentVideoState = 'RESPONSE';
-
-            // 대기영상에서 응답영상으로 전환
-            await this.fadeOutVideo();
-            await this.playVideoSafely(videoUrl, false, true);
-            await this.fadeInVideo();
-
-            // WebSocket 알림
-            if (wsVideoClient) {
-                wsVideoClient.notifyResponseVideoStarted();
-            }
-
-            // 응답영상 종료 시 대기영상으로 복귀 설정
-            if (autoReturn) {
-                this.setupVideoEndedHandler();
-            }
-
-            WS_VIDEO_LOGGER.info('응답영상 재생 성공');
-
-        } catch (error) {
-            WS_VIDEO_LOGGER.error('응답영상 재생 실패', error);
-
-            if (wsVideoClient) {
-                wsVideoClient.notifyResponseVideoError(error);
-            }
-
-            // 대기영상으로 복귀
-            await this.returnToWaitingVideo();
-
-        } finally {
-            this.transitionInProgress = false;
-        }
-    }
-
-    // 안전한 영상 재생
-    async playVideoSafely(videoUrl, loop = false, unmuted = false) {
-        const mainVideo = document.getElementById('mainVideo');
-
-        return new Promise((resolve, reject) => {
-            // 영상 로딩 오버레이 표시
-            showVideoLoadingOverlay();
-
-            // 영상 설정
-            mainVideo.src = videoUrl;
-            mainVideo.loop = loop;
-            mainVideo.muted = !unmuted;
-            mainVideo.playsInline = true;
-
-            if (unmuted) {
-                mainVideo.volume = 0.8;
-            }
-
-            const cleanup = () => {
-                mainVideo.removeEventListener('loadedmetadata', onLoaded);
-                mainVideo.removeEventListener('error', onError);
-                if (timeout) clearTimeout(timeout);
-                hideVideoLoadingOverlay();
-            };
-
-            const onLoaded = async () => {
-                try {
-                    cleanup();
-                    await mainVideo.play();
-                    mainVideo.style.display = 'block';
-                    resolve();
-                } catch (playError) {
-                    if (playError.name === 'NotAllowedError') {
-                        this.showTouchToPlayGuide(resolve, reject);
-                    } else {
-                        reject(playError);
-                    }
-                }
-            };
-
-            const onError = (event) => {
-                cleanup();
-                reject(new Error('비디오 로딩 실패'));
-            };
-
-            mainVideo.addEventListener('loadedmetadata', onLoaded);
-            mainVideo.addEventListener('error', onError);
-
-            // 타임아웃 설정
-            const timeout = setTimeout(() => {
-                cleanup();
-                reject(new Error('비디오 로딩 타임아웃'));
-            }, WS_VIDEO_CONFIG.TIMERS.VIDEO_LOAD_TIMEOUT);
-
-            mainVideo.load();
-        });
-    }
-
-    // 터치하여 재생 가이드 표시
-    showTouchToPlayGuide(resolve, reject) {
-        const guide = document.createElement('div');
-        guide.id = 'touchGuide';
-        guide.className = 'touch-guide';
-        guide.innerHTML = `
-            <div class="touch-guide-icon">🎬</div>
-            <div class="touch-guide-title">화면을 터치해주세요</div>
-            <div class="touch-guide-message">영상을 시작하려면 터치가 필요합니다</div>
-        `;
-
-        guide.onclick = async () => {
-            try {
-                const mainVideo = document.getElementById('mainVideo');
-                await mainVideo.play();
-                guide.remove();
-                mainVideo.style.display = 'block';
-                WS_VIDEO_LOGGER.info('사용자 터치로 재생 시작');
-                resolve();
-            } catch (error) {
-                guide.remove();
-                reject(error);
-            }
-        };
-
-        document.querySelector('.main-video-container').appendChild(guide);
-    }
-
-    // 영상 페이드 효과
-    async fadeOutVideo() {
-        if (this.browserInfo.isIOSSafari) return; // iOS Safari는 스킵
-
-        const mainVideo = document.getElementById('mainVideo');
-        mainVideo.style.transition = 'opacity 0.3s ease';
-        mainVideo.style.opacity = '0';
-
-        await WS_VIDEO_UTILS.delay(300);
-    }
-
-    async fadeInVideo() {
-        if (this.browserInfo.isIOSSafari) return; // iOS Safari는 스킵
-
-        const mainVideo = document.getElementById('mainVideo');
-        mainVideo.style.transition = 'opacity 0.3s ease';
-        mainVideo.style.opacity = '1';
-
-        await WS_VIDEO_UTILS.delay(300);
-        mainVideo.style.transition = '';
-    }
-
-    // 응답영상 종료 시 대기영상 복귀 설정
-    setupVideoEndedHandler() {
-        const mainVideo = document.getElementById('mainVideo');
-
-        const onVideoEnded = async () => {
-            WS_VIDEO_LOGGER.info('응답영상 재생 완료 - 대기영상으로 복귀');
-            mainVideo.removeEventListener('ended', onVideoEnded);
-
-            // WebSocket 알림
-            if (wsVideoClient) {
-                wsVideoClient.notifyResponseVideoEnded(Math.floor(mainVideo.currentTime));
-            }
-
-            await this.returnToWaitingVideo();
-        };
-
-        mainVideo.addEventListener('ended', onVideoEnded);
-    }
-
-    // 대기영상으로 복귀
-    async returnToWaitingVideo() {
-        if (!WS_VIDEO_STATE.waitingVideoUrl) {
-            WS_VIDEO_LOGGER.warn('대기영상 URL이 없어 복귀 불가');
-            return;
-        }
-
-        try {
-            WS_VIDEO_LOGGER.info('대기영상으로 복귀 시작');
-            updateStatus('대기영상으로 복귀 중...');
-
-            this.currentVideoState = 'WAITING';
-
-            await this.fadeOutVideo();
-            await this.playVideoSafely(WS_VIDEO_STATE.waitingVideoUrl, true, true);
-            await this.fadeInVideo();
-
-            updateStatus('대기 중');
-            WS_VIDEO_LOGGER.info('대기영상 복귀 완료');
-
-        } catch (error) {
-            WS_VIDEO_LOGGER.error('대기영상 복귀 실패', error);
-            this.showVideoFallback();
-        }
-    }
-
-    // 영상 재생 실패 시 폴백 화면
-    showVideoFallback() {
-        WS_VIDEO_LOGGER.info('영상 폴백 화면 표시');
-
-        const mainVideo = document.getElementById('mainVideo');
-        mainVideo.style.display = 'none';
-
-        const container = document.querySelector('.main-video-container');
-        container.style.background = 'linear-gradient(135deg, #2c3e50, #34495e)';
-
-        let fallback = document.getElementById('videoFallback');
-        if (!fallback) {
-            fallback = document.createElement('div');
-            fallback.id = 'videoFallback';
-            fallback.className = 'video-fallback';
-            fallback.innerHTML = `
-                <div class="video-fallback-icon">📹</div>
-                <div class="video-fallback-title">연결을 준비하고 있습니다</div>
-                <div class="video-fallback-message">잠시만 기다려주세요</div>
-            `;
-            container.appendChild(fallback);
-        }
-    }
-}
-
 // ========== 전역 인스턴스 생성 ==========
-window.wsVideoPermissionManager = new WSVideoPermissionManager();
-window.wsVideoRecordingManager = new WSVideoRecordingManager();
-window.wsVideoPlayerManager = new WSVideoPlayerManager();
+window.wsVideoPermissionManager = new SimplePermissionManager();
+window.wsVideoRecordingManager = new SimpleRecordingManager();
 
 // ========== 전역 함수들 ==========
 window.checkExistingPermissions = () => wsVideoPermissionManager.checkExistingPermissions();
 window.requestPermissions = () => wsVideoPermissionManager.requestPermissions();
 
-window.startRecordingCountdown = (countdown = 3, maxDuration = 10) =>
-    wsVideoRecordingManager.startRecordingWithCountdown(countdown, maxDuration);
-window.stopRecording = () => wsVideoRecordingManager.stopRecording();
-
-window.playWaitingVideo = (url, loop = true) => wsVideoPlayerManager.playWaitingVideo(url, loop);
-window.playResponseVideo = (url, autoReturn = true) => wsVideoPlayerManager.playResponseVideo(url, autoReturn);
-
-// 카메라 설정
-window.setupCamera = function() {
-    if (WS_VIDEO_STATE.userMediaStream) {
-        const myCamera = document.getElementById('myCamera');
-        const cameraPlaceholder = document.getElementById('cameraPlaceholder');
-
-        myCamera.srcObject = WS_VIDEO_STATE.userMediaStream;
-        myCamera.style.display = 'block';
-        cameraPlaceholder.style.display = 'none';
-
-        WS_VIDEO_LOGGER.info('카메라 설정 완료');
+// 🔧 완전 수정된 녹화 시작 함수
+window.startRecordingDirectly = async function() {
+    try {
+        await wsVideoRecordingManager.prepareRecording();
+        await wsVideoRecordingManager.startRecording(10); // 상태 변경 요청만
+        WS_VIDEO_LOGGER.info('✅ 녹화 상태 변경 요청 완료');
+    } catch (error) {
+        WS_VIDEO_LOGGER.error('녹화 시작 실패', error);
+        wsVideoRecordingManager.resetRecordingState();
+        throw error;
     }
 };
 
-WS_VIDEO_LOGGER.info('미디어 관리자 초기화 완료');
+// 🆕 서버 명령으로 실제 녹화 시작
+window.startActualRecording = async function(maxDuration = 10) {
+    try {
+        await wsVideoRecordingManager.handleServerRecordingCommand(maxDuration);
+        WS_VIDEO_LOGGER.info('✅ 실제 녹화 시작 완료');
+    } catch (error) {
+        WS_VIDEO_LOGGER.error('실제 녹화 시작 실패', error);
+        throw error;
+    }
+};
+
+window.stopRecording = () => wsVideoRecordingManager.stopRecording();
+
+// 카메라 설정
+window.setupCamera = async function() {
+    const myCamera = document.getElementById('myCamera');
+    const cameraPlaceholder = document.getElementById('cameraPlaceholder');
+
+    try {
+        if (WS_VIDEO_STATE.userMediaStream) {
+            myCamera.srcObject = WS_VIDEO_STATE.userMediaStream;
+            myCamera.style.display = 'block';
+            cameraPlaceholder.style.display = 'none';
+            WS_VIDEO_LOGGER.info('기존 스트림으로 카메라 설정 완료');
+            return;
+        }
+
+        if (WS_VIDEO_STATE.cameraPermissionGranted) {
+            const constraints = wsVideoPermissionManager.getMediaConstraints();
+            WS_VIDEO_STATE.userMediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+
+            myCamera.srcObject = WS_VIDEO_STATE.userMediaStream;
+            myCamera.style.display = 'block';
+            cameraPlaceholder.style.display = 'none';
+
+            WS_VIDEO_LOGGER.info('새 스트림으로 카메라 설정 완료');
+        }
+
+    } catch (error) {
+        WS_VIDEO_LOGGER.error('카메라 설정 실패', error);
+        myCamera.style.display = 'none';
+        cameraPlaceholder.style.display = 'block';
+    }
+};
+
+window.resetRecordingState = () => wsVideoRecordingManager.resetRecordingState();
+
+WS_VIDEO_LOGGER.info('완전 수정된 미디어 관리자 초기화 완료');

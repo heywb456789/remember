@@ -249,21 +249,6 @@ body {
     background: #3498db;
 }
 
-/* 세션 정보 */
-.session-info {
-    position: absolute;
-    bottom: 20px;
-    left: 20px;
-    background: rgba(0, 0, 0, 0.7);
-    padding: 6px 12px;
-    border-radius: 15px;
-    color: white;
-    font-size: 12px;
-    backdrop-filter: blur(10px);
-    z-index: 100;
-    opacity: 0.7;
-}
-
 /* 연결 상태 */
 .connection-status {
     position: absolute;
@@ -302,12 +287,9 @@ body {
 }
 
 /* ========== 모달 스타일 ========== */
-/* 권한 요청 모달 */
 .permission-modal,
 .call-start-modal,
-.loading-modal,
-.countdown-modal,
-.progress-modal {
+.loading-modal {
     position: fixed;
     top: 0;
     left: 0;
@@ -325,18 +307,14 @@ body {
 
 .permission-modal.show,
 .call-start-modal.show,
-.loading-modal.show,
-.countdown-modal.show,
-.progress-modal.show {
+.loading-modal.show {
     opacity: 1;
     visibility: visible;
 }
 
 .permission-dialog,
 .call-start-dialog,
-.loading-dialog,
-.countdown-dialog,
-.progress-dialog {
+.loading-dialog {
     background: #2c3e50;
     border-radius: 16px;
     padding: 32px;
@@ -351,9 +329,7 @@ body {
 
 .permission-modal.show .permission-dialog,
 .call-start-modal.show .call-start-dialog,
-.loading-modal.show .loading-dialog,
-.countdown-modal.show .countdown-dialog,
-.progress-modal.show .progress-dialog {
+.loading-modal.show .loading-dialog {
     transform: scale(1);
 }
 
@@ -446,81 +422,6 @@ body {
     color: #bdc3c7;
 }
 
-/* 카운트다운 모달 */
-.countdown-number {
-    font-size: 120px;
-    font-weight: 700;
-    color: #e74c3c;
-    margin-bottom: 20px;
-    animation: countdownPulse 1s ease-in-out;
-}
-
-.countdown-message {
-    font-size: 18px;
-    color: #ecf0f1;
-}
-
-/* 진행률 모달 */
-.progress-icon {
-    font-size: 60px;
-    margin-bottom: 20px;
-}
-
-.progress-title {
-    font-size: 20px;
-    font-weight: 600;
-    margin-bottom: 24px;
-    color: #ecf0f1;
-}
-
-.progress-bar {
-    width: 100%;
-    height: 8px;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 4px;
-    overflow: hidden;
-    margin-bottom: 16px;
-}
-
-.progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #3498db, #2980b9);
-    border-radius: 4px;
-    width: 0%;
-    transition: width 0.3s ease;
-}
-
-.progress-text {
-    font-size: 14px;
-    color: #bdc3c7;
-    margin-bottom: 8px;
-}
-
-.progress-percent {
-    font-size: 18px;
-    font-weight: 600;
-    color: #3498db;
-}
-
-/* 디버그 정보 */
-.debug-info {
-    position: absolute;
-    bottom: 80px;
-    right: 20px;
-    background: rgba(0, 0, 0, 0.8);
-    padding: 8px 12px;
-    border-radius: 8px;
-    color: #ecf0f1;
-    font-size: 10px;
-    font-family: monospace;
-    z-index: 200;
-    max-width: 200px;
-}
-
-.debug-info div {
-    margin-bottom: 4px;
-}
-
 /* ========== 애니메이션 ========== */
 @keyframes spin {
     from { transform: rotate(0deg); }
@@ -546,56 +447,6 @@ body {
 @keyframes statusBlink {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.5; }
-}
-
-@keyframes countdownPulse {
-    0% {
-        transform: scale(0.8);
-        opacity: 0;
-    }
-    50% {
-        transform: scale(1.1);
-        opacity: 1;
-    }
-    100% {
-        transform: scale(1);
-        opacity: 1;
-    }
-}
-
-@keyframes pulseGlow {
-    0%, 100% {
-        transform: translate(-50%, -50%) scale(1);
-        box-shadow: 0 0 20px rgba(52, 152, 219, 0.5);
-    }
-    50% {
-        transform: translate(-50%, -50%) scale(1.05);
-        box-shadow: 0 0 30px rgba(52, 152, 219, 0.8);
-    }
-}
-
-@keyframes fadeInOut {
-    0% {
-        opacity: 0;
-        transform: translate(-50%, -50%) scale(0.8);
-    }
-    20% {
-        opacity: 1;
-        transform: translate(-50%, -50%) scale(1);
-    }
-    80% {
-        opacity: 1;
-        transform: translate(-50%, -50%) scale(1);
-    }
-    100% {
-        opacity: 0;
-        transform: translate(-50%, -50%) scale(0.8);
-    }
-}
-
-@keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-10px); }
 }
 
 /* ========== 반응형 디자인 ========== */
@@ -727,10 +578,6 @@ body {
     .loading-message {
         font-size: 14px;
     }
-
-    .countdown-number {
-        font-size: 80px;
-    }
 }
 
 /* 매우 작은 화면 (375px 이하) */
@@ -768,10 +615,6 @@ body {
     .call-start-dialog,
     .loading-dialog {
         padding: 20px;
-    }
-
-    .countdown-number {
-        font-size: 60px;
     }
 }
 

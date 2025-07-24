@@ -35,7 +35,6 @@ public class MemorialVideoSession implements Serializable {
     private Long callerId;
 
     // 상태 정보
-    private String status = "WAITING"; // WAITING, PROCESSING, COMPLETED, ERROR
     private VideoCallFlowState flowState = VideoCallFlowState.INITIALIZING;
     private LocalDateTime createdAt;
     private LocalDateTime lastActivity;
@@ -68,7 +67,6 @@ public class MemorialVideoSession implements Serializable {
         session.createdAt = LocalDateTime.now();
         session.lastActivity = LocalDateTime.now();
         session.lastStateChange = LocalDateTime.now();
-        session.status = "WAITING";
         session.flowState = VideoCallFlowState.INITIALIZING;
         session.reconnectCount = 0;
         session.isPrimaryDevice = true;
@@ -92,7 +90,6 @@ public class MemorialVideoSession implements Serializable {
         session.createdAt = LocalDateTime.now();
         session.lastActivity = LocalDateTime.now();
         session.lastStateChange = LocalDateTime.now();
-        session.status = "WAITING";
         session.flowState = VideoCallFlowState.INITIALIZING;
         session.reconnectCount = 0;
         session.isPrimaryDevice = true;
@@ -111,27 +108,7 @@ public class MemorialVideoSession implements Serializable {
         this.flowState = newState;
         this.lastStateChange = LocalDateTime.now();
         this.lastActivity = LocalDateTime.now();
-
-        // 기존 status도 업데이트 (하위 호환성)
-        this.status = mapFlowStateToStatus(newState);
-
         return true;
-    }
-
-    /**
-     * FlowState를 기존 status로 매핑 (하위 호환성)
-     */
-    private String mapFlowStateToStatus(VideoCallFlowState flowState) {
-        return switch (flowState) {
-            case INITIALIZING, PERMISSION_REQUESTING, PERMISSION_GRANTED,
-                 WAITING_READY, WAITING_PLAYING -> "WAITING";
-            case RECORDING_COUNTDOWN, RECORDING_ACTIVE, RECORDING_COMPLETE,
-                 PROCESSING_UPLOAD, PROCESSING_AI -> "PROCESSING";
-            case PROCESSING_COMPLETE, RESPONSE_READY, RESPONSE_PLAYING,
-                 RESPONSE_COMPLETE -> "COMPLETED";
-            case CALL_ENDING, CALL_COMPLETED -> "COMPLETED";
-            case ERROR_NETWORK, ERROR_PERMISSION, ERROR_PROCESSING, ERROR_TIMEOUT -> "ERROR";
-        };
     }
 
     /**
@@ -160,50 +137,27 @@ public class MemorialVideoSession implements Serializable {
     }
 
     /**
-     * 처리 중 상태로 변경 (기존 호환성)
-     */
-    public void setProcessing(String filePath) {
-        this.status = "PROCESSING";
-        this.savedFilePath = filePath;
-        this.lastActivity = LocalDateTime.now();
-        // 새로운 flowState도 업데이트
-        this.flowState = VideoCallFlowState.PROCESSING_UPLOAD;
-        this.lastStateChange = LocalDateTime.now();
-    }
-
-    /**
-     * 완료 상태로 변경 (기존 호환성)
-     */
-    public void setCompleted(String responseVideoUrl) {
-        this.status = "COMPLETED";
-        this.responseVideoUrl = responseVideoUrl;
-        this.lastActivity = LocalDateTime.now();
-        // 새로운 flowState도 업데이트
-        this.flowState = VideoCallFlowState.RESPONSE_READY;
-        this.lastStateChange = LocalDateTime.now();
-    }
-
-    /**
-     * 오류 상태로 변경 (기존 호환성)
-     */
-    public void setError() {
-        this.status = "ERROR";
-        this.lastActivity = LocalDateTime.now();
-        // 새로운 flowState도 업데이트
-        this.flowState = VideoCallFlowState.ERROR_PROCESSING;
-        this.lastStateChange = LocalDateTime.now();
-    }
-
-    /**
      * 활동 시간 업데이트
      */
     public void updateActivity() {
         this.lastActivity = LocalDateTime.now();
     }
 
+    @JsonIgnore
+    public String getStatus() {
+        return switch (flowState) {
+            case INITIALIZING, PERMISSION_REQUESTING, WAITING -> "WAITING";
+            case RECORDING, PROCESSING -> "PROCESSING";
+            case RESPONSE_PLAYING -> "COMPLETED";
+            case CALL_ENDING, CALL_COMPLETED -> "COMPLETED";
+            case ERROR -> "ERROR";
+        };
+    }
+
     /**
      * 연결 여부 확인
      */
+    @JsonIgnore
     public boolean isConnected() {
         return this.socketId != null && ! this.flowState.isErrorState();
     }
@@ -282,6 +236,7 @@ public class MemorialVideoSession implements Serializable {
     /**
      * 현재 상태 표시명
      */
+    @JsonIgnore
     public String getCurrentStateDisplayName() {
         return flowState.getDisplayName();
     }
@@ -289,6 +244,7 @@ public class MemorialVideoSession implements Serializable {
     /**
      * 현재 상태 설명
      */
+    @JsonIgnore
     public String getCurrentStateDescription() {
         return flowState.getDescription();
     }

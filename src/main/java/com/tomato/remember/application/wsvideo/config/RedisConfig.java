@@ -13,21 +13,23 @@ import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSeriali
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 /**
- * Redis 설정 클래스
- * Memorial Video Call WebSocket 시스템용 Redis 설정
+ * Redis 설정 클래스 - 기본 설정 (REST API 영향 없음)
  */
 @Configuration
 public class RedisConfig {
-    
+
     @Value("${spring.data.redis.host:localhost}")
     private String redisHost;
-    
+
     @Value("${spring.data.redis.port:6379}")
     private int redisPort;
-    
+
     @Value("${spring.data.redis.database:0}")
     private int redisDatabase;
-    
+
+    @Value("${spring.data.redis.password:}")
+    private String redisPassword;
+
     /**
      * Redis 연결 팩토리 설정
      */
@@ -35,18 +37,22 @@ public class RedisConfig {
     public RedisConnectionFactory redisConnectionFactory() {
         LettuceConnectionFactory factory = new LettuceConnectionFactory(redisHost, redisPort);
         factory.setDatabase(redisDatabase);
+
+        if (redisPassword != null && !redisPassword.trim().isEmpty()) {
+            factory.setPassword(redisPassword);
+        }
+
         return factory;
     }
-    
+
     /**
-     * RedisTemplate 설정 (Memorial Video Call 세션용)
+     * RedisTemplate 설정 (기본 ObjectMapper 사용)
      */
     @Bean
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
 
-        // ObjectMapper 설정
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);

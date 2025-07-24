@@ -1,5 +1,5 @@
 /**
- * WebSocket 기반 영상통화 시스템 - 설정 및 상수
+ * WebSocket 기반 영상통화 시스템 - 간소화된 설정 및 상수 (9개 상태)
  */
 
 // ========== 전역 설정 ==========
@@ -43,7 +43,6 @@ window.WS_VIDEO_CONFIG = {
     // 녹화 설정
     RECORDING: {
         MAX_DURATION: 10000, // 10초
-        COUNTDOWN_DURATION: 3000, // 3초
         MIME_TYPES: [
             'video/webm;codecs=vp9,opus',
             'video/webm;codecs=vp8,opus',
@@ -60,112 +59,171 @@ window.WS_VIDEO_CONFIG = {
         CONNECTION_TIMEOUT: 10000 // 10초
     },
 
-    // 디버그 모드 (개발용)
+    // 디버그 모드
     DEBUG: {
         ENABLED: true,
-        LOG_LEVEL: 'info', // 'debug', 'info', 'warn', 'error'
+        LOG_LEVEL: 'info',
         SHOW_DEBUG_INFO: false
     },
 
-    // 대기영상 URL (개발용)
+    // 대기영상 URL
     DEFAULT_WAITING_VIDEO: 'https://remember.newstomato.com/static/waiting_no.mp4',
 
-    // API 인증 설정 추가
+    // API 인증 설정
     AUTH: {
-        REQUIRED_ENDPOINTS: [
-            '/api/ws-video/create-session',
-            '/api/ws-video/process/{sessionKey}',
-            '/api/ws-video/session/{sessionKey}/cleanup'
-        ],
         TOKEN_CHECK_INTERVAL: 30000, // 30초마다 토큰 상태 확인
         AUTO_LOGOUT_ON_TOKEN_FAIL: true
     }
 };
 
-// ========== 상태 정의 ==========
-window.WS_VIDEO_STATES = {
-    // 초기화 단계
-    INITIALIZING: 'INITIALIZING',
-    PERMISSION_REQUESTING: 'PERMISSION_REQUESTING',
-    PERMISSION_GRANTED: 'PERMISSION_GRANTED',
+// ========== 간소화된 9개 상태 정의 ==========
+window.WS_VIDEO_FLOW_STATES = {
+    // === 초기화 ===
+    INITIALIZING: {
+        name: 'INITIALIZING',
+        display: '초기화 중',
+        description: '시스템을 준비하고 있습니다',
+        icon: '⚙️',
+        showLoading: true,
+        allowRecording: false,
+        allowUserInteraction: false
+    },
 
-    // 대기 단계
-    WAITING_READY: 'WAITING_READY',
-    WAITING_PLAYING: 'WAITING_PLAYING',
+    // === 권한 요청 ===
+    PERMISSION_REQUESTING: {
+        name: 'PERMISSION_REQUESTING',
+        display: '권한 요청 중',
+        description: '카메라와 마이크 권한을 요청합니다',
+        icon: '🔒',
+        showLoading: false,
+        allowRecording: false,
+        allowUserInteraction: true
+    },
 
-    // 녹화 단계
-    RECORDING_COUNTDOWN: 'RECORDING_COUNTDOWN',
-    RECORDING_ACTIVE: 'RECORDING_ACTIVE',
-    RECORDING_COMPLETE: 'RECORDING_COMPLETE',
+    // === 대기 (핵심 상태) ===
+    WAITING: {
+        name: 'WAITING',
+        display: '대기 중',
+        description: '대기영상이 재생되고 있습니다',
+        icon: '⏳',
+        showLoading: false,
+        allowRecording: true,
+        allowUserInteraction: true
+    },
 
-    // 처리 단계
-    PROCESSING_UPLOAD: 'PROCESSING_UPLOAD',
-    PROCESSING_AI: 'PROCESSING_AI',
-    PROCESSING_COMPLETE: 'PROCESSING_COMPLETE',
+    // === 녹화 (핵심 상태) ===
+    RECORDING: {
+        name: 'RECORDING',
+        display: '🔴 녹화 중',
+        description: '음성이 녹화되고 있습니다',
+        icon: '🔴',
+        showLoading: false,
+        allowRecording: false,
+        allowUserInteraction: false
+    },
 
-    // 응답 단계
-    RESPONSE_READY: 'RESPONSE_READY',
-    RESPONSE_PLAYING: 'RESPONSE_PLAYING',
-    RESPONSE_COMPLETE: 'RESPONSE_COMPLETE',
+    // === 처리 (핵심 상태) ===
+    PROCESSING: {
+        name: 'PROCESSING',
+        display: '🤖 처리 중',
+        description: 'AI가 응답을 생성하고 있습니다',
+        icon: '🤖',
+        showLoading: true,
+        allowRecording: false,
+        allowUserInteraction: false
+    },
 
-    // 종료 단계
-    CALL_ENDING: 'CALL_ENDING',
-    CALL_COMPLETED: 'CALL_COMPLETED',
+    // === 응답 재생 (핵심 상태) ===
+    RESPONSE_PLAYING: {
+        name: 'RESPONSE_PLAYING',
+        display: '🎬 응답 재생 중',
+        description: '응답영상이 재생되고 있습니다',
+        icon: '🎬',
+        showLoading: false,
+        allowRecording: false,
+        allowUserInteraction: false
+    },
 
-    // 오류 단계
-    ERROR_NETWORK: 'ERROR_NETWORK',
-    ERROR_PERMISSION: 'ERROR_PERMISSION',
-    ERROR_PROCESSING: 'ERROR_PROCESSING',
-    ERROR_TIMEOUT: 'ERROR_TIMEOUT'
+    // === 통화 종료 ===
+    CALL_ENDING: {
+        name: 'CALL_ENDING',
+        display: '통화 종료 중',
+        description: '통화를 종료하고 있습니다',
+        icon: '👋',
+        showLoading: true,
+        allowRecording: false,
+        allowUserInteraction: false
+    },
+
+    CALL_COMPLETED: {
+        name: 'CALL_COMPLETED',
+        display: '통화 완료',
+        description: '통화가 완료되었습니다',
+        icon: '✅',
+        showLoading: false,
+        allowRecording: false,
+        allowUserInteraction: false
+    },
+
+    // === 오류 ===
+    ERROR: {
+        name: 'ERROR',
+        display: '❌ 오류',
+        description: '오류가 발생했습니다',
+        icon: '❌',
+        showLoading: false,
+        allowRecording: false,
+        allowUserInteraction: true
+    }
 };
 
-// ========== 메시지 타입 ==========
+// ========== 간소화된 메시지 타입 ==========
 window.WS_MESSAGE_TYPES = {
-    // 클라이언트 → 서버
-    CONNECT: 'CONNECT',
-    DISCONNECT: 'DISCONNECT',
-    HEARTBEAT_RESPONSE: 'HEARTBEAT_RESPONSE',
-    CLIENT_STATE_CHANGE: 'CLIENT_STATE_CHANGE',
-    PERMISSION_STATUS: 'PERMISSION_STATUS',
-    DEVICE_INFO: 'DEVICE_INFO',
+    // === 인증 관련 ===
+    AUTH: 'AUTH',
+    AUTH_SUCCESS: 'AUTH_SUCCESS',
+    TOKEN_INVALID: 'TOKEN_INVALID',
+    TOKEN_MISSING: 'TOKEN_MISSING',
+    SESSION_ACCESS_DENIED: 'SESSION_ACCESS_DENIED',
+    AUTH_TIMEOUT: 'AUTH_TIMEOUT',
+    TOKEN_REFRESHED: 'TOKEN_REFRESHED',
+    TOKEN_REFRESH: 'TOKEN_REFRESH',
 
-    // 영상 관련 (클라이언트 → 서버)
-    WAITING_VIDEO_STARTED: 'WAITING_VIDEO_STARTED',
-    WAITING_VIDEO_ERROR: 'WAITING_VIDEO_ERROR',
-    RECORDING_READY: 'RECORDING_READY',
+    // === 연결 관리 ===
+    CONNECT: 'CONNECT',
+    CONNECTED: 'CONNECTED',
+    DISCONNECT: 'DISCONNECT',
+    HEARTBEAT: 'HEARTBEAT',
+    HEARTBEAT_RESPONSE: 'HEARTBEAT_RESPONSE',
+
+    // === 상태 관리 (핵심) ===
+    STATE_TRANSITION: 'STATE_TRANSITION',
+    FORCE_STATE_CHANGE: 'FORCE_STATE_CHANGE',
+    CLIENT_STATE_CHANGE: 'CLIENT_STATE_CHANGE',
+
+    // === 영상 제어 명령 (서버 → 클라이언트) ===
+    PLAY_WAITING_VIDEO: 'PLAY_WAITING_VIDEO',
+    START_RECORDING: 'START_RECORDING',
+    PLAY_RESPONSE_VIDEO: 'PLAY_RESPONSE_VIDEO',
+    RESPONSE_VIDEO: 'RESPONSE_VIDEO',
+
+    // === 간소화된 영상 이벤트 (클라이언트 → 서버) ===
+    WAITING_VIDEO_EVENT: 'WAITING_VIDEO_EVENT', // eventType: "started" | "error"
+    RESPONSE_VIDEO_EVENT: 'RESPONSE_VIDEO_EVENT', // eventType: "started" | "ended" | "error"
+
+    // === 기존 개별 메시지들 (하위 호환성) ===
     RECORDING_STARTED: 'RECORDING_STARTED',
     RECORDING_STOPPED: 'RECORDING_STOPPED',
     RECORDING_ERROR: 'RECORDING_ERROR',
     VIDEO_UPLOAD_COMPLETE: 'VIDEO_UPLOAD_COMPLETE',
-    VIDEO_UPLOAD_ERROR: 'VIDEO_UPLOAD_ERROR',
-    RESPONSE_VIDEO_STARTED: 'RESPONSE_VIDEO_STARTED',
-    RESPONSE_VIDEO_ENDED: 'RESPONSE_VIDEO_ENDED',
-    RESPONSE_VIDEO_ERROR: 'RESPONSE_VIDEO_ERROR',
 
-    // 서버 → 클라이언트
-    CONNECTED: 'CONNECTED',
-    HEARTBEAT: 'HEARTBEAT',
-    STATE_TRANSITION: 'STATE_TRANSITION',
-    FORCE_STATE_CHANGE: 'FORCE_STATE_CHANGE',
+    // === 디바이스 관리 ===
+    DEVICE_INFO: 'DEVICE_INFO',
 
-    // 영상 제어 (서버 → 클라이언트)
-    PLAY_WAITING_VIDEO: 'PLAY_WAITING_VIDEO',
-    STOP_WAITING_VIDEO: 'STOP_WAITING_VIDEO',
-    START_RECORDING: 'START_RECORDING',
-    STOP_RECORDING: 'STOP_RECORDING',
-    PLAY_RESPONSE_VIDEO: 'PLAY_RESPONSE_VIDEO',
-    STOP_RESPONSE_VIDEO: 'STOP_RESPONSE_VIDEO',
-
-    // 진행 상황
+    // === 진행 상황 ===
     PROCESSING_PROGRESS: 'PROCESSING_PROGRESS',
-    UPLOAD_PROGRESS: 'UPLOAD_PROGRESS',
 
-    // 멀티 디바이스
-    DEVICE_REGISTERED: 'DEVICE_REGISTERED',
-    DEVICE_DISCONNECTED: 'DEVICE_DISCONNECTED',
-    PRIORITY_CHANGED: 'PRIORITY_CHANGED',
-
-    // 공통
+    // === 공통 메시지 ===
     ERROR: 'ERROR',
     INFO: 'INFO',
     WARNING: 'WARNING',
@@ -177,10 +235,7 @@ window.detectDeviceType = function() {
     const userAgent = navigator.userAgent.toLowerCase();
     const isMobile = /mobile|android|iphone|ipad/.test(userAgent);
     const isTablet = /ipad|tablet/.test(userAgent);
-    const isIOS = /iphone|ipad|ipod/.test(userAgent);
-    const isAndroid = /android/.test(userAgent);
 
-    // 앱에서 접근하는 경우 User-Agent를 통해 구분
     if (userAgent.includes('tomato-remember-ios')) {
         return 'IOS_APP';
     } else if (userAgent.includes('tomato-remember-android')) {
@@ -335,12 +390,12 @@ window.WS_VIDEO_LOGGER = {
     }
 };
 
-// ========== 전역 상태 ==========
+// ========== 전역 상태 (간소화) ==========
 window.WS_VIDEO_STATE = {
-    // 현재 상태
-    currentState: WS_VIDEO_STATES.INITIALIZING,
+    // 현재 플로우 상태 (9개 중 하나)
+    currentFlowState: WS_VIDEO_FLOW_STATES.INITIALIZING,
 
-    // 세션 정보
+    // 기본 세션 정보
     sessionKey: null,
     contactName: null,
     memberId: null,
@@ -348,13 +403,13 @@ window.WS_VIDEO_STATE = {
     deviceType: detectDeviceType(),
     deviceId: WS_VIDEO_UTILS.generateDeviceId(),
 
-    // 연결 상태
+    // WebSocket 연결
     websocket: null,
     isConnected: false,
     reconnectAttempts: 0,
     lastHeartbeat: null,
 
-    // 미디어 상태
+    // 미디어 스트림
     userMediaStream: null,
     mediaRecorder: null,
     recordedChunks: [],
@@ -364,19 +419,179 @@ window.WS_VIDEO_STATE = {
     cameraPermissionGranted: false,
     microphonePermissionGranted: false,
 
-    // 영상 상태
+    // 영상 URL
     waitingVideoUrl: null,
     responseVideoUrl: null,
-    currentVideoState: 'WAITING',
 
-    // UI 상태
-    modalsOpen: [],
+    // 기타
+    sessionCreatedAt: null,
     statusMessage: '초기화 중...'
 };
 
-// 전역 변수 초기화 완료 로그
-WS_VIDEO_LOGGER.info('설정 및 전역 변수 초기화 완료', {
+// ========== 간소화된 상태 관리 유틸리티 ==========
+window.WS_VIDEO_STATE_UTILS = {
+    // 현재 상태 정보 가져오기
+    getCurrentState() {
+        return WS_VIDEO_STATE.currentFlowState;
+    },
+
+    // 상태 전환 (클라이언트 사이드)
+    transitionToState(newStateName) {
+        const newState = WS_VIDEO_FLOW_STATES[newStateName];
+        if (!newState) {
+            WS_VIDEO_LOGGER.error('알 수 없는 상태:', newStateName);
+            return false;
+        }
+
+        const previousState = WS_VIDEO_STATE.currentFlowState;
+        WS_VIDEO_STATE.currentFlowState = newState;
+
+        WS_VIDEO_LOGGER.info('클라이언트 상태 전환:', previousState.name, '→', newState.name);
+
+        // UI 업데이트
+        this.updateUI(newState, previousState);
+
+        return true;
+    },
+
+    // UI 업데이트 (간소화)
+    updateUI(newState, previousState) {
+        // 1. 상태 텍스트 업데이트
+        updateStatus(newState.display, this.getStatusType(newState));
+
+        // 2. 로딩 표시 제어
+        if (newState.showLoading) {
+            showVideoLoadingOverlay();
+        } else {
+            hideVideoLoadingOverlay();
+        }
+
+        // 3. 녹화 버튼 상태 제어
+        const recordBtn = document.getElementById('recordBtn');
+        if (recordBtn) {
+            recordBtn.disabled = !newState.allowRecording;
+            recordBtn.classList.toggle('disabled', !newState.allowRecording);
+            recordBtn.title = newState.allowRecording ? '녹화하기' : '녹화할 수 없습니다';
+        }
+
+        // 4. 녹화 중 특별 처리
+        if (newState.name === 'RECORDING') {
+            updateRecordingUI(true);
+            document.body.classList.add('recording-active');
+        } else {
+            updateRecordingUI(false);
+            document.body.classList.remove('recording-active');
+        }
+
+        // 5. 연결 상태 처리
+        if (newState.name === 'ERROR') {
+            updateConnectionStatus('error');
+        } else if (previousState && previousState.name === 'ERROR') {
+            updateConnectionStatus('connected');
+        }
+    },
+
+    // 상태별 표시 타입 결정
+    getStatusType(state) {
+        if (state.name === 'ERROR') return 'error';
+        if (state.name === 'RECORDING') return 'recording';
+        if (state.name === 'RESPONSE_PLAYING') return 'success';
+        if (state.showLoading) return 'loading';
+        return 'info';
+    },
+
+    // 녹화 가능 여부 확인
+    canRecord() {
+        return WS_VIDEO_STATE.currentFlowState.allowRecording &&
+               WS_VIDEO_STATE.cameraPermissionGranted;
+    },
+
+    // 디버그 정보
+    getDebugInfo() {
+        return {
+            currentState: WS_VIDEO_STATE.currentFlowState.name,
+            display: WS_VIDEO_STATE.currentFlowState.display,
+            description: WS_VIDEO_STATE.currentFlowState.description,
+            allowRecording: WS_VIDEO_STATE.currentFlowState.allowRecording,
+            showLoading: WS_VIDEO_STATE.currentFlowState.showLoading,
+            isConnected: WS_VIDEO_STATE.isConnected,
+            hasPermissions: WS_VIDEO_STATE.cameraPermissionGranted
+        };
+    }
+};
+
+// ========== 간소화된 에러 처리 ==========
+window.WS_VIDEO_ERROR_HANDLER = {
+    // 기본 에러 처리
+    handleError(errorType, message) {
+        WS_VIDEO_LOGGER.error(`❌ 에러 발생: ${errorType}`, message);
+
+        // 오류 상태로 전환
+        WS_VIDEO_STATE_UTILS.transitionToState('ERROR');
+
+        // 사용자에게 메시지 표시
+        showErrorMessage(message);
+
+        // 5초 후 자동 복구 시도
+        setTimeout(() => {
+            if (WS_VIDEO_STATE.currentFlowState.name === 'ERROR') {
+                WS_VIDEO_STATE_UTILS.transitionToState('WAITING');
+                showInfoMessage('다시 시도할 수 있습니다');
+            }
+        }, 5000);
+    },
+
+    // 네트워크 에러
+    handleNetworkError() {
+        this.handleError('NETWORK_ERROR', '네트워크 연결을 확인해주세요');
+        updateConnectionStatus('disconnected');
+    },
+
+    // 인증 에러
+    handleAuthError() {
+        this.handleError('AUTH_ERROR', '인증에 실패했습니다');
+        setTimeout(() => {
+            window.location.href = '/mobile/login?reason=auth_failed';
+        }, 2000);
+    },
+
+    // 권한 에러
+    handlePermissionError() {
+        this.handleError('PERMISSION_ERROR', '카메라 권한이 필요합니다');
+        showPermissionModal();
+    }
+};
+
+// ========== 전역 에러 캐처 ==========
+window.addEventListener('error', (event) => {
+    WS_VIDEO_ERROR_HANDLER.handleError('JAVASCRIPT_ERROR', event.message);
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+    WS_VIDEO_ERROR_HANDLER.handleError('PROMISE_REJECTION', event.reason);
+});
+
+// ========== 전역 함수로 에러 발생 신고 ==========
+window.reportError = (errorType, message) => {
+    WS_VIDEO_ERROR_HANDLER.handleError(errorType, message);
+};
+
+// ========== 개발용 디버그 객체 ==========
+if (WS_VIDEO_CONFIG.DEBUG.ENABLED) {
+    window.WS_VIDEO_DEBUG = {
+        getState: () => WS_VIDEO_STATE,
+        getConfig: () => WS_VIDEO_CONFIG,
+        getCurrentState: () => WS_VIDEO_STATE_UTILS.getCurrentState(),
+        transitionTo: (stateName) => WS_VIDEO_STATE_UTILS.transitionToState(stateName),
+        getDebugInfo: () => WS_VIDEO_STATE_UTILS.getDebugInfo(),
+        simulateError: (type, message) => WS_VIDEO_ERROR_HANDLER.handleError(type, message)
+    };
+}
+
+// 초기화 완료 로그
+WS_VIDEO_LOGGER.info('간소화된 WebSocket 영상통화 설정 초기화 완료 (9개 상태)', {
     deviceType: WS_VIDEO_STATE.deviceType,
     deviceId: WS_VIDEO_STATE.deviceId,
-    browserInfo: getBrowserInfo()
+    browserInfo: getBrowserInfo(),
+    availableStates: Object.keys(WS_VIDEO_FLOW_STATES)
 });

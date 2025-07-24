@@ -4,6 +4,8 @@ import com.tomato.remember.application.member.entity.Member;
 import com.tomato.remember.application.security.MemberUserDetails;
 import com.tomato.remember.application.wsvideo.config.MemorialVideoSessionManager;
 import com.tomato.remember.application.wsvideo.config.MemorialVideoWebSocketHandler;
+import com.tomato.remember.application.wsvideo.dto.CreateSessionRequest;
+import com.tomato.remember.application.wsvideo.dto.InitialDataRequest;
 import com.tomato.remember.application.wsvideo.dto.MemorialVideoSession;
 import com.tomato.remember.application.videocall.service.ExternalVideoApiService;
 import com.tomato.remember.application.wsvideo.code.VideoCallFlowState;
@@ -95,6 +97,7 @@ public class WebSocketVideoController {
             session.setDeviceInfo(deviceType, request.getDeviceId(), true);
 
             // 대기영상 URL 설정
+            log.info(">>>>>>>>>>>>>>>>>>>>{} {}", request.getContactKey(), deviceType.name());
             String waitingVideoUrl = waitingVideoService.getWaitingVideoUrl(
                 request.getContactKey(), deviceType);
             session.setWaitingVideoUrl(waitingVideoUrl);
@@ -106,23 +109,7 @@ public class WebSocketVideoController {
             // 디바이스 등록
             deviceManager.registerDevice(session.getSessionKey(), request.getDeviceId(), deviceType);
 
-            // 현재 요청의 액세스 토큰 추출 (WebSocket URL에 포함할 용도)
-            String currentAccessToken = null;
-            try {
-                // Authorization 헤더에서 토큰 추출
-                String authHeader = httpRequest.getHeader("Authorization");
-                if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                    currentAccessToken = authHeader.substring(7).trim();
-                }
-            } catch (Exception e) {
-                log.warn("토큰 추출 실패 - 기본 WebSocket 경로 제공: {}", e.getMessage());
-            }
-
-            // WebSocket 경로에 토큰 파라미터 포함
             String websocketPath = deviceType.getWebSocketPath(session.getSessionKey());
-            if (currentAccessToken != null) {
-                websocketPath += "?token=" + java.net.URLEncoder.encode(currentAccessToken, "UTF-8");
-            }
 
             Map<String, Object> response = new HashMap<>();
             response.put("sessionKey", session.getSessionKey());
@@ -137,6 +124,19 @@ public class WebSocketVideoController {
             response.put("heartbeatInterval", MemorialVideoSession.getHeartbeatIntervalSeconds());
             response.put("authenticatedMemberId", authenticatedMember.getId());
             response.put("memberName", authenticatedMember.getName());
+            response.put("authMethod", "INITIAL_MESSAGE");
+            response.put("authTimeout", 5000); // 5초 타임아웃
+            response.put("authRequired", true);
+            response.put("instructions", Map.of(
+                "step1", "WebSocket 연결 후 즉시 AUTH 메시지 전송",
+                "step2", "5초 내 인증하지 않으면 연결 종료",
+                "authMessage", Map.of(
+                    "type", "AUTH",
+                    "token", "{your_access_token}",
+                    "sessionKey", session.getSessionKey(),
+                    "deviceType", deviceType.name()
+                )
+            ));
 
             return ResponseEntity.ok(Map.of(
                 "status", Map.of("code", "OK_0000", "message", "인증된 WebSocket 세션 생성 완료"),
@@ -183,15 +183,16 @@ public class WebSocketVideoController {
             DeviceType deviceType = request.getDeviceType() != null ?
                 request.getDeviceType() : DeviceType.WEB;
 
-            String waitingVideoUrl = waitingVideoService.getWaitingVideoUrl("kimgeuntae", deviceType);
+            String waitingVideoUrl = waitingVideoService.getWaitingVideoUrl("rohmoohyun", deviceType);
 
             Map<String, Object> response = Map.of(
-                "contactName", request.getContactName() != null ? request.getContactName() : "김근태",
+                "contactName", request.getContactName() != null ? request.getContactName() : "rohmoohyun",
                 "waitingVideoUrl", waitingVideoUrl,
                 "memberId", authenticatedMember.getId(),
                 "memberName", authenticatedMember.getName(),
                 "memorialId", request.getMemorialId(),
-                "deviceType", deviceType.name()
+                "deviceType", deviceType.name(),
+                "authMethod", "INITIAL_MESSAGE"
             );
 
             return ResponseEntity.ok(Map.of(
@@ -213,156 +214,148 @@ public class WebSocketVideoController {
      */
     @PostMapping(value = "/process/{sessionKey}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> processVideo(@PathVariable String sessionKey,
-                                        @RequestParam("video") MultipartFile videoFile,
-                                        @RequestParam(required = false, defaultValue = "kimgeuntae") String contactKey,
-                                        @AuthenticationPrincipal MemberUserDetails userDetails) {
+                                    @RequestParam("video") MultipartFile videoFile,
+                                    @RequestParam(required = false, defaultValue = "kimgeuntae") String contactKey,
+                                    @AuthenticationPrincipal MemberUserDetails userDetails) {
 
-        Member authenticatedMember = userDetails.getMember();
-        if (authenticatedMember == null) {
-            return ResponseEntity.status(401).body(Map.of(
-                "status", Map.of("code", "AUTH_4010", "message", "인증이 필요합니다")
-            ));
+            if (!validateSessionOwnership(sessionKey, userDetails)) {
+                return createUnauthorizedResponse();
+            }
+
+            try {
+                MemorialVideoSession session = sessionManager.getSession(sessionKey);
+
+                log.info("📹 인증된 영상 처리 시작 - 세션: {}, 파일: {}, 대상: {}",
+                        sessionKey, videoFile.getOriginalFilename(), contactKey);
+
+                // ✅ 올바른 상태 전환 (PROCESSING만 사용)
+                flowManager.transitionToState(sessionKey, VideoCallFlowState.PROCESSING);
+
+                session = sessionManager.getSession(sessionKey); // 다시 조회로 동기화 확인
+                if (session.getFlowState() != VideoCallFlowState.PROCESSING) {
+                    log.error("상태 동기화 실패 - 예상: PROCESSING, 실제: {}", session.getFlowState());
+                }
+
+                // 파일 저장
+                String savedFilePath = fileStorageService.uploadVideoCallRecording(videoFile, sessionKey);
+                session.setSavedFilePath(savedFilePath);
+
+                // 메타데이터 추가 (필요시)
+                if (session.getMetadata() != null) {
+                    session.addMetadata("contactKey", contactKey);
+                }
+                sessionManager.saveSession(session);
+
+                // 저장 후 다시 한번 검증
+                MemorialVideoSession verifySession = sessionManager.getSession(sessionKey);
+                log.info("상태 검증 - 저장된 상태: {}, 파일경로: {}", verifySession.getFlowState(), verifySession.getSavedFilePath());
+
+                // 즉시 응답
+                Map<String, Object> response = Map.of(
+                    "sessionKey", sessionKey,
+                    "filePath", savedFilePath,
+                    "contactKey", contactKey,
+                    "uploadStatus", "COMPLETED",
+                    "nextState", "PROCESSING", // ✅ 올바른 상태명
+                    "authenticatedMemberId", userDetails.getMember().getId()
+                );
+
+                // 백그라운드 처리
+                executorService.submit(() -> {
+                    processVideoAsyncWithWebSocket(sessionKey, savedFilePath, contactKey);
+                });
+
+                return ResponseEntity.ok(Map.of(
+                    "status", Map.of("code", "OK_0000", "message", "영상 업로드 완료"),
+                    "response", response
+                ));
+
+            } catch (Exception e) {
+                log.error("❌ 영상 처리 실패 - 세션: {}", sessionKey, e);
+
+                // ✅ 올바른 오류 상태
+                flowManager.transitionToState(sessionKey, VideoCallFlowState.ERROR);
+
+                return createErrorResponse("ERR_5000", "영상 처리 실패", e.getMessage());
+            }
         }
 
-        try {
-            MemorialVideoSession session = sessionManager.getSession(sessionKey);
-            if (session == null) {
-                return ResponseEntity.status(404).body(Map.of(
-                    "status", Map.of("code", "ERR_4040", "message", "세션을 찾을 수 없습니다")
-                ));
-            }
-
-            if (session.isExpired()) {
-                return ResponseEntity.status(410).body(Map.of(
-                    "status", Map.of("code", "ERR_4100", "message", "세션이 만료되었습니다")
-                ));
-            }
-
-            // 세션 소유권 검증
-            if (!authenticatedMember.getId().equals(session.getCallerId())) {
-                log.warn("🔒 영상 처리 권한 없음 - 토큰회원ID: {}, 세션회원ID: {}",
-                        authenticatedMember.getId(), session.getCallerId());
-                return ResponseEntity.status(403).body(Map.of(
-                    "status", Map.of("code", "AUTH_4030", "message", "해당 세션에 접근할 권한이 없습니다")
-                ));
-            }
-
-            log.info("📹 인증된 영상 처리 시작 - 세션: {}, 파일: {}, 대상: {}, 회원ID: {}",
-                    sessionKey, videoFile.getOriginalFilename(), contactKey, authenticatedMember.getId());
-
-            // 상태 전환: PROCESSING_UPLOAD
-            flowManager.transitionToState(sessionKey, VideoCallFlowState.PROCESSING_UPLOAD);
-
-            // 파일 저장
-            String savedFilePath = fileStorageService.uploadVideoCallRecording(videoFile, sessionKey);
-            session.setSavedFilePath(savedFilePath);
-            session.addMetadata("contactKey", contactKey);
-            sessionManager.saveSession(session);
-
-            // 즉시 응답
-            Map<String, Object> response = Map.of(
-                "sessionKey", sessionKey,
-                "filePath", savedFilePath,
-                "contactKey", contactKey,
-                "uploadStatus", "COMPLETED",
-                "nextState", "PROCESSING_AI",
-                "authenticatedMemberId", authenticatedMember.getId()
-            );
-
-            // 백그라운드에서 외부 API 호출
-            executorService.submit(() -> {
-                processVideoAsyncWithWebSocket(sessionKey, savedFilePath, contactKey);
-            });
-
-            return ResponseEntity.ok(Map.of(
-                "status", Map.of("code", "OK_0000", "message", "인증된 영상 업로드 완료"),
-                "response", response
-            ));
-
-        } catch (Exception e) {
-            log.error("❌ 인증된 영상 처리 실패 - 세션: {}, 회원ID: {}", sessionKey, authenticatedMember.getId(), e);
-
-            // 오류 상태로 전환
-            flowManager.transitionToState(sessionKey, VideoCallFlowState.ERROR_PROCESSING);
-
-            return ResponseEntity.status(500).body(Map.of(
-                "status", Map.of("code", "ERR_5000", "message", "영상 처리 실패"),
-                "error", e.getMessage()
-            ));
-        }
-    }
-
-    /**
-     * 4. 외부 API 콜백 (세션 소유권 검증)
-     */
-    @PostMapping("/callback/{sessionKey}")
-    public ResponseEntity<?> receiveResponse(@PathVariable String sessionKey,
+        /**
+         * 4. 외부 API 콜백 (세션 소유권 검증)
+         */
+        @PostMapping("/callback/{sessionKey}")
+        public ResponseEntity<?> receiveResponse(@PathVariable String sessionKey,
                                            @RequestBody Map<String, Object> responseData,
                                            @AuthenticationPrincipal MemberUserDetails userDetails) {
 
-        Member authenticatedMember = userDetails.getMember();
-        if (authenticatedMember == null) {
-            return ResponseEntity.status(401).body(Map.of(
-                "status", Map.of("code", "AUTH_4010", "message", "인증이 필요합니다")
-            ));
+        if (!validateSessionOwnership(sessionKey, userDetails)) {
+            return createUnauthorizedResponse();
         }
 
         try {
             String responseVideoUrl = (String) responseData.get("videoUrl");
-            log.info("🎬 인증된 응답영상 콜백 수신 - 세션: {}, URL: {}, 회원ID: {}",
-                    sessionKey, responseVideoUrl, authenticatedMember.getId());
+            log.info("🎬 응답영상 콜백 수신 - 세션: {}, URL: {}", sessionKey, responseVideoUrl);
 
-            MemorialVideoSession session = sessionManager.getSession(sessionKey);
+            MemorialVideoSession session = sessionManager.getSessionWithStateValidation(
+            sessionKey, VideoCallFlowState.PROCESSING);
+
             if (session == null) {
-                return ResponseEntity.status(404).body(Map.of(
-                    "status", Map.of("code", "ERR_4040", "message", "세션을 찾을 수 없습니다")
-                ));
+                log.error("❌ 세션 조회 실패: {}", sessionKey);
+                return createErrorResponse("ERR_4040", "세션을 찾을 수 없습니다", "");
             }
 
-            if (session.isExpired()) {
-                return ResponseEntity.status(410).body(Map.of(
-                    "status", Map.of("code", "ERR_4100", "message", "세션이 만료되었습니다")
-                ));
+            // 🔥 여전히 PROCESSING가 아니면 추가 대기
+            if (session.getFlowState() != VideoCallFlowState.PROCESSING) {
+                log.warn("⚠️ 예상되지 않은 상태: {} (PROCESSING 기대), 추가 대기 시작", session.getFlowState());
+
+                // 최대 3초 추가 대기
+                session = waitForProcessingState(sessionKey, 3000);
+
+                if (session == null || session.getFlowState() != VideoCallFlowState.PROCESSING) {
+                    log.error("❌ PROCESSING 상태 대기 실패 - 현재: {}",
+                             session != null ? session.getFlowState() : "NULL");
+
+                    // 🔥 강제로 진행 (비상 대응)
+                    if (session != null) {
+                        log.warn("🚨 비상 대응: 현재 상태({})에서 강제 진행", session.getFlowState());
+                    } else {
+                        return createErrorResponse("ERR_4040", "세션 상태 불일치", "");
+                    }
+                }
             }
 
-            // 세션 소유권 검증
-            if (!authenticatedMember.getId().equals(session.getCallerId())) {
-                log.warn("🔒 응답영상 콜백 권한 없음 - 토큰회원ID: {}, 세션회원ID: {}",
-                        authenticatedMember.getId(), session.getCallerId());
-                return ResponseEntity.status(403).body(Map.of(
-                    "status", Map.of("code", "AUTH_4030", "message", "해당 세션에 접근할 권한이 없습니다")
-                ));
-            }
-
-            // 상태 전환: RESPONSE_READY
-            flowManager.transitionToState(sessionKey, VideoCallFlowState.RESPONSE_READY);
-
-            // 응답영상 URL 설정
+            // 올바른 상태 전환 (RESPONSE_PLAYING 사용)
             session.setResponseVideoUrl(responseVideoUrl);
             sessionManager.saveSession(session);
 
-            // WebSocket으로 응답영상 전송
-            webSocketHandler.sendResponseVideo(sessionKey, responseVideoUrl);
+            MemorialVideoSession verifySession = sessionManager.getSession(sessionKey, true);
+            log.info("💾 응답 URL 저장 검증: {} (URL: {})",
+                    verifySession != null ? "성공" : "실패",
+                    verifySession != null ? verifySession.getResponseVideoUrl() : "NULL");
+
+            // VideoCallFlowManager가 WebSocket 브로드캐스트도 처리
+            boolean success = flowManager.transitionToState(sessionKey, VideoCallFlowState.RESPONSE_PLAYING);
+
+            if (!success) {
+                log.error("❌ RESPONSE_PLAYING 상태 전환 실패");
+                return createErrorResponse("ERR_5000", "상태 전환 실패", "");
+            }
 
             return ResponseEntity.ok(Map.of(
-                "status", Map.of("code", "OK_0000", "message", "인증된 응답영상 전송 완료"),
+                "status", Map.of("code", "OK_0000", "message", "응답영상 전송 완료"),
                 "response", Map.of(
                     "sessionKey", sessionKey,
                     "responseVideoUrl", responseVideoUrl,
                     "currentState", session.getFlowState().name(),
-                    "authenticatedMemberId", authenticatedMember.getId()
+                    "authenticatedMemberId", userDetails.getMember().getId()
                 )
             ));
 
         } catch (Exception e) {
-            log.error("❌ 인증된 응답영상 콜백 처리 실패 - 세션: {}, 회원ID: {}",
-                     sessionKey, authenticatedMember.getId(), e);
-            flowManager.transitionToState(sessionKey, VideoCallFlowState.ERROR_PROCESSING);
+            log.error("❌ 응답영상 콜백 처리 실패 - 세션: {}", sessionKey, e);
+            flowManager.transitionToState(sessionKey, VideoCallFlowState.ERROR);
 
-            return ResponseEntity.status(500).body(Map.of(
-                "status", Map.of("code", "ERR_5000", "message", "응답영상 처리 실패"),
-                "error", e.getMessage()
-            ));
+            return createErrorResponse("ERR_5000", "응답영상 처리 실패", e.getMessage());
         }
     }
 
@@ -426,6 +419,7 @@ public class WebSocketVideoController {
         sessionResponse.put("responseVideoUrl", session.getResponseVideoUrl());
         sessionResponse.put("metadata", session.getMetadata());
         sessionResponse.put("authenticatedMemberId", authenticatedMember.getId());
+        sessionResponse.put("authMethod", "INITIAL_MESSAGE"); // 인증 방식 정보
 
         return ResponseEntity.ok(Map.of(
             "status", Map.of("code", "OK_0000", "message", "인증된 세션 상태 조회 완료"),
@@ -494,15 +488,38 @@ public class WebSocketVideoController {
 
     // ========== Private Methods ==========
 
+    private MemorialVideoSession waitForProcessingState(String sessionKey, long timeoutMs) {
+        long startTime = System.currentTimeMillis();
+
+        while (System.currentTimeMillis() - startTime < timeoutMs) {
+            MemorialVideoSession session = sessionManager.getSession(sessionKey);
+
+            if (session != null && session.getFlowState() == VideoCallFlowState.PROCESSING) {
+                log.info("✅ PROCESSING 상태 확인: {}", sessionKey);
+                return session;
+            }
+
+            log.debug("⏳ PROCESSING 상태 대기: {} - 현재: {}",
+                    sessionKey, session != null ? session.getFlowState() : "NULL");
+
+            try {
+                Thread.sleep(200); // 200ms 대기
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+
+        log.warn("⏰ PROCESSING 상태 대기 타임아웃: {}", sessionKey);
+        return sessionManager.getSession(sessionKey);
+    }
+
     /**
      * 외부 API 비동기 처리 (WebSocket 알림 포함)
      */
     private void processVideoAsyncWithWebSocket(String sessionKey, String savedFilePath, String contactKey) {
         try {
             log.info("🚀 외부 API 비동기 처리 시작 - 세션: {}", sessionKey);
-
-            // 상태 전환: AI 처리 중
-            flowManager.transitionToState(sessionKey, VideoCallFlowState.PROCESSING_AI);
 
             // 외부 API 호출
             externalVideoApiService.sendVideoToExternalApiAsync(
@@ -512,74 +529,62 @@ public class WebSocketVideoController {
                 // 성공 콜백
                 (response) -> {
                     log.info("✅ 외부 API 전송 완료 - 세션: {}", sessionKey);
-                    flowManager.transitionToState(sessionKey, VideoCallFlowState.PROCESSING_COMPLETE);
                 },
                 // 실패 콜백
                 (error) -> {
                     log.error("❌ 외부 API 전송 실패 - 세션: {}", sessionKey, error);
-                    flowManager.transitionToState(sessionKey, VideoCallFlowState.ERROR_PROCESSING);
+                    flowManager.transitionToState(sessionKey, VideoCallFlowState.ERROR);
                 }
             );
 
         } catch (Exception e) {
             log.error("❌ 외부 API 비동기 처리 오류 - 세션: {}", sessionKey, e);
-            flowManager.transitionToState(sessionKey, VideoCallFlowState.ERROR_PROCESSING);
+            flowManager.transitionToState(sessionKey, VideoCallFlowState.ERROR);
         }
     }
 
-    // ========== DTO Classes ==========
 
-    public static class CreateSessionRequest {
-        private String contactName = "김근태";
-        private String contactKey = "kimgeuntae";
-        private Long memorialId;
-        private Long callerId;
-        private DeviceType deviceType;
-        private String deviceId;
+    /**
+     * 세션 소유권 검증 (공통 메서드)
+     */
+    private boolean validateSessionOwnership(String sessionKey, MemberUserDetails userDetails) {
+        if (userDetails == null || userDetails.getMember() == null) {
+            return false;
+        }
 
-        // getters and setters
-        public String getContactName() { return contactName; }
-        public void setContactName(String contactName) { this.contactName = contactName; }
-        public String getContactKey() { return contactKey; }
-        public void setContactKey(String contactKey) { this.contactKey = contactKey; }
-        public Long getMemorialId() { return memorialId; }
-        public void setMemorialId(Long memorialId) { this.memorialId = memorialId; }
-        public Long getCallerId() { return callerId; }
-        public void setCallerId(Long callerId) { this.callerId = callerId; }
-        public DeviceType getDeviceType() { return deviceType; }
-        public void setDeviceType(DeviceType deviceType) { this.deviceType = deviceType; }
-        public String getDeviceId() { return deviceId; }
-        public void setDeviceId(String deviceId) { this.deviceId = deviceId; }
+        MemorialVideoSession session = sessionManager.getSession(sessionKey);
+        if (session == null || session.isExpired()) {
+            return false;
+        }
+
+        return userDetails.getMember().getId().equals(session.getCallerId());
     }
 
-    public static class InitialDataRequest {
-        private Long memberId;
-        private Long memorialId;
-        private String contactName;
-        private DeviceType deviceType;
-
-        // getters and setters
-        public Long getMemberId() { return memberId; }
-        public void setMemberId(Long memberId) { this.memberId = memberId; }
-        public Long getMemorialId() { return memorialId; }
-        public void setMemorialId(Long memorialId) { this.memorialId = memorialId; }
-        public String getContactName() { return contactName; }
-        public void setContactName(String contactName) { this.contactName = contactName; }
-        public DeviceType getDeviceType() { return deviceType; }
-        public void setDeviceType(DeviceType deviceType) { this.deviceType = deviceType; }
+    /**
+     * 인증 실패 응답 생성
+     */
+    private ResponseEntity<?> createUnauthorizedResponse() {
+        return ResponseEntity.status(401).body(Map.of(
+            "status", Map.of("code", "AUTH_4010", "message", "인증이 필요합니다")
+        ));
     }
 
-    public static class DeviceRegistrationRequest {
-        private String deviceId;
-        private DeviceType deviceType;
-        private boolean setPrimary = false;
+    /**
+     * 권한 없음 응답 생성
+     */
+    private ResponseEntity<?> createForbiddenResponse() {
+        return ResponseEntity.status(403).body(Map.of(
+            "status", Map.of("code", "AUTH_4030", "message", "권한이 없습니다")
+        ));
+    }
 
-        // getters and setters
-        public String getDeviceId() { return deviceId; }
-        public void setDeviceId(String deviceId) { this.deviceId = deviceId; }
-        public DeviceType getDeviceType() { return deviceType; }
-        public void setDeviceType(DeviceType deviceType) { this.deviceType = deviceType; }
-        public boolean isSetPrimary() { return setPrimary; }
-        public void setSetPrimary(boolean setPrimary) { this.setPrimary = setPrimary; }
+    /**
+     * 에러 응답 생성
+     */
+    private ResponseEntity<?> createErrorResponse(String code, String message, String error) {
+        return ResponseEntity.status(500).body(Map.of(
+            "status", Map.of("code", code, "message", message),
+            "error", error
+        ));
     }
 }

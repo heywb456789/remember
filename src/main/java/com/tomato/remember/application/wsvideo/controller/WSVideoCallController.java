@@ -1,6 +1,7 @@
 package com.tomato.remember.application.wsvideo.controller;
 
 import com.tomato.remember.application.member.entity.Member;
+import com.tomato.remember.application.security.MemberUserDetails;
 import com.tomato.remember.application.wsvideo.dto.MemorialVideoResponse;
 import com.tomato.remember.application.wsvideo.service.MemorialExternalApiService;
 import java.util.Map;
@@ -29,8 +30,10 @@ public class WSVideoCallController {
      */
     @GetMapping("/memorial")
     public String showVideoCallPage(@RequestParam Long memorialId,
-                                  @AuthenticationPrincipal Member member,
+                                  @AuthenticationPrincipal MemberUserDetails userDetails,
                                   Model model) {
+
+        Member member = userDetails.getMember();
         
         log.info("🎬 WebSocket 영상통화 페이지 요청 - 회원ID: {}, 메모리얼ID: {}", 
                 member.getId(), memorialId);
@@ -50,7 +53,7 @@ public class WSVideoCallController {
             log.info("✅ 외부 API 응답 성공 - 연락처: {}, 대기영상: {}", 
                     apiResponse.getContactName(), apiResponse.getWaitingVideoUrl());
 
-            return "ws-video-call"; // ws-video-call.html 템플릿 반환
+            return "mobile/wsvideocall/ws-video-call"; // ws-video-call.html 템플릿 반환
 
         } catch (Exception e) {
             log.error("❌ 외부 API 호출 실패 - 회원ID: {}, 메모리얼ID: {}", 
@@ -91,13 +94,14 @@ public class WSVideoCallController {
      */
     @GetMapping("/test")
     public String showTestPage(@RequestParam(required = false, defaultValue = "1") Long memorialId,
-                             @RequestParam(required = false, defaultValue = "1") Long memberId,
+                             @AuthenticationPrincipal MemberUserDetails userDetails,
                              Model model) {
-        
-        log.info("🧪 영상통화 테스트 페이지 요청 - 회원ID: {}, 메모리얼ID: {}", memberId, memorialId);
+
+        Member member = userDetails.getMember();
+        log.info("🧪 영상통화 테스트 페이지 요청 - 회원ID: {}, 메모리얼ID: {}", member.getId(), memorialId);
 
         // 테스트용 기본값
-        model.addAttribute("memberId", memberId);
+        model.addAttribute("memberId", member.getId());
         model.addAttribute("memorialId", memorialId);
         model.addAttribute("contactName", "김근태");
         model.addAttribute("waitingVideoUrl", "https://remember.newstomato.com/static/waiting_no.mp4");
@@ -113,8 +117,10 @@ public class WSVideoCallController {
      */
     @GetMapping("/mobile")
     public String showMobileVideoCallPage(@RequestParam Long memorialId,
-                                        @AuthenticationPrincipal Member member,
+                                        @AuthenticationPrincipal MemberUserDetails userDetails,
                                         Model model) {
+
+        Member member = userDetails.getMember();
         
         log.info("📱 모바일 영상통화 페이지 요청 - 회원ID: {}, 메모리얼ID: {}", 
                 member.getId(), memorialId);
@@ -157,8 +163,8 @@ public class WSVideoCallController {
     @ResponseBody
     @GetMapping("/check")
     public ResponseEntity<?> checkVideoCallAvailable(@RequestParam Long memorialId,
-                                                   @AuthenticationPrincipal Member member) {
-        
+                                                   @AuthenticationPrincipal MemberUserDetails userDetails) {
+        Member member = userDetails.getMember();
         log.info("🔍 영상통화 가능 여부 체크 - 회원ID: {}, 메모리얼ID: {}", 
                 member.getId(), memorialId);
 

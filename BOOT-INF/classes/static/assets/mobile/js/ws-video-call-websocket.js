@@ -1,5 +1,3 @@
-console.log('🔥 EMERGENCY_FIX_20250125_1530 🔥');
-console.log('BUILD_TIMESTAMP:', Date.now());
 /**
  * WebSocket 기반 영상통화 시스템 - 완전 수정된 WebSocket 통신 관리
  * 🔧 중복 메시지 방지 및 누락된 메시지 타입 추가
@@ -54,6 +52,11 @@ class WSVideoWebSocketClient {
         this.messageHandlers.set('START_RECORDING', (message) => {
             WS_VIDEO_LOGGER.info('🔴 녹화 시작 명령 수신');
 
+            // // 🔧 서버에서 명령이 오면 실제 녹화 시작
+            // if (wsVideoRecordingManager && typeof startActualRecording === 'function') {
+            //     const maxDuration = message.maxDuration || 10;
+            //     startActualRecording(maxDuration);
+            // }
         });
 
         // 5. 응답영상 재생 명령

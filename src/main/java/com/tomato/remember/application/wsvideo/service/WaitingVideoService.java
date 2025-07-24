@@ -19,17 +19,15 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequiredArgsConstructor
 public class WaitingVideoService {
 
-    @Value("${app.video.base-url:http://localhost:8080}")
+    @Value("${app.video.base-url:https://remember.newstomato.com/static/}")
     private String baseVideoUrl;
 
-    @Value("${app.video.waiting.path:/static/videos/waiting}")
-    private String waitingVideoPath;
 
     // 연락처별 대기영상 매핑
     private static final Map<String, ContactVideoInfo> CONTACT_VIDEOS = Map.of(
-        "kimgeuntae", new ContactVideoInfo("김근태", "kimgeuntae_waiting"),
-        "rohmoohyun", new ContactVideoInfo("노무현", "rohmoohyun_waiting"),
-        "default", new ContactVideoInfo("기본", "default_waiting")
+        "kimgeuntae", new ContactVideoInfo("김근태", "waiting_kt"),
+        "rohmoohyun", new ContactVideoInfo("노무현", "waiting_no"),
+        "default", new ContactVideoInfo("기본", "waiting_no")
     );
 
     // 디바이스별 영상 포맷 매핑
@@ -37,7 +35,7 @@ public class WaitingVideoService {
         DeviceType.WEB, new VideoFormat("mp4", "1920x1080", "high"),
         DeviceType.MOBILE_WEB, new VideoFormat("mp4", "1280x720", "medium"),
         DeviceType.IOS_APP, new VideoFormat("mp4", "1280x720", "medium"),
-        DeviceType.ANDROID_APP, new VideoFormat("webm", "1280x720", "medium")
+        DeviceType.ANDROID_APP, new VideoFormat("mp4", "1280x720", "medium")
     );
 
     // 재생 상태 캐시
@@ -51,14 +49,12 @@ public class WaitingVideoService {
             ContactVideoInfo contactInfo = CONTACT_VIDEOS.getOrDefault(contactKey, CONTACT_VIDEOS.get("default"));
             VideoFormat format = DEVICE_FORMATS.get(deviceType);
 
-            String filename = String.format("%s_%s_%s.%s",
+            String filename = String.format("%s.%s",
                 contactInfo.getVideoPrefix(),
-                format.getResolution().replace("x", "_"),
-                format.getQuality(),
                 format.getExtension()
             );
 
-            String fullUrl = String.format("%s%s/%s", baseVideoUrl, waitingVideoPath, filename);
+            String fullUrl = String.format("%s%s", baseVideoUrl, filename);
 
             log.debug("📺 대기영상 URL 생성 - 연락처: {}, 디바이스: {}, URL: {}", 
                     contactKey, deviceType, fullUrl);
@@ -130,7 +126,7 @@ public class WaitingVideoService {
      */
     private String getFallbackVideoUrl(DeviceType deviceType) {
         VideoFormat format = DEVICE_FORMATS.get(deviceType);
-        return String.format("%s%s/default_fallback.%s", baseVideoUrl, waitingVideoPath, format.getExtension());
+        return String.format("%s/default_fallback.%s", baseVideoUrl, format.getExtension());
     }
 
     /**
@@ -144,7 +140,7 @@ public class WaitingVideoService {
             format.getQuality(),
             format.getExtension()
         );
-        return String.format("%s%s/%s", baseVideoUrl, waitingVideoPath, filename);
+        return String.format("%s/%s", baseVideoUrl, filename);
     }
 
     // ========== Inner Classes ==========
