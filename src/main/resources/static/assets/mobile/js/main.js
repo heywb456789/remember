@@ -1,4 +1,4 @@
-// main-simple.js - 간소화된 메인 페이지 JavaScript (이벤트 바인딩 타이밍 수정)
+// main-simple.js - 간소화된 메인 페이지 JavaScript (이벤트 바인딩 타이밍 수정, FAB 초기화 주석)
 
 import { showToast, showConfirm } from './common.js';
 import { authFetch, memberLogout } from './commonFetch.js';
@@ -12,7 +12,7 @@ let mainPageState = {
   memorialItems: []
 };
 
-// 체험하기 FAB 상태 (단순화)
+// 체험하기 FAB 상태 (단순화) - 주석 처리 상태로 유지
 let experienceFabState = {
   isExpanded: false,
   fab: null,
@@ -37,12 +37,21 @@ function initializeMainPage() {
     // 2. 이벤트 바인딩 (FAB 포함)
     bindAllEvents();
 
-    // 3. FAB 버튼 초기화 (DOM이 완전히 준비된 후)
+    // 3. FAB 버튼 초기화 (DOM이 완전히 준비된 후) - 주석 처리
     // requestAnimationFrame으로 DOM 렌더링 완료 후 실행
+    /*
     requestAnimationFrame(() => {
       setTimeout(() => {
         initializeFabButtons();
       }, 100); // 100ms 후 실행으로 DOM 완전 준비 보장
+    });
+    */
+
+    // 3-1. 채팅 FAB만 초기화 (로그인 시에만 존재)
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        initializeChatFabOnly();
+      }, 100);
     });
 
     // 4. 초기화 완료
@@ -77,8 +86,31 @@ function loadServerData() {
 }
 
 /**
- * ===== FAB 버튼 초기화 (HTML에 이미 존재) =====
+ * ===== 채팅 FAB만 초기화 (체험하기 FAB 제거) =====
  */
+function initializeChatFabOnly() {
+  console.log('🎯 채팅 FAB만 초기화');
+
+  // 채팅 FAB 이벤트 바인딩 (로그인 시에만 존재)
+  const chatFab = document.getElementById('chatFab');
+  if (chatFab) {
+    try {
+      chatFab.addEventListener('click', handleChatFabClick);
+      console.log('✅ 채팅 FAB 클릭 이벤트 바인딩 완료');
+    } catch (error) {
+      console.error('❌ 채팅 FAB 이벤트 바인딩 실패:', error);
+    }
+  } else {
+    console.log('📝 채팅 FAB 없음 (로그인하지 않았거나 조건부 렌더링으로 숨김)');
+  }
+
+  console.log('✅ 채팅 FAB 초기화 완료');
+}
+
+/**
+ * ===== FAB 버튼 초기화 (HTML에 이미 존재) - 주석 처리 =====
+ */
+/*
 function initializeFabButtons() {
   console.log('🎯 FAB 버튼 초기화 (정적 생성 버전)');
 
@@ -142,6 +174,7 @@ function initializeFabButtons() {
 
   console.log('✅ FAB 버튼 초기화 완료');
 }
+*/
 
 /**
  * ===== 이벤트 바인딩 =====
@@ -219,7 +252,8 @@ function bindOtherButtons() {
  * ===== 이벤트 핸들러들 =====
  */
 
-// 체험하기 FAB 클릭
+// 체험하기 FAB 클릭 - 주석 처리
+/*
 function handleExperienceFabClick(e) {
   e.preventDefault();
   e.stopPropagation();
@@ -305,6 +339,7 @@ function handleExperienceOptionClick(e) {
     closeExperienceOptions();
   }, 300);
 }
+*/
 
 // 채팅 FAB 클릭
 function handleChatFabClick(e) {
@@ -328,7 +363,8 @@ function handleChatFabClick(e) {
   }
 }
 
-// 외부 클릭시 닫기
+// 외부 클릭시 닫기 - 주석 처리 (체험하기 FAB 없으므로)
+/*
 function handleOutsideClick(e) {
   if (!experienceFabState.isExpanded) return;
 
@@ -341,6 +377,7 @@ function handleOutsideClick(e) {
     closeExperienceOptions();
   }
 }
+*/
 
 // 메모리얼 생성 클릭
 async function handleCreateMemorialClick(e) {
@@ -621,6 +658,8 @@ window.mainPageManager = {
     updateMemorialSelection();
     updateVideoCallButtonState();
   },
+  // 체험하기 토글 함수 주석 처리
+  /*
   toggleExperience: () => {
     if (experienceFabState.isExpanded) {
       closeExperienceOptions();
@@ -628,9 +667,11 @@ window.mainPageManager = {
       openExperienceOptions();
     }
   },
+  */
   // 디버깅용 함수
   debugFab: () => {
     console.log('FAB 디버그 정보:', {
+      /*
       experienceFab: {
         element: !!experienceFabState.fab,
         id: experienceFabState.fab?.id,
@@ -641,6 +682,7 @@ window.mainPageManager = {
         id: experienceFabState.options?.id,
         buttons: experienceFabState.options?.querySelectorAll('.experience-option-btn').length || 0
       },
+      */
       chatFab: {
         element: !!document.getElementById('chatFab')
       }
@@ -656,7 +698,7 @@ window.showLoginModal = showLoginModal;
 /**
  * ===== 자동 초기화 =====
  */
-console.log('🎉 토마토리멤버 main-simple.js 로드 완료 (정적 FAB 버전 - 이벤트 바인딩 수정)');
+console.log('🎉 토마토리멤버 main-simple.js 로드 완료 (정적 FAB 버전 - 이벤트 바인딩 수정, 체험하기 FAB 제거)');
 
 // DOM이 준비되면 초기화
 if (document.readyState === 'loading') {
@@ -666,7 +708,8 @@ if (document.readyState === 'loading') {
   setTimeout(initializeMainPage, 50);
 }
 
-// 키보드 단축키 지원
+// 키보드 단축키 지원 - 주석 처리 (체험하기 FAB 제거)
+/*
 document.addEventListener('keydown', function(e) {
   // ESC 키로 체험하기 옵션 닫기
   if (e.key === 'Escape' && experienceFabState.isExpanded) {
@@ -674,6 +717,7 @@ document.addEventListener('keydown', function(e) {
     closeExperienceOptions();
   }
 });
+*/
 
 // 모듈 익스포트
 export {
@@ -682,6 +726,7 @@ export {
   handleVideoCallClick,
   updateMemorialSelection,
   updateVideoCallButtonState,
-  openExperienceOptions,
-  closeExperienceOptions
+  // 체험하기 관련 함수 주석 처리
+  // openExperienceOptions,
+  // closeExperienceOptions
 };

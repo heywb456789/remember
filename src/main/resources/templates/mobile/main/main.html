@@ -15,7 +15,108 @@
   <customCSS>
     <link th:href="@{/assets/mobile/css/main.css}" rel="stylesheet">
     <style>
-      /* ===== FAB 버튼 스타일 (PC 위치 수정) ===== */
+      /* ===== 새로운 헤더 UI 스타일 ===== */
+      .header-experience-section {
+        background: transparent;
+        border-radius: 0;
+        padding: var(--spacing-lg) 0 0 0;
+        margin-bottom: 0;
+        position: relative;
+        overflow: visible;
+        box-shadow: none;
+      }
+
+      .experience-profiles {
+        display: flex;
+        gap: var(--spacing-sm);
+        margin-bottom: 0;
+        align-items: flex-start;
+        position: relative;
+        z-index: 2;
+        justify-content: flex-start;
+      }
+
+      .experience-badge {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        border: 3px solid rgba(255, 255, 255, 0.8);
+        overflow: hidden;
+        cursor: pointer;
+        transition: var(--transition-smooth);
+        position: relative;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #ff6b35;
+      }
+
+      .experience-badge:hover {
+        transform: scale(1.05);
+        border-color: white;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+      }
+
+      .experience-badge img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .experience-badge .badge-placeholder {
+        width: 100%;
+        height: 100%;
+        background: #ff6b35;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 10px;
+        font-weight: 700;
+        text-align: center;
+        line-height: 1.1;
+      }
+
+      .experience-profile {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        border: 3px solid rgba(255, 255, 255, 0.8);
+        overflow: hidden;
+        cursor: pointer;
+        transition: var(--transition-smooth);
+        position: relative;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      }
+
+      .experience-profile:hover {
+        transform: scale(1.05);
+        border-color: white;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+      }
+
+      .experience-profile img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .experience-profile .profile-placeholder {
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        color: white;
+      }
+
+
+
+      /* ===== FAB 버튼 스타일 (기존 유지하되 숨김) ===== */
       :root {
         --fab-size-mobile: 56px;
         --fab-size-tablet: 60px;
@@ -296,8 +397,40 @@
 <body>
 <section>
   <div class="container">
-    <!-- 환영 메시지 -->
-    <div class="welcome-message" th:if="${!isLoggedIn or memorialCount == 0}">
+    <!-- ===== 새로운 헤더 체험하기 섹션 (로그인/비로그인 모두 표시) ===== -->
+    <div class="header-experience-section">
+      <div class="experience-profiles">
+        <!-- 이용안내 배지 (이미지 사용 가능) -->
+        <div class="experience-badge" onclick="window.location.href='https://m.youtube.com/watch?v=-oSW4zhocY8'">
+          <img src="/images/guide-badge.png" alt="이용안내"
+               onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+          <div class="badge-placeholder" style="display: none;">
+            이용안내<br>CLICK
+          </div>
+        </div>
+
+        <!-- 노무현 프로필 -->
+        <div class="experience-profile" onclick="window.location.href='/call/rohmoohyun'">
+          <img src="/images/roh.png" alt="노무현"
+               onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+          <div class="profile-placeholder" style="display: none;">
+            <i class="fas fa-user"></i>
+          </div>
+        </div>
+
+        <!-- 김근태 프로필 -->
+        <div class="experience-profile" onclick="window.location.href='/call/kimgeuntae'">
+          <img src="/images/kkt.png" alt="김근태"
+               onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+          <div class="profile-placeholder" style="display: none;">
+            <i class="fas fa-user"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 환영 메시지 (기존) -->
+    <div class="welcome-message" th:if="${!isLoggedIn or memorialCount == 0}" style="padding-top: 20px;">
       <div class="welcome-text">'토마토리멤버'에 오신 것을 환영합니다.</div>
       <div class="welcome-subtitle">소중한 분과의 영원한 추억을 만들어보세요.</div>
     </div>
@@ -405,7 +538,7 @@
     </div>
 
     <!-- 로그인 후 - 메모리얼 관리 -->
-    <div class="logged-in-only" th:if="${isLoggedIn}">
+    <div class="logged-in-only" th:if="${isLoggedIn}" style="padding-top: 20px;">
       <!-- 새 메모리얼 등록 버튼 -->
       <div class="add-memorial-section">
         <button class="add-memorial-btn" type="button">
@@ -555,14 +688,17 @@
     </div>
   </div>
 
-  <!-- ===== FAB 버튼들 (Thymeleaf 조건부 렌더링) ===== -->
+  <!-- ===== FAB 버튼들 (Thymeleaf 조건부 렌더링) - 주석 처리 ===== -->
 
-  <!-- 🚀 체험하기 FAB (항상 표시, 우선순위) -->
+  <!-- 🚀 체험하기 FAB (항상 표시, 우선순위) - 주석 처리 -->
+  <!--
   <button class="fab-button experience-fab" id="experienceFab" aria-label="체험하기">
     <i class="fas fa-play"></i>
   </button>
+  -->
 
-  <!-- 🎯 체험하기 확장 옵션들 -->
+  <!-- 🎯 체험하기 확장 옵션들 - 주석 처리 -->
+  <!--
   <div class="experience-options" id="experienceOptions">
     <a href="/call/rohmoohyun" class="experience-option-btn" data-name="노무현 님 체험">
       <img src="/images/roh.png" alt="노무현"
@@ -575,6 +711,7 @@
       <span>김근태 님 체험</span>
     </a>
   </div>
+  -->
 
   <!-- 💬 채팅 FAB (로그인 시만 표시) -->
   <button class="fab-button chat-fab" id="chatFab" aria-label="채팅하기"
