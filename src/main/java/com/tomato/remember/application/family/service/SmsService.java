@@ -208,14 +208,12 @@ public class SmsService {
      * SMS URL 생성
      */
     private String createSmsUrl(String phoneNumber, String message) {
-        // Android: sms:전화번호?body=메시지
-        // iOS: sms:전화번호&body=메시지
-
-        // 전화번호 포맷 정리 (- 제거)
+        // 전화번호 포맷 정리
         String cleanPhoneNumber = phoneNumber.replaceAll("[^0-9]", "");
 
-        // URL 인코딩
-        String encodedMessage = java.net.URLEncoder.encode(message, java.nio.charset.StandardCharsets.UTF_8);
+        // URL 인코딩 (공백을 %20으로 처리)
+        String encodedMessage = java.net.URLEncoder.encode(message, java.nio.charset.StandardCharsets.UTF_8)
+            .replace("+", "%20"); // + 기호를 %20으로 교체
 
         return String.format("sms:%s?body=%s", cleanPhoneNumber, encodedMessage);
     }
