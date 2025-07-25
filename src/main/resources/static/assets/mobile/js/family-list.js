@@ -7,7 +7,8 @@ import {
     handleError,
     showSuccess,
     showInfo,
-    showWarning
+    showWarning,
+    extractErrorMessage
 } from './commonFetch.js';
 
 // 전역 상태
@@ -311,9 +312,9 @@ async function handleSmsInvite(responseData, inviteData) {
 
             showSuccess('문자 앱이 실행되었습니다. 메시지를 확인하고 전송해 주세요.');
         } else {
-            // 폴백: 로컬에서 SMS 내용 생성
+            // 폴백: 로컬에서 SMS 내용 생성 (토큰 포함)
             const phoneNumber = inviteData.contact;
-            const smsContent = createSmsContent(inviteData);
+            const smsContent = createSmsContent(inviteData, responseData?.token);
             await openSmsApp(phoneNumber, smsContent);
         }
 
@@ -323,7 +324,7 @@ async function handleSmsInvite(responseData, inviteData) {
             customMessage: 'SMS 앱 실행에 실패했습니다. 수동으로 문자를 보내주세요.',
             errorPrefix: 'SMS 실행 실패'
         });
-        showSmsAlternativeOptions(inviteData);
+        showSmsAlternativeOptions(inviteData, responseData?.token);
     }
 }
 
@@ -413,23 +414,46 @@ async function openSmsApp(phoneNumber, message) {
 /**
  * SMS 내용 생성 (폴백용)
  */
-function createSmsContent(inviteData) {
-    const appName = '토마토리멤버';
-    const inviterName = '초대자'; // 현재 사용자 이름으로 교체 필요
+// function createSmsContent(inviteData) {
+//     const appName = '토마토리멤버';
+//     const inviterName = '초대자'; // 현재 사용자 이름으로 교체 필요
+//
+//     let message = `[${appName}] 가족 메모리얼 초대\n\n`;
+//     message += `${inviterName}님이 메모리얼에 초대했습니다.\n`;
+//
+//     if (inviteData.message && inviteData.message.trim()) {
+//         message += `\n💌 "${inviteData.message}"\n`;
+//     }
+//
+//     message += `\n초대 수락: [링크가 여기에 표시됩니다]\n`;
+//     message += `\n⏰ 초대는 7일 후 만료됩니다.`;
+//
+//     return message;
+// }
+function createSmsContent(inviteData, token) {
+  const appName = '토마토리멤버';
+  const inviterName = '초대자'; // 현재 사용자 이름으로 교체 필요
 
-    let message = `[${appName}] 가족 메모리얼 초대\n\n`;
-    message += `${inviterName}님이 메모리얼에 초대했습니다.\n`;
+  let message = `[${appName}] 가족 메모리얼 초대\n\n`;
+  message += `${inviterName}님이 메모리얼에 초대했습니다.\n`;
 
-    if (inviteData.message && inviteData.message.trim()) {
-        message += `\n💌 "${inviteData.message}"\n`;
-    }
+  if (inviteData.message && inviteData.message.trim()) {
+    message += `\n💌 "${inviteData.message}"\n`;
+  }
 
-    message += `\n초대 수락: [링크가 여기에 표시됩니다]\n`;
-    message += `\n⏰ 초대는 7일 후 만료됩니다.`;
+  // 이메일과 동일한 초대 링크 생성
+  if (token) {
+    const baseUrl = window.location.origin || 'https://www.tomatoremember.com';
+    const inviteLink = `${baseUrl}/mobile/family/invite/${token}`;
+    message += `\n🔗 초대 수락하기:\n${inviteLink}\n`;
+  } else {
+    message += `\n🔗 초대 링크가 포함될 예정입니다.\n`;
+  }
 
-    return message;
+  message += `\n⏰ 초대는 7일 후 만료됩니다.`;
+
+  return message;
 }
-
 /**
  * SMS 전송 확인 다이얼로그
  */
@@ -447,7 +471,7 @@ function showSmsConfirmation(phoneNumber, smsData) {
         showSmsAlternativeOptions({
             contact: phoneNumber,
             message: smsData?.message || '메시지 내용을 확인할 수 없습니다.'
-        });
+        }, smsData?.token);
     }
 }
 
