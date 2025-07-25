@@ -22,7 +22,7 @@ import java.util.List;
 import org.springframework.web.bind.annotation.RequestParam;
 
 /**
- * 가족 관리 SSR 컨트롤러 (간단 버전)
+ * 가족 관리 SSR 컨트롤러
  */
 @Slf4j
 @Controller

@@ -1,4 +1,4 @@
-// family-list-enhanced.js - SMS 앱 연동 강화 버전
+// family-list-enhanced.js - 메모리얼 선택 드롭다운 수정 버전
 import { authFetch } from './commonFetch.js';
 import { showToast, showConfirm, showLoading, hideLoading } from './common.js';
 
@@ -7,7 +7,7 @@ let pageState = {
     selectedMemorialId: null,
     familyMembers: [],
     currentMemberId: null,
-    currentInviteToken: null // SMS 초대 토큰 저장용
+    currentInviteToken: null
 };
 
 /**
@@ -22,6 +22,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // 이벤트 바인딩
         bindEvents();
+
+        // 메모리얼 드롭다운 초기화
+        initMemorialDropdown();
 
         console.log('향상된 가족 목록 페이지 초기화 완료');
     } catch (error) {
@@ -45,6 +48,130 @@ function loadServerData() {
     } else {
         console.warn('window.serverData가 없습니다.');
     }
+}
+
+/**
+ * 메모리얼 드롭다운 초기화
+ */
+function initMemorialDropdown() {
+    console.log('메모리얼 드롭다운 초기화 시작');
+
+    const selectBtn = document.getElementById('memorialSelectBtn');
+    const dropdownMenu = document.getElementById('memorialDropdownMenu');
+
+    if (!selectBtn || !dropdownMenu) {
+        console.warn('메모리얼 드롭다운 요소를 찾을 수 없습니다.');
+        return;
+    }
+
+    // 드롭다운 토글 이벤트
+    selectBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        console.log('메모리얼 선택 버튼 클릭됨');
+
+        // 드롭다운 메뉴 토글
+        const isOpen = dropdownMenu.classList.contains('show');
+
+        if (isOpen) {
+            closeMemorialDropdown();
+        } else {
+            openMemorialDropdown();
+        }
+    });
+
+    // 드롭다운 외부 클릭 시 닫기
+    document.addEventListener('click', function(e) {
+        if (!selectBtn.contains(e.target) && !dropdownMenu.contains(e.target)) {
+            closeMemorialDropdown();
+        }
+    });
+
+    // 메모리얼 항목 클릭 이벤트
+    const memorialItems = dropdownMenu.querySelectorAll('.memorial-item');
+    memorialItems.forEach(item => {
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const memorialId = this.getAttribute('data-memorial-id');
+            console.log('메모리얼 선택됨:', memorialId);
+
+            // 현재 선택된 메모리얼과 같으면 드롭다운만 닫기
+            if (memorialId == pageState.selectedMemorialId) {
+                closeMemorialDropdown();
+                return;
+            }
+
+            // 다른 메모리얼 선택 시 페이지 이동
+            selectMemorial(memorialId);
+        });
+    });
+
+    console.log('메모리얼 드롭다운 초기화 완료');
+}
+
+/**
+ * 메모리얼 드롭다운 열기
+ */
+function openMemorialDropdown() {
+    const selectBtn = document.getElementById('memorialSelectBtn');
+    const dropdownMenu = document.getElementById('memorialDropdownMenu');
+    const arrow = selectBtn.querySelector('.dropdown-arrow i');
+
+    console.log('메모리얼 드롭다운 열기');
+
+    dropdownMenu.classList.add('show');
+    selectBtn.classList.add('active');
+
+    if (arrow) {
+        arrow.style.transform = 'rotate(180deg)';
+    }
+
+    // 선택된 메모리얼로 스크롤
+    const selectedItem = dropdownMenu.querySelector('.memorial-item.selected');
+    if (selectedItem) {
+        selectedItem.scrollIntoView({ block: 'nearest' });
+    }
+}
+
+/**
+ * 메모리얼 드롭다운 닫기
+ */
+function closeMemorialDropdown() {
+    const selectBtn = document.getElementById('memorialSelectBtn');
+    const dropdownMenu = document.getElementById('memorialDropdownMenu');
+    const arrow = selectBtn.querySelector('.dropdown-arrow i');
+
+    console.log('메모리얼 드롭다운 닫기');
+
+    dropdownMenu.classList.remove('show');
+    selectBtn.classList.remove('active');
+
+    if (arrow) {
+        arrow.style.transform = 'rotate(0deg)';
+    }
+}
+
+/**
+ * 메모리얼 선택
+ */
+function selectMemorial(memorialId) {
+    console.log('메모리얼 선택 처리:', memorialId);
+
+    if (!memorialId) {
+        console.warn('메모리얼 ID가 없습니다.');
+        return;
+    }
+
+    // 로딩 표시
+    showLoading('메모리얼을 변경하고 있습니다...');
+
+    // 페이지 이동
+    setTimeout(() => {
+        window.location.href = `/mobile/family?memorialId=${memorialId}`;
+    }, 500);
 }
 
 /**
@@ -141,20 +268,7 @@ async function handleSmsInvite(inviteData) {
     console.log('SMS 초대 처리 시작:', inviteData);
 
     try {
-        // 1. 초대 토큰 생성 및 SMS 데이터 조회
-        const smsResponse = await authFetch('/api/family/invite', {
-            method: 'POST',
-            body: JSON.stringify(inviteData)
-        });
-
-        if (smsResponse.status?.code !== 'OK_0000') {
-            throw new Error('SMS 초대 토큰 생성 실패');
-        }
-
-        // 2. 토큰 추출 (응답에서 토큰 정보 필요)
-        // TODO: 백엔드에서 토큰 정보를 응답에 포함하도록 수정 필요
-
-        // 3. SMS 앱 실행 시도
+        // SMS 앱 실행 시도
         const phoneNumber = inviteData.contact;
         const smsContent = createSmsContent(inviteData);
 
@@ -164,8 +278,6 @@ async function handleSmsInvite(inviteData) {
 
     } catch (error) {
         console.error('SMS 초대 처리 실패:', error);
-
-        // 실패 시 대체 방법 제공
         showSmsAlternativeOptions(inviteData);
     }
 }
@@ -188,7 +300,7 @@ async function openSmsApp(phoneNumber, message) {
     console.log('생성된 SMS URL:', smsUrl.substring(0, 50) + '...');
 
     try {
-        // 1. 직접 링크 실행 시도
+        // 직접 링크 실행 시도
         const link = document.createElement('a');
         link.href = smsUrl;
         link.style.display = 'none';
@@ -202,9 +314,8 @@ async function openSmsApp(phoneNumber, message) {
 
         console.log('SMS 앱 실행 완료');
 
-        // 2. 추가 확인 - 실제로 앱이 실행되었는지 확인
+        // 추가 확인 - 실제로 앱이 실행되었는지 확인
         setTimeout(() => {
-            // 앱 실행 실패 시 대체 방법 제공
             showSmsConfirmation(phoneNumber, message);
         }, 1000);
 
@@ -378,9 +489,6 @@ async function copyToClipboard(text) {
     }
 }
 
-// 나머지 기존 함수들은 그대로 유지...
-// (권한 설정, 구성원 관리 등의 기존 함수들)
-
 /**
  * 현재 구성원 정보 가져오기
  */
@@ -474,9 +582,110 @@ async function savePermissions() {
 }
 
 /**
+ * 구성원 메뉴 모달 열기
+ */
+function openMemberMenuModal(memberId, realMemberId, memberName) {
+    console.log('구성원 메뉴 모달 열기:', { memberId, realMemberId, memberName });
+
+    pageState.currentMemberId = memberId;
+    pageState.currentRealMemberId = realMemberId;
+
+    // 모달 정보 설정
+    document.getElementById('menuMemberName').textContent = memberName?.substring(0, 1) || '?';
+    document.getElementById('menuMemberFullName').textContent = memberName || '알 수 없음';
+
+    // 구성원 정보 찾기
+    const member = pageState.familyMembers.find(m => m.id == memberId);
+    if (member) {
+        document.getElementById('menuMemberRelation').textContent = `고인과의 관계: ${member.relationshipDisplayName || '미설정'}`;
+        document.getElementById('menuMemberStatus').textContent = `상태: ${member.inviteStatusDisplayName || '알 수 없음'}`;
+    }
+
+    // 모달 열기
+    const modal = new bootstrap.Modal(document.getElementById('memberMenuModal'));
+    modal.show();
+}
+
+/**
+ * 초대 링크 복사
+ */
+async function copyInviteLink() {
+    if (!pageState.currentRealMemberId || !pageState.selectedMemorialId) {
+        showToast('구성원 정보가 없습니다.', 'error');
+        return;
+    }
+
+    try {
+        showLoading('초대 링크를 생성하고 있습니다...');
+
+        const response = await authFetch(`/api/family/memorials/${pageState.selectedMemorialId}/members/${pageState.currentRealMemberId}/invite-link`, {
+            method: 'GET'
+        });
+
+        if (response.status?.code === 'OK_0000' && response.data?.inviteLink) {
+            await copyToClipboard(response.data.inviteLink);
+            showToast('초대 링크가 클립보드에 복사되었습니다.', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('memberMenuModal')).hide();
+        } else {
+            throw new Error(response.status?.message || '초대 링크 생성에 실패했습니다.');
+        }
+    } catch (error) {
+        console.error('초대 링크 복사 실패:', error);
+        showToast('초대 링크 복사 중 오류가 발생했습니다.', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+/**
+ * 구성원 제거
+ */
+async function removeMember() {
+    const member = pageState.familyMembers.find(m => m.id == pageState.currentMemberId);
+    if (!member) {
+        showToast('구성원 정보를 찾을 수 없습니다.', 'error');
+        return;
+    }
+
+    const memberName = member.member?.name || '알 수 없음';
+
+    const confirmed = await showConfirm(
+        '구성원 제거',
+        `${memberName}님을 가족 구성원에서 제거하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`,
+        '제거',
+        '취소'
+    );
+
+    if (!confirmed) return;
+
+    try {
+        showLoading('구성원을 제거하고 있습니다...');
+
+        const response = await authFetch(`/api/family/memorials/${pageState.selectedMemorialId}/members/${pageState.currentRealMemberId}`, {
+            method: 'DELETE'
+        });
+
+        if (response.status?.code === 'OK_0000') {
+            showToast(`${memberName}님이 가족 구성원에서 제거되었습니다.`, 'success');
+            bootstrap.Modal.getInstance(document.getElementById('memberMenuModal')).hide();
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            throw new Error(response.status?.message || '구성원 제거에 실패했습니다.');
+        }
+    } catch (error) {
+        console.error('구성원 제거 실패:', error);
+        showToast('구성원 제거 중 오류가 발생했습니다.', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+/**
  * 이벤트 바인딩
  */
 function bindEvents() {
+    console.log('이벤트 바인딩 시작');
+
     // 뒤로가기 버튼
     const backBtn = document.getElementById('backBtn');
     if (backBtn) {
@@ -487,6 +696,15 @@ function bindEvents() {
     const inviteBtn = document.getElementById('inviteBtn');
     if (inviteBtn) {
         inviteBtn.addEventListener('click', openInviteModal);
+    }
+
+    // 새로고침 버튼
+    const refreshBtn = document.getElementById('refreshBtn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => {
+            showLoading('새로고침 중...');
+            setTimeout(() => window.location.reload(), 500);
+        });
     }
 
     // 초대 방법 라디오 버튼
@@ -543,7 +761,38 @@ function bindEvents() {
         savePermissionBtn.addEventListener('click', savePermissions);
     }
 
-    // 기타 이벤트들...
+    // 권한 버튼들
+    document.querySelectorAll('.permission-btn').forEach(btn => {
+        if (!btn.disabled) {
+            btn.addEventListener('click', function() {
+                const memberId = this.getAttribute('data-member-id');
+                openPermissionModal(memberId);
+            });
+        }
+    });
+
+    // 메뉴 버튼들
+    document.querySelectorAll('.menu-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const memberId = this.getAttribute('data-member-id');
+            const realMemberId = this.getAttribute('data-real-member-id');
+            const memberName = this.getAttribute('data-member-name');
+            openMemberMenuModal(memberId, realMemberId, memberName);
+        });
+    });
+
+    // 구성원 메뉴 액션들
+    const copyInviteLinkBtn = document.getElementById('copyInviteLinkBtn');
+    if (copyInviteLinkBtn) {
+        copyInviteLinkBtn.addEventListener('click', copyInviteLink);
+    }
+
+    const removeMemberBtn = document.getElementById('removeMemberBtn');
+    if (removeMemberBtn) {
+        removeMemberBtn.addEventListener('click', removeMember);
+    }
+
+    console.log('이벤트 바인딩 완료');
 }
 
 /**
@@ -574,5 +823,6 @@ function resetInviteForm() {
 window.openPermissionModal = openPermissionModal;
 window.savePermissions = savePermissions;
 window.copyToClipboard = copyToClipboard;
+window.openMemberMenuModal = openMemberMenuModal;
 
 console.log('family-list-enhanced.js 로드 완료');

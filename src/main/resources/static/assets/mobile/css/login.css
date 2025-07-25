@@ -1,4 +1,4 @@
-/* login.css - 토마토리멤버 로그인 페이지 스타일 */
+/* login.css - 수정된 버전 (정렬 문제 해결) */
 
 /* CSS 변수 정의 */
 :root {
@@ -171,35 +171,37 @@ body {
   display: block;
 }
 
-/* 휴대폰 번호 입력 그룹 */
+/* ===== 수정된 휴대폰 번호 입력 그룹 ===== */
 .phone-input-group {
   display: flex;
-  gap: 12px;
+  gap: 8px; /* gap을 8px로 통일 */
   align-items: stretch;
+  width: 100%; /* 전체 너비 명시 */
 }
 
 .country-select-wrapper {
   flex-shrink: 0;
+  min-width: 0; /* flex 아이템의 최소 너비 제한 해제 */
 }
 
 .country-select {
-  width: 100px;
+  width: 85px; /* 기본 너비를 좀 더 작게 */
   height: var(--input-height);
-  padding: 0 12px;
+  padding: 0 8px; /* 패딩 조정 */
   border: 2px solid var(--gray-300);
   border-radius: var(--border-radius);
   background: white;
-  font-size: 14px;
+  font-size: 13px; /* 폰트 크기 조정 */
   font-weight: 500;
   color: var(--gray-700);
   cursor: pointer;
   transition: all var(--transition-fast);
   appearance: none;
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
-  background-position: right 12px center;
+  background-position: right 6px center; /* 화살표 위치 조정 */
   background-repeat: no-repeat;
-  background-size: 16px;
-  padding-right: 40px;
+  background-size: 14px; /* 화살표 크기 조정 */
+  padding-right: 28px; /* 오른쪽 패딩 조정 */
 }
 
 .country-select:focus {
@@ -210,6 +212,7 @@ body {
 
 .phone-input {
   flex: 1;
+  min-width: 0; /* flex 아이템의 최소 너비 제한 해제 */
   height: var(--input-height);
   padding: 0 16px;
   border: 2px solid var(--gray-300);
@@ -230,15 +233,17 @@ body {
   font-weight: 400;
 }
 
-/* 비밀번호 입력 그룹 */
+/* ===== 수정된 비밀번호 입력 그룹 ===== */
 .password-input-group {
   position: relative;
+  width: 100%; /* 전체 너비 명시 */
 }
 
 .password-wrapper {
   position: relative;
   display: flex;
   align-items: center;
+  width: 100%; /* 전체 너비 명시 */
 }
 
 .password-input {
@@ -250,6 +255,7 @@ body {
   font-size: 16px;
   background: white;
   transition: all var(--transition-fast);
+  box-sizing: border-box; /* 박스 사이징 명시 */
 }
 
 .password-input:focus {
@@ -372,6 +378,7 @@ body {
   box-shadow: var(--shadow-md);
   position: relative;
   overflow: hidden;
+  box-sizing: border-box; /* 박스 사이징 명시 */
 }
 
 .login-button:hover:not(:disabled) {
@@ -411,6 +418,7 @@ body {
   transition: all var(--transition-normal);
   box-shadow: var(--shadow-md);
   margin-top: 8px;
+  box-sizing: border-box; /* 박스 사이징 명시 */
 }
 
 .tongtong-button:hover {
@@ -434,6 +442,7 @@ body {
   cursor: pointer;
   transition: all var(--transition-normal);
   margin-top: 8px;
+  box-sizing: border-box; /* 박스 사이징 명시 */
 }
 
 .signup-button:hover {
@@ -499,7 +508,7 @@ body {
   border-color: var(--success);
 }
 
-/* ===== 반응형 디자인 ===== */
+/* ===== 개선된 반응형 디자인 ===== */
 @media (max-width: 480px) {
   .login-container {
     max-width: 100%;
@@ -526,12 +535,14 @@ body {
   }
 
   .phone-input-group {
-    gap: 8px;
+    gap: 6px; /* 모바일에서 gap 줄임 */
   }
 
   .country-select {
-    width: 90px;
-    font-size: 13px;
+    width: 80px; /* 모바일에서 더 작게 */
+    font-size: 12px;
+    padding: 0 6px;
+    padding-right: 24px;
   }
 }
 
@@ -556,9 +567,17 @@ body {
     font-size: 13px;
   }
 
+  .phone-input-group {
+    gap: 4px; /* 더 작은 화면에서 gap 더 줄임 */
+  }
+
   .country-select {
-    width: 85px;
-    font-size: 12px;
+    width: 75px; /* 더 작게 */
+    font-size: 11px;
+    padding: 0 4px;
+    padding-right: 20px;
+    background-size: 12px;
+    background-position: right 4px center;
   }
 
   .phone-input,
@@ -570,6 +589,20 @@ body {
   .tongtong-button,
   .signup-button {
     font-size: 15px;
+  }
+}
+
+/* ===== 매우 작은 화면 대응 ===== */
+@media (max-width: 320px) {
+  .country-select {
+    width: 70px;
+    font-size: 10px;
+    padding: 0 2px;
+    padding-right: 18px;
+  }
+
+  .phone-input-group {
+    gap: 3px;
   }
 }
 
