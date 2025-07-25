@@ -1,12 +1,21 @@
-// family-list-enhanced.js - 메모리얼 선택 드롭다운 수정 버전
-import { authFetch } from './commonFetch.js';
-import { showToast, showConfirm, showLoading, hideLoading } from './common.js';
+// family-list-enhanced.js - 개선된 에러 처리 및 API 호출
+import {
+    apiPost,
+    apiGet,
+    apiPut,
+    apiDelete,
+    handleError,
+    showSuccess,
+    showInfo,
+    showWarning
+} from './commonFetch.js';
 
 // 전역 상태
 let pageState = {
     selectedMemorialId: null,
     familyMembers: [],
     currentMemberId: null,
+    currentRealMemberId: null,
     currentInviteToken: null
 };
 
@@ -29,7 +38,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('향상된 가족 목록 페이지 초기화 완료');
     } catch (error) {
         console.error('페이지 초기화 실패:', error);
-        showToast('페이지 초기화에 실패했습니다.', 'error');
+        handleError(error, { errorPrefix: '페이지 초기화 실패' });
     }
 });
 
@@ -166,7 +175,7 @@ function selectMemorial(memorialId) {
     }
 
     // 로딩 표시
-    showLoading('메모리얼을 변경하고 있습니다...');
+    showInfo('메모리얼을 변경하고 있습니다...');
 
     // 페이지 이동
     setTimeout(() => {
@@ -175,7 +184,7 @@ function selectMemorial(memorialId) {
 }
 
 /**
- * 초대 보내기 - SMS 앱 연동 강화
+ * 초대 보내기 - 개선된 에러 처리
  */
 async function sendInvite() {
     const method = document.querySelector('input[name="inviteMethod"]:checked')?.value;
@@ -186,22 +195,24 @@ async function sendInvite() {
 
     // 유효성 검사
     if (!relationship) {
-        showToast('고인과의 관계를 선택해주세요.', 'warning');
+        showWarning('고인과의 관계를 선택해주세요.');
         return;
     }
 
     if (method === 'email' && !email) {
-        showToast('이메일 주소를 입력해주세요.', 'warning');
+        showWarning('이메일 주소를 입력해주세요.');
         return;
     }
 
     if (method === 'sms' && !phone) {
-        showToast('전화번호를 입력해주세요.', 'warning');
+        showWarning('전화번호를 입력해주세요.');
         return;
     }
 
     if (!pageState.selectedMemorialId) {
-        showToast('선택된 메모리얼이 없습니다.', 'error');
+        handleError(new Error('선택된 메모리얼이 없습니다.'), {
+            customMessage: '선택된 메모리얼이 없습니다.'
+        });
         return;
     }
 
@@ -221,24 +232,27 @@ async function sendInvite() {
 
         console.log('초대 발송 요청:', inviteData);
 
-        // API 호출
-        const response = await authFetch('/api/family/invite', {
-            method: 'POST',
-            body: JSON.stringify(inviteData)
+        // API 호출 - 개선된 방식
+        const response = await apiPost('/api/family/invite', inviteData, {
+            showLoadingToast: true,
+            loadingMessage: '초대를 발송하고 있습니다...',
+            showErrorToast: false, // 커스텀 에러 처리
+            errorPrefix: '초대 발송 실패'
         });
 
         console.log('초대 발송 응답:', response);
 
         if (response.status?.code === 'OK_0000') {
             if (method === 'email') {
-                showToast('이메일이 발송되었습니다.', 'success');
+                showSuccess('이메일이 발송되었습니다.');
             } else if (method === 'sms') {
                 // SMS 앱 연동 처리
-                await handleSmsInvite(inviteData);
+                await handleSmsInvite(response.response, inviteData);
             }
 
             // 모달 닫기
-            bootstrap.Modal.getInstance(document.getElementById('inviteModal')).hide();
+            const modal = bootstrap.Modal.getInstance(document.getElementById('inviteModal'));
+            if (modal) modal.hide();
             resetInviteForm();
 
             // 3초 후 페이지 새로고침
@@ -247,13 +261,33 @@ async function sendInvite() {
             }, 3000);
 
         } else {
-            const errorMessage = response.status?.message || '초대 발송에 실패했습니다.';
-            showToast(errorMessage, 'error');
+            handleError(new Error(response.status?.message || '초대 발송에 실패했습니다.'), {
+                errorPrefix: '초대 발송 실패'
+            });
         }
 
     } catch (error) {
         console.error('초대 발송 실패:', error);
-        showToast('초대 발송 중 오류가 발생했습니다. 다시 시도해주세요.', 'error');
+
+        // 특정 에러 코드별 커스텀 메시지
+        if (error.statusCode === 'ER_FI002') {
+            handleError(error, {
+                customMessage: '자기 자신은 초대할 수 없습니다. 다른 연락처를 입력해주세요.',
+                errorPrefix: '초대 실패'
+            });
+        } else if (error.statusCode === 'ER_FI003') {
+            handleError(error, {
+                customMessage: '이미 가족 구성원으로 등록된 연락처입니다.',
+                errorPrefix: '초대 실패'
+            });
+        } else if (error.statusCode === 'ER_FI004') {
+            handleError(error, {
+                customMessage: '이미 처리되지 않은 초대가 있습니다.',
+                errorPrefix: '초대 실패'
+            });
+        } else {
+            handleError(error, { errorPrefix: '초대 발송 실패' });
+        }
     } finally {
         const btn = document.getElementById('sendInviteBtn');
         btn.disabled = false;
@@ -262,31 +296,85 @@ async function sendInvite() {
 }
 
 /**
- * SMS 초대 처리 - 앱 연동 강화
+ * SMS 초대 처리 - 서버 토큰 활용
  */
-async function handleSmsInvite(inviteData) {
-    console.log('SMS 초대 처리 시작:', inviteData);
+async function handleSmsInvite(responseData, inviteData) {
+    console.log('SMS 초대 처리 시작:', responseData);
 
     try {
-        // SMS 앱 실행 시도
-        const phoneNumber = inviteData.contact;
-        const smsContent = createSmsContent(inviteData);
+        // 서버에서 제공하는 SMS URL 사용
+        if (responseData?.smsUrl) {
+            showSuccess('문자 앱을 실행합니다...');
 
-        await openSmsApp(phoneNumber, smsContent);
+            // SMS 앱 실행
+            await openSmsAppWithUrl(responseData.smsUrl, responseData.shortSmsUrl, responseData);
 
-        showToast('문자 앱이 실행되었습니다. 메시지를 확인하고 전송해 주세요.', 'success');
+            showSuccess('문자 앱이 실행되었습니다. 메시지를 확인하고 전송해 주세요.');
+        } else {
+            // 폴백: 로컬에서 SMS 내용 생성
+            const phoneNumber = inviteData.contact;
+            const smsContent = createSmsContent(inviteData);
+            await openSmsApp(phoneNumber, smsContent);
+        }
 
     } catch (error) {
         console.error('SMS 초대 처리 실패:', error);
+        handleError(error, {
+            customMessage: 'SMS 앱 실행에 실패했습니다. 수동으로 문자를 보내주세요.',
+            errorPrefix: 'SMS 실행 실패'
+        });
         showSmsAlternativeOptions(inviteData);
     }
 }
 
 /**
- * SMS 앱 실행
+ * 서버 제공 SMS URL로 앱 실행
+ */
+async function openSmsAppWithUrl(smsUrl, shortSmsUrl, smsData) {
+    console.log('서버 제공 SMS URL로 앱 실행:', {
+        hasLongUrl: !!smsUrl,
+        hasShortUrl: !!shortSmsUrl,
+        recommendShort: smsData?.recommendShort
+    });
+
+    // 사용할 URL 결정 (길이가 긴 경우 짧은 버전 권장)
+    const urlToUse = (smsData?.recommendShort && shortSmsUrl) ? shortSmsUrl : smsUrl;
+
+    if (!urlToUse) {
+        throw new Error('SMS URL이 제공되지 않았습니다.');
+    }
+
+    try {
+        // SMS 앱 실행
+        const link = document.createElement('a');
+        link.href = urlToUse;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+
+        link.click();
+        document.body.removeChild(link);
+
+        console.log('서버 제공 SMS URL 실행 완료');
+
+        // 추가 확인
+        setTimeout(() => {
+            showSmsConfirmation(smsData?.maskedPhoneNumber || '****', smsData);
+        }, 1000);
+
+    } catch (error) {
+        console.error('서버 제공 SMS URL 실행 실패:', error);
+        throw error;
+    }
+}
+
+/**
+ * SMS 앱 실행 (폴백)
  */
 async function openSmsApp(phoneNumber, message) {
-    console.log('SMS 앱 실행 시도:', { phoneNumber: maskPhoneNumber(phoneNumber), messageLength: message.length });
+    console.log('SMS 앱 실행 시도:', {
+        phoneNumber: maskPhoneNumber(phoneNumber),
+        messageLength: message.length
+    });
 
     // 전화번호 정리 (하이픈 제거)
     const cleanPhoneNumber = phoneNumber.replace(/[^0-9]/g, '');
@@ -306,17 +394,14 @@ async function openSmsApp(phoneNumber, message) {
         link.style.display = 'none';
         document.body.appendChild(link);
 
-        // 사용자 액션으로 실행
         link.click();
-
-        // 정리
         document.body.removeChild(link);
 
         console.log('SMS 앱 실행 완료');
 
-        // 추가 확인 - 실제로 앱이 실행되었는지 확인
+        // 추가 확인
         setTimeout(() => {
-            showSmsConfirmation(phoneNumber, message);
+            showSmsConfirmation(phoneNumber, { message });
         }, 1000);
 
     } catch (error) {
@@ -326,7 +411,7 @@ async function openSmsApp(phoneNumber, message) {
 }
 
 /**
- * SMS 내용 생성
+ * SMS 내용 생성 (폴백용)
  */
 function createSmsContent(inviteData) {
     const appName = '토마토리멤버';
@@ -348,16 +433,21 @@ function createSmsContent(inviteData) {
 /**
  * SMS 전송 확인 다이얼로그
  */
-function showSmsConfirmation(phoneNumber, message) {
+function showSmsConfirmation(phoneNumber, smsData) {
+    const displayNumber = phoneNumber?.includes('*') ? phoneNumber : maskPhoneNumber(phoneNumber);
+
     const confirmed = confirm(
         `문자 앱이 실행되었습니다.\n\n` +
-        `받는 사람: ${maskPhoneNumber(phoneNumber)}\n` +
+        `받는 사람: ${displayNumber}\n` +
         `메시지가 올바르게 입력되었는지 확인하고 전송해 주세요.\n\n` +
         `앱이 실행되지 않았다면 '취소'를 클릭하여 다른 방법을 시도하세요.`
     );
 
     if (!confirmed) {
-        showSmsAlternativeOptions({ contact: phoneNumber, message });
+        showSmsAlternativeOptions({
+            contact: phoneNumber,
+            message: smsData?.message || '메시지 내용을 확인할 수 없습니다.'
+        });
     }
 }
 
@@ -373,7 +463,7 @@ function showSmsAlternativeOptions(inviteData) {
 
     const message = `문자 앱 실행이 실패했습니다.\n\n다음 방법을 시도해 보세요:\n\n${alternatives.join('\n')}`;
 
-    showToast(message, 'warning', 8000);
+    showWarning(message);
 
     // 수동 복사 옵션 제공
     showManualSmsOption(inviteData);
@@ -383,12 +473,12 @@ function showSmsAlternativeOptions(inviteData) {
  * 수동 SMS 옵션 제공
  */
 function showManualSmsOption(inviteData) {
-    const message = createSmsContent(inviteData);
+    const message = inviteData.message || createSmsContent(inviteData);
 
     // 클립보드 복사 시도
     if (navigator.clipboard) {
         navigator.clipboard.writeText(message).then(() => {
-            showToast('메시지가 클립보드에 복사되었습니다. 문자 앱에서 붙여넣기 해주세요.', 'info');
+            showInfo('메시지가 클립보드에 복사되었습니다. 문자 앱에서 붙여넣기 해주세요.');
         }).catch(err => {
             console.error('클립보드 복사 실패:', err);
             showManualCopyDialog(message);
@@ -413,7 +503,7 @@ function showManualCopyDialog(message) {
                 </div>
                 <div class="modal-body">
                     <p>아래 메시지를 복사하여 문자 앱에서 사용하세요:</p>
-                    <textarea class="form-control" rows="6" readonly>${message}</textarea>
+                    <textarea class="form-control" rows="6" readonly>${escapeHtml(message)}</textarea>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
@@ -432,6 +522,15 @@ function showManualCopyDialog(message) {
     modal.addEventListener('hidden.bs.modal', () => {
         document.body.removeChild(modal);
     });
+}
+
+/**
+ * HTML 이스케이프
+ */
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 /**
@@ -459,7 +558,7 @@ async function copyToClipboard(text) {
     try {
         if (navigator.clipboard && window.isSecureContext) {
             await navigator.clipboard.writeText(text);
-            showToast('클립보드에 복사되었습니다.', 'success');
+            showSuccess('클립보드에 복사되었습니다.');
             return true;
         } else {
             // 폴백 방법
@@ -476,15 +575,15 @@ async function copyToClipboard(text) {
             textArea.remove();
 
             if (result) {
-                showToast('클립보드에 복사되었습니다.', 'success');
+                showSuccess('클립보드에 복사되었습니다.');
             } else {
-                showToast('클립보드 복사에 실패했습니다.', 'error');
+                handleError(new Error('클립보드 복사에 실패했습니다.'));
             }
             return result;
         }
     } catch (error) {
         console.error('클립보드 복사 실패:', error);
-        showToast('클립보드 복사에 실패했습니다.', 'error');
+        handleError(error, { customMessage: '클립보드 복사에 실패했습니다.' });
         return false;
     }
 }
@@ -504,12 +603,12 @@ function openPermissionModal(memberId) {
     const member = pageState.familyMembers.find(m => m.id == memberId);
 
     if (!member) {
-        showToast('구성원 정보를 찾을 수 없습니다.', 'error');
+        handleError(new Error('구성원 정보를 찾을 수 없습니다.'));
         return;
     }
 
     if (member.relationship === 'SELF') {
-        showToast('소유자는 권한 설정이 불가능합니다.', 'info');
+        showInfo('소유자는 권한 설정이 불가능합니다.');
         return;
     }
 
@@ -533,17 +632,17 @@ function openPermissionModal(memberId) {
 }
 
 /**
- * 권한 저장
+ * 권한 저장 - 개선된 에러 처리
  */
 async function savePermissions() {
     const member = getCurrentMember();
     if (!member) {
-        showToast('구성원 정보를 찾을 수 없습니다.', 'error');
+        handleError(new Error('구성원 정보를 찾을 수 없습니다.'));
         return;
     }
 
     if (!pageState.selectedMemorialId) {
-        showToast('선택된 메모리얼이 없습니다.', 'error');
+        handleError(new Error('선택된 메모리얼이 없습니다.'));
         return;
     }
 
@@ -556,24 +655,30 @@ async function savePermissions() {
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 저장 중...';
 
-        const response = await authFetch(`/api/family/memorials/${pageState.selectedMemorialId}/members/${member.member.id}/permissions`, {
-            method: 'PUT',
-            body: JSON.stringify({
+        const response = await apiPut(
+            `/api/family/memorials/${pageState.selectedMemorialId}/members/${member.member.id}/permissions`,
+            {
                 memorialAccess: memorialAccess,
                 videoCallAccess: videoCallAccess
-            })
-        });
+            },
+            {
+                showLoadingToast: true,
+                loadingMessage: '권한을 저장하고 있습니다...',
+                showSuccessToast: true,
+                successMessage: '권한이 성공적으로 저장되었습니다.',
+                errorPrefix: '권한 저장 실패'
+            }
+        );
 
         if (response.status?.code === 'OK_0000') {
-            showToast('권한이 성공적으로 저장되었습니다.', 'success');
-            bootstrap.Modal.getInstance(document.getElementById('permissionModal')).hide();
+            const modal = bootstrap.Modal.getInstance(document.getElementById('permissionModal'));
+            if (modal) modal.hide();
             setTimeout(() => window.location.reload(), 1000);
-        } else {
-            throw new Error(response.status?.message || '권한 저장에 실패했습니다.');
         }
+
     } catch (error) {
         console.error('권한 저장 실패:', error);
-        showToast('권한 저장 중 오류가 발생했습니다.', 'error');
+        // 에러는 이미 apiPut에서 처리됨
     } finally {
         const btn = document.getElementById('savePermissionBtn');
         btn.disabled = false;
@@ -607,76 +712,75 @@ function openMemberMenuModal(memberId, realMemberId, memberName) {
 }
 
 /**
- * 초대 링크 복사
+ * 초대 링크 복사 - 개선된 에러 처리
  */
 async function copyInviteLink() {
     if (!pageState.currentRealMemberId || !pageState.selectedMemorialId) {
-        showToast('구성원 정보가 없습니다.', 'error');
+        handleError(new Error('구성원 정보가 없습니다.'));
         return;
     }
 
     try {
-        showLoading('초대 링크를 생성하고 있습니다...');
-
-        const response = await authFetch(`/api/family/memorials/${pageState.selectedMemorialId}/members/${pageState.currentRealMemberId}/invite-link`, {
-            method: 'GET'
-        });
+        const response = await apiGet(
+            `/api/family/memorials/${pageState.selectedMemorialId}/members/${pageState.currentRealMemberId}/invite-link`,
+            {
+                showLoadingToast: true,
+                loadingMessage: '초대 링크를 생성하고 있습니다...',
+                errorPrefix: '초대 링크 생성 실패'
+            }
+        );
 
         if (response.status?.code === 'OK_0000' && response.data?.inviteLink) {
             await copyToClipboard(response.data.inviteLink);
-            showToast('초대 링크가 클립보드에 복사되었습니다.', 'success');
-            bootstrap.Modal.getInstance(document.getElementById('memberMenuModal')).hide();
+            const modal = bootstrap.Modal.getInstance(document.getElementById('memberMenuModal'));
+            if (modal) modal.hide();
         } else {
             throw new Error(response.status?.message || '초대 링크 생성에 실패했습니다.');
         }
     } catch (error) {
         console.error('초대 링크 복사 실패:', error);
-        showToast('초대 링크 복사 중 오류가 발생했습니다.', 'error');
-    } finally {
-        hideLoading();
+        // 에러는 이미 apiGet에서 처리됨
     }
 }
 
 /**
- * 구성원 제거
+ * 구성원 제거 - 개선된 에러 처리
  */
 async function removeMember() {
     const member = pageState.familyMembers.find(m => m.id == pageState.currentMemberId);
     if (!member) {
-        showToast('구성원 정보를 찾을 수 없습니다.', 'error');
+        handleError(new Error('구성원 정보를 찾을 수 없습니다.'));
         return;
     }
 
     const memberName = member.member?.name || '알 수 없음';
 
-    const confirmed = await showConfirm(
-        '구성원 제거',
-        `${memberName}님을 가족 구성원에서 제거하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`,
-        '제거',
-        '취소'
+    const confirmed = confirm(
+        `${memberName}님을 가족 구성원에서 제거하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`
     );
 
     if (!confirmed) return;
 
     try {
-        showLoading('구성원을 제거하고 있습니다...');
-
-        const response = await authFetch(`/api/family/memorials/${pageState.selectedMemorialId}/members/${pageState.currentRealMemberId}`, {
-            method: 'DELETE'
-        });
+        const response = await apiDelete(
+            `/api/family/memorials/${pageState.selectedMemorialId}/members/${pageState.currentRealMemberId}`,
+            {
+                showLoadingToast: true,
+                loadingMessage: '구성원을 제거하고 있습니다...',
+                showSuccessToast: true,
+                successMessage: `${memberName}님이 가족 구성원에서 제거되었습니다.`,
+                errorPrefix: '구성원 제거 실패'
+            }
+        );
 
         if (response.status?.code === 'OK_0000') {
-            showToast(`${memberName}님이 가족 구성원에서 제거되었습니다.`, 'success');
-            bootstrap.Modal.getInstance(document.getElementById('memberMenuModal')).hide();
+            const modal = bootstrap.Modal.getInstance(document.getElementById('memberMenuModal'));
+            if (modal) modal.hide();
             setTimeout(() => window.location.reload(), 1000);
-        } else {
-            throw new Error(response.status?.message || '구성원 제거에 실패했습니다.');
         }
     } catch (error) {
         console.error('구성원 제거 실패:', error);
-        showToast('구성원 제거 중 오류가 발생했습니다.', 'error');
-    } finally {
-        hideLoading();
+        // 에러는 이미 apiDelete에서 처리됨
     }
 }
 
@@ -702,7 +806,7 @@ function bindEvents() {
     const refreshBtn = document.getElementById('refreshBtn');
     if (refreshBtn) {
         refreshBtn.addEventListener('click', () => {
-            showLoading('새로고침 중...');
+            showInfo('새로고침 중...');
             setTimeout(() => window.location.reload(), 500);
         });
     }
@@ -800,7 +904,7 @@ function bindEvents() {
  */
 function openInviteModal() {
     if (!pageState.selectedMemorialId) {
-        showToast('선택된 메모리얼이 없습니다.', 'warning');
+        showWarning('선택된 메모리얼이 없습니다.');
         return;
     }
 
@@ -812,14 +916,21 @@ function openInviteModal() {
  * 초대 폼 리셋
  */
 function resetInviteForm() {
-    document.getElementById('inviteForm').reset();
-    document.getElementById('emailMethodGroup').classList.add('active');
-    document.getElementById('smsMethodGroup').classList.remove('active');
-    document.getElementById('emailGroup').style.display = 'block';
-    document.getElementById('phoneGroup').style.display = 'none';
+    const form = document.getElementById('inviteForm');
+    if (form) form.reset();
+
+    const emailMethodGroup = document.getElementById('emailMethodGroup');
+    const smsMethodGroup = document.getElementById('smsMethodGroup');
+    const emailGroup = document.getElementById('emailGroup');
+    const phoneGroup = document.getElementById('phoneGroup');
+
+    if (emailMethodGroup) emailMethodGroup.classList.add('active');
+    if (smsMethodGroup) smsMethodGroup.classList.remove('active');
+    if (emailGroup) emailGroup.style.display = 'block';
+    if (phoneGroup) phoneGroup.style.display = 'none';
 }
 
-// 전역 함수 등록
+// 전역 함수 등록 (기존 호환성 유지)
 window.openPermissionModal = openPermissionModal;
 window.savePermissions = savePermissions;
 window.copyToClipboard = copyToClipboard;

@@ -448,7 +448,7 @@ async function handleRetryClick(e) {
  * ===== 영상통화 가능 여부 확인 =====
  */
 async function checkVideoCallAvailability(memorial) {
-  console.log('🔍 영상통화 가능 여부 확인:', memorial);
+  console.log('영상통화 가능 여부 확인:', memorial);
 
   try {
     // 1. 프로필 이미지 확인
@@ -630,7 +630,7 @@ window.mainPageManager = {
   },
   // 디버깅용 함수
   debugFab: () => {
-    console.log('🔍 FAB 디버그 정보:', {
+    console.log('FAB 디버그 정보:', {
       experienceFab: {
         element: !!experienceFabState.fab,
         id: experienceFabState.fab?.id,

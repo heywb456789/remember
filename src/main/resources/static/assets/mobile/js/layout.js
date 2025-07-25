@@ -239,7 +239,7 @@ function adjustContentLayout(deviceType) {
  * 핵심 DOM 요소 찾기
  */
 function findLayoutElements() {
-  console.log('🔍 핵심 DOM 요소 찾기');
+  console.log('핵심 DOM 요소 찾기');
 
   if (layoutState.currentDevice !== 'desktop') {
     layoutState.menuElement = document.getElementById('mobileMenu');

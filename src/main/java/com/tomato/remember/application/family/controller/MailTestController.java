@@ -82,13 +82,6 @@ public class MailTestController {
         Map<String, Object> result = new HashMap<>();
         
         try {
-            // 이메일 주소 유효성 검사
-            if (!emailService.canSendEmail(to)) {
-                result.put("status", "error");
-                result.put("message", "유효하지 않은 이메일 주소입니다.");
-                return ResponseDTO.ok(result);
-            }
-            
             // 테스트 이메일 발송
             emailService.sendTestEmail(to);
             

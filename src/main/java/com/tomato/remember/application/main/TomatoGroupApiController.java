@@ -161,7 +161,7 @@ public class TomatoGroupApiController {
             // 문자 코드 분석
             if (jsonString.length() > 0) {
                 char firstChar = jsonString.charAt(0);
-                log.error("🔍 첫 번째 문자 분석: '{}' (Unicode: U+{:04X})",
+                log.error("첫 번째 문자 분석: '{}' (Unicode: U+{:04X})",
                     firstChar, (int) firstChar);
             }
 

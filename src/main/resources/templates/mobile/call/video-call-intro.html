@@ -356,7 +356,7 @@
 
         const isLoggedIn = !!(accessToken && refreshToken) || hasTokenCookie || isLoggedInFromConfig;
 
-        console.log('🔍 로그인 상태 확인:', {
+        console.log('로그인 상태 확인:', {
             hasTokens: !!(accessToken && refreshToken),
             hasTokenCookie: hasTokenCookie,
             configLoggedIn: isLoggedInFromConfig,

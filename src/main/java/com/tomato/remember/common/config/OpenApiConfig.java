@@ -288,14 +288,14 @@ public class OpenApiConfig {
     }
 
     /**
-     * 🔍 전체 API 그룹 (개발용)
+     * 전체 API 그룹 (개발용)
      */
     @Bean
     @Profile({"local", "dev"})
     public GroupedOpenApi allApi() {
         return GroupedOpenApi.builder()
             .group("99-all")
-            .displayName("🔍 All APIs (개발용)")
+            .displayName("All APIs (개발용)")
             .pathsToMatch("/**")
             .pathsToExclude("/error", "/actuator/**")
             .build();

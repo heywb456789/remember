@@ -439,7 +439,7 @@ public class MemorialVideoWebSocketHandler extends TextWebSocketHandler {
      * 세션 접근 권한 검증 (초상세 디버깅 버전)
      */
     private boolean validateSessionAccess(String sessionKey, Long memberId) {
-        log.info("🔍 validateSessionAccess 시작 - sessionKey: {}, memberId: {}", sessionKey, memberId);
+        log.info("validateSessionAccess 시작 - sessionKey: {}, memberId: {}", sessionKey, memberId);
 
         try {
             // 1. 기본 파라미터 검증

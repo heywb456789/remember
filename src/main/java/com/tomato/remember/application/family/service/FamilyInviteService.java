@@ -1,6 +1,6 @@
 package com.tomato.remember.application.family.service;
 
-import com.tomato.remember.application.family.dto.FamilyInviteRequest;
+import com.tomato.remember.application.family.dto.*;
 import com.tomato.remember.application.family.entity.FamilyInviteToken;
 import com.tomato.remember.application.family.entity.FamilyMember;
 import com.tomato.remember.application.family.repository.FamilyInviteTokenRepository;
@@ -8,19 +8,22 @@ import com.tomato.remember.application.family.repository.FamilyMemberRepository;
 import com.tomato.remember.application.member.entity.Member;
 import com.tomato.remember.application.memorial.entity.Memorial;
 import com.tomato.remember.application.memorial.repository.MemorialRepository;
+import com.tomato.remember.common.code.ResponseStatus;
+import com.tomato.remember.common.exception.APIException;
+import com.tomato.remember.common.util.StringUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 /**
- * 가족 초대 처리 서비스 - 트랜잭션 처리 개선 버전
+ * 가족 초대 처리 서비스 - 완전한 최종 리팩터링 버전
+ * ResponseStatus 기반 일관된 예외 처리 + StringUtil + 기존 서비스 완전 호환
  */
 @Slf4j
 @Service
@@ -34,305 +37,190 @@ public class FamilyInviteService {
     private final SmsService smsService;
 
     /**
-     * 가족 구성원 초대 발송 - 트랜잭션 처리 개선
+     * 가족 구성원 초대 발송
      */
     @Transactional
-    public Map<String, Object> sendFamilyInvite(Member inviter, FamilyInviteRequest request) {
+    public FamilyInviteResponse sendFamilyInvite(Member inviter, FamilyInviteRequest request) {
         log.info("가족 구성원 초대 발송 시작 - 초대자: {}, 메모리얼: {}, 연락처: {}",
-                inviter.getId(), request.getMemorialId(), maskContact(request.getContact()));
+                inviter.getId(), request.getMemorialId(), StringUtil.maskContact(request.getContact()));
 
-        try {
-            // 1. 메모리얼 조회 및 권한 확인
-            Memorial memorial = validateMemorialAccess(inviter, request.getMemorialId());
+        // 1. 메모리얼 조회 및 권한 확인
+        Memorial memorial = validateMemorialAccess(inviter, request.getMemorialId());
 
-            // 2. 연락처 유효성 검사
-            validateContact(request.getMethod(), request.getContact());
+        // 2. 연락처 유효성 검사
+        validateContact(request.getMethod(), request.getContact());
 
-            // 3. 자기 자신 초대 방지
-            if (isSelfInvite(inviter, request.getContact())) {
-                log.warn("자기 자신 초대 시도 차단 - 초대자: {}, 연락처: {}",
-                        inviter.getId(), maskContact(request.getContact()));
-                throw new IllegalArgumentException("자기 자신을 초대할 수 없습니다.");
-            }
+        // 3. 자기 자신 초대 방지
+        validateNotSelfInvite(inviter, request.getContact());
 
-            // 4. 이미 가족 구성원인지 확인
-            checkExistingFamilyMember(memorial, request.getContact());
+        // 4. 이미 가족 구성원인지 확인
+        validateNotExistingFamilyMember(memorial, request.getContact());
 
-            // 5. 기존 유효한 토큰 확인 및 처리
-            FamilyInviteToken inviteToken = handleExistingOrCreateNewToken(memorial, inviter, request);
+        // 5. 기존 유효한 토큰 확인 및 처리
+        FamilyInviteToken inviteToken = handleExistingOrCreateNewToken(memorial, inviter, request);
 
-            // 6. 초대 발송 처리 (실패 시 토큰 삭제)
-            Map<String, Object> result = processInviteSendingWithCleanup(inviteToken);
+        // 6. 초대 발송 처리
+        FamilyInviteResponse result = processInviteSending(inviteToken, request);
 
-            log.info("가족 구성원 초대 발송 완료 - 토큰: {}, 메모리얼: {}, 연락처: {}",
-                    inviteToken.getToken().substring(0, 8) + "...",
-                    memorial.getId(),
-                    maskContact(request.getContact()));
+        log.info("가족 구성원 초대 발송 완료 - 토큰: {}, 메모리얼: {}, 연락처: {}",
+                StringUtil.maskToken(inviteToken.getToken()),
+                memorial.getId(),
+                StringUtil.maskContact(request.getContact()));
 
-            return result;
-
-        } catch (Exception e) {
-            log.error("가족 구성원 초대 발송 실패 - 초대자: {}, 메모리얼: {}",
-                    inviter.getId(), request.getMemorialId(), e);
-            throw e;
-        }
+        return result;
     }
 
     /**
-     * 기존 토큰 처리 또는 새 토큰 생성
+     * 초대 토큰으로 초대 수락 처리
      */
-    private FamilyInviteToken handleExistingOrCreateNewToken(Memorial memorial, Member inviter, FamilyInviteRequest request) {
-        String contact = request.getContact();
+    @Transactional
+    public InviteProcessResponse processInviteByToken(String token, Member acceptingMember) {
+        log.info("초대 토큰 처리 시작 - 토큰: {}, 수락자: {}",
+                StringUtil.maskToken(token), acceptingMember.getId());
 
-        log.info("기존 토큰 확인 - 메모리얼: {}, 연락처: {}",
-                memorial.getId(), maskContact(contact));
+        // 1. 토큰 유효성 검증
+        FamilyInviteToken inviteToken = validateAndGetToken(token);
 
-        // 1. 현재 유효한 (PENDING + 만료되지 않은) 토큰 조회
-        List<FamilyInviteToken> pendingTokens = inviteTokenRepository
-                .findPendingTokensByMemorialAndContact(memorial, contact, LocalDateTime.now());
+        // 2. 자기 자신 초대 방지 검사
+        validateNotSelfAcceptance(inviteToken, acceptingMember);
 
-        if (!pendingTokens.isEmpty()) {
-            // 기존 유효한 토큰이 있으면 재사용
-            FamilyInviteToken existingToken = pendingTokens.get(0);
+        // 3. 중복 가족 구성원 확인
+        validateNotDuplicateMember(inviteToken.getMemorial(), acceptingMember);
 
-            log.info("기존 유효한 초대 토큰 재사용 - 토큰: {}, 생성일: {}, 만료일: {}",
-                    existingToken.getToken().substring(0, 8) + "...",
-                    existingToken.getCreatedAt(),
-                    existingToken.getExpiresAt());
+        // 4. 초대 수락 처리
+        inviteToken.accept(acceptingMember);
+        inviteTokenRepository.save(inviteToken);
 
-            // 메시지 업데이트 (새로운 메시지로 덮어쓰기)
-            if (request.getMessage() != null && !request.getMessage().trim().isEmpty()) {
-                existingToken.updateInviteMessage(request.getMessage());
-                inviteTokenRepository.save(existingToken);
-                log.info("초대 메시지 업데이트 완료 - 토큰: {}", existingToken.getToken().substring(0, 8) + "...");
-            }
+        // 5. 가족 구성원 등록
+        FamilyMember familyMember = createFamilyMemberFromToken(inviteToken, acceptingMember);
+        familyMemberRepository.save(familyMember);
 
-            return existingToken;
-        }
+        log.info("초대 토큰 처리 완료 - 토큰: {}, 수락자: {}, 메모리얼: {}",
+                StringUtil.maskToken(token),
+                acceptingMember.getId(),
+                inviteToken.getMemorial().getId());
 
-        // 2. 만료된 토큰이나 실패한 토큰 정리
-        cleanupOldTokens(memorial, contact);
-
-        // 3. 새로운 토큰 생성 (아직 DB에 저장하지 않음)
-        FamilyInviteToken newToken = FamilyInviteToken.createInviteToken(
-                memorial,
-                inviter,
-                request.getRelationship(),
-                request.getMethod(),
-                contact,
-                request.getMessage()
-        );
-
-        log.info("새로운 초대 토큰 생성 준비 - 토큰: {}, 만료일: {}",
-                newToken.getToken().substring(0, 8) + "...",
-                newToken.getExpiresAt());
-
-        return newToken;
+        return InviteProcessResponse.builder()
+            .memorialName(inviteToken.getMemorialName())
+            .inviterName(inviteToken.getInviterName())
+            .relationshipDisplayName(inviteToken.getRelationshipDisplayName())
+            .timestamp(System.currentTimeMillis())
+            .build();
     }
 
     /**
-     * 초대 발송 처리 (실패 시 토큰 정리)
+     * SMS 앱 연동 데이터 조회
      */
-    private Map<String, Object> processInviteSendingWithCleanup(FamilyInviteToken inviteToken) {
-        try {
-            // 1. 먼저 발송 테스트 (실제 발송 전 검증)
-            if (inviteToken.isEmailMethod()) {
-                validateEmailSending(inviteToken);
-            } else if (inviteToken.isSmsMethod()) {
-                validateSmsSending(inviteToken);
-            }
+    public SmsAppDataResponse getSmsAppData(String token) {
+        log.info("SMS 앱 연동 데이터 조회 - 토큰: {}", StringUtil.maskToken(token));
 
-            // 2. 검증 통과 시 토큰 DB 저장
-            FamilyInviteToken savedToken = inviteTokenRepository.save(inviteToken);
-            log.info("초대 토큰 DB 저장 완료 - 토큰: {}", savedToken.getToken().substring(0, 8) + "...");
+        // 토큰 조회
+        FamilyInviteToken inviteToken = inviteTokenRepository.findByToken(token)
+                .orElseThrow(() -> new APIException(ResponseStatus.FAMILY_INVITE_TOKEN_INVALID));
 
-            // 3. 실제 발송 처리
-            Map<String, Object> result = processInviteSending(savedToken);
-
-            log.info("초대 발송 성공 - 토큰: {}, 방법: {}",
-                    savedToken.getToken().substring(0, 8) + "...", savedToken.getMethod());
-
-            return result;
-
-        } catch (Exception e) {
-            log.error("초대 발송 실패 - 토큰: {}, 방법: {}",
-                    inviteToken.getToken().substring(0, 8) + "...", inviteToken.getMethod(), e);
-
-            // 실패 시 토큰이 이미 저장되어 있다면 삭제
-            try {
-                if (inviteToken.getId() != null) {
-                    inviteTokenRepository.delete(inviteToken);
-                    log.info("실패한 초대 토큰 삭제 완료 - 토큰: {}", inviteToken.getToken().substring(0, 8) + "...");
-                }
-            } catch (Exception deleteError) {
-                log.error("실패한 토큰 삭제 중 오류 - 토큰: {}", inviteToken.getToken().substring(0, 8) + "...", deleteError);
-            }
-
-            throw e;
+        // SMS 방식 확인
+        if (!inviteToken.isSmsMethod()) {
+            throw new APIException(ResponseStatus.FAMILY_INVITE_NOT_SMS_METHOD);
         }
+
+        // SMS 데이터 생성 (기존 SmsService 메서드 활용)
+        return smsService.createSmsAppDataResponse(inviteToken);
     }
 
     /**
-     * 이메일 발송 검증
+     * SMS 앱 실행 URL 생성
      */
-    private void validateEmailSending(FamilyInviteToken inviteToken) {
-        if (!emailService.canSendEmail(inviteToken.getContact())) {
-            throw new IllegalArgumentException("이메일 발송이 불가능한 주소입니다.");
+    public String createSmsAppUrl(String token) {
+        log.info("SMS 앱 실행 URL 생성 - 토큰: {}", StringUtil.maskToken(token));
+
+        // 토큰 조회
+        FamilyInviteToken inviteToken = inviteTokenRepository.findByToken(token)
+                .orElseThrow(() -> new APIException(ResponseStatus.FAMILY_INVITE_TOKEN_INVALID));
+
+        // SMS 방식 확인
+        if (!inviteToken.isSmsMethod()) {
+            throw new APIException(ResponseStatus.FAMILY_INVITE_NOT_SMS_METHOD);
         }
+
+        return smsService.createSmsAppUrl(inviteToken);
     }
 
     /**
-     * SMS 발송 검증
+     * 초대 토큰 유효성 확인
      */
-    private void validateSmsSending(FamilyInviteToken inviteToken) {
-        if (!smsService.isValidPhoneNumber(inviteToken.getContact())) {
-            throw new IllegalArgumentException("SMS 발송이 불가능한 전화번호입니다.");
+    public TokenValidationResponse validateToken(String token) {
+        log.info("초대 토큰 유효성 확인 - 토큰: {}", StringUtil.maskToken(token));
+
+        Optional<FamilyInviteToken> tokenOpt = inviteTokenRepository.findByToken(token);
+
+        if (tokenOpt.isEmpty()) {
+            return TokenValidationResponse.builder()
+                    .valid(false)
+                    .expired(false)
+                    .status("NOT_FOUND")
+                    .remainingHours(0L)
+                    .expiresAt("알 수 없음")
+                    .build();
         }
+
+        FamilyInviteToken inviteToken = tokenOpt.get();
+        boolean isValid = inviteToken.isUsable();
+        boolean isExpired = inviteToken.isExpired();
+
+        return TokenValidationResponse.builder()
+                .valid(isValid)
+                .expired(isExpired)
+                .status(inviteToken.getStatus().name())
+                .remainingHours(inviteToken.getRemainingHours())
+                .expiresAt(inviteToken.getExpiresAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")))
+                .build();
     }
 
     /**
-     * 초대 발송 처리
+     * SMS 테스트 데이터 생성
      */
-    private Map<String, Object> processInviteSending(FamilyInviteToken inviteToken) {
-        if (inviteToken.isEmailMethod()) {
-            return processEmailInvite(inviteToken);
-        } else if (inviteToken.isSmsMethod()) {
-            return processSmsInvite(inviteToken);
-        } else {
-            throw new IllegalArgumentException("지원하지 않는 초대 방법입니다.");
+    public SmsTestResponse createSmsTestData(String phoneNumber, String message) {
+        log.info("SMS 테스트 데이터 생성 - 전화번호: {}", StringUtil.maskContact(phoneNumber));
+
+        // 전화번호 유효성 검사
+        if (!smsService.isValidPhoneNumber(phoneNumber)) {
+            throw new APIException(ResponseStatus.FAMILY_INVITE_PHONE_INVALID);
         }
+
+        // 기본 테스트 메시지
+        String testMessage = StringUtil.isNotEmpty(message) ? message : "[토마토리멤버] 테스트 메시지입니다.";
+
+        // SMS URL 생성
+        String smsUrl = smsService.createTestSmsUrl(phoneNumber, testMessage);
+
+        // 길이 정보 생성
+        var lengthInfo = smsService.getTextLengthInfo(testMessage);
+
+        return SmsTestResponse.builder()
+                .maskedPhoneNumber(StringUtil.maskContact(phoneNumber))
+                .smsUrl(smsUrl)
+                .testMessage(testMessage)
+                .messageLength(testMessage.length())
+                .lengthInfo(SmsAppDataResponse.TextLengthInfo.builder()
+                        .length((Integer) lengthInfo.get("length"))
+                        .isTooLong((Boolean) lengthInfo.get("isTooLong"))
+                        .maxLength((Integer) lengthInfo.get("maxLength"))
+                        .remaining((Integer) lengthInfo.get("remaining"))
+                        .build())
+                .build();
     }
 
-    /**
-     * 이메일 초대 처리
-     */
-    private Map<String, Object> processEmailInvite(FamilyInviteToken inviteToken) {
-        Map<String, Object> result = new HashMap<>();
-
-        try {
-            emailService.sendFamilyInviteEmail(inviteToken);
-
-            result.put("success", true);
-            result.put("message", "이메일로 초대 링크가 발송되었습니다.");
-            result.put("method", "email");
-            result.put("contact", inviteToken.getMaskedContact());
-
-            return result;
-
-        } catch (Exception e) {
-            log.error("이메일 초대 발송 실패 - 토큰: {}",
-                    inviteToken.getToken().substring(0, 8) + "...", e);
-            throw new RuntimeException("이메일 발송에 실패했습니다: " + e.getMessage());
-        }
-    }
-
-    /**
-     * SMS 초대 처리
-     */
-    private Map<String, Object> processSmsInvite(FamilyInviteToken inviteToken) {
-        Map<String, Object> result = new HashMap<>();
-
-        try {
-            // SMS 앱 연동 데이터 생성
-            Map<String, Object> smsData = smsService.createSmsAppData(inviteToken);
-
-            result.put("success", true);
-            result.put("message", "SMS 초대 준비가 완료되었습니다.");
-            result.put("method", "sms");
-            result.put("contact", inviteToken.getMaskedContact());
-            result.put("token", inviteToken.getToken());
-
-            // SMS 앱 연동 정보 추가
-            result.put("smsData", smsData);
-            result.put("smsUrl", smsData.get("smsUrl"));
-            result.put("shortSmsUrl", smsData.get("shortSmsUrl"));
-            result.put("messageLength", smsData.get("messageLength"));
-            result.put("recommendShort", smsData.get("recommendShort"));
-
-            log.info("SMS 초대 데이터 생성 완료 - 토큰: {}, 메시지 길이: {}자",
-                    inviteToken.getToken().substring(0, 8) + "...",
-                    smsData.get("messageLength"));
-
-            return result;
-
-        } catch (Exception e) {
-            log.error("SMS 초대 데이터 생성 실패 - 토큰: {}",
-                    inviteToken.getToken().substring(0, 8) + "...", e);
-            throw new RuntimeException("SMS 초대 데이터 생성에 실패했습니다: " + e.getMessage());
-        }
-    }
-
-    /**
-     * 오래된 토큰 정리
-     */
-    private void cleanupOldTokens(Memorial memorial, String contact) {
-        try {
-            List<FamilyInviteToken> oldTokens = inviteTokenRepository
-                    .findByMemorialAndContactOrderByCreatedAtDesc(memorial, contact);
-
-            int cleanupCount = 0;
-            for (FamilyInviteToken token : oldTokens) {
-                if (token.getStatus().name().equals("PENDING") && token.isExpired()) {
-                    token.expire();
-                    cleanupCount++;
-                } else if (token.getStatus().name().equals("REJECTED") || token.getStatus().name().equals("CANCELLED")) {
-                    // 거절되거나 취소된 토큰은 그대로 유지 (히스토리용)
-                    continue;
-                }
-            }
-
-            if (cleanupCount > 0) {
-                inviteTokenRepository.saveAll(oldTokens);
-                log.info("오래된 토큰 정리 완료 - 메모리얼: {}, 연락처: {}, 정리된 토큰: {}개",
-                        memorial.getId(), maskContact(contact), cleanupCount);
-            }
-
-        } catch (Exception e) {
-            log.error("오래된 토큰 정리 실패 - 메모리얼: {}, 연락처: {}",
-                    memorial.getId(), maskContact(contact), e);
-        }
-    }
-
-    /**
-     * 이미 가족 구성원인지 확인
-     */
-    private void checkExistingFamilyMember(Memorial memorial, String contact) {
-        log.debug("기존 가족 구성원 확인 - 메모리얼: {}, 연락처: {}",
-                memorial.getId(), maskContact(contact));
-
-        // 이메일 또는 전화번호로 기존 가족 구성원 확인
-        List<FamilyMember> existingMembers = familyMemberRepository.findByContact(contact, contact);
-
-        // 같은 메모리얼의 가족 구성원인지 확인
-        Optional<FamilyMember> existingMember = existingMembers.stream()
-                .filter(fm -> fm.getMemorial().getId().equals(memorial.getId()))
-                .findFirst();
-
-        if (existingMember.isPresent()) {
-            FamilyMember member = existingMember.get();
-            String memberName = member.getMemberName();
-            String statusName = member.getInviteStatusDisplayName();
-
-            log.warn("이미 가족 구성원으로 등록된 연락처 - 메모리얼: {}, 연락처: {}, 구성원: {}, 상태: {}",
-                    memorial.getId(), maskContact(contact), memberName, statusName);
-
-            throw new IllegalArgumentException(
-                    String.format("'%s'님은 이미 가족 구성원으로 등록되어 있습니다. (상태: %s)",
-                            memberName, statusName));
-        }
-    }
-
-    // ... 기존 헬퍼 메서드들 유지
+    // ===== 검증 메서드들 =====
 
     /**
      * 메모리얼 접근 권한 검증
      */
     private Memorial validateMemorialAccess(Member inviter, Long memorialId) {
         Memorial memorial = memorialRepository.findByIdAndOwner(memorialId, inviter)
-                .orElseThrow(() -> new IllegalArgumentException("메모리얼을 찾을 수 없거나 접근 권한이 없습니다."));
+                .orElseThrow(() -> new APIException(ResponseStatus.MEMORIAL_ACCESS_DENIED));
 
         if (!memorial.isActive()) {
-            throw new IllegalArgumentException("비활성화된 메모리얼입니다.");
+            throw new APIException(ResponseStatus.MEMORIAL_STATUS_INVALID);
         }
 
         return memorial;
@@ -343,17 +231,209 @@ public class FamilyInviteService {
      */
     private void validateContact(String method, String contact) {
         if ("email".equals(method)) {
-            if (!emailService.canSendEmail(contact)) {
-                throw new IllegalArgumentException("유효하지 않은 이메일 주소입니다.");
+            if (!emailService.isValidEmail(contact)) {
+                throw new APIException(ResponseStatus.FAMILY_INVITE_EMAIL_INVALID);
             }
         } else if ("sms".equals(method)) {
             if (!smsService.isValidPhoneNumber(contact)) {
-                throw new IllegalArgumentException("유효하지 않은 전화번호입니다.");
+                throw new APIException(ResponseStatus.FAMILY_INVITE_PHONE_INVALID);
             }
         } else {
-            throw new IllegalArgumentException("지원하지 않는 초대 방법입니다.");
+            throw new APIException(ResponseStatus.FAMILY_INVITE_METHOD_NOT_SUPPORTED);
         }
     }
+
+    /**
+     * 자기 자신 초대 방지
+     */
+    private void validateNotSelfInvite(Member inviter, String contact) {
+        if (isSelfInvite(inviter, contact)) {
+            throw new APIException(ResponseStatus.FAMILY_INVITE_SELF_INVITE);
+        }
+    }
+
+    /**
+     * 기존 가족 구성원 확인
+     */
+    private void validateNotExistingFamilyMember(Memorial memorial, String contact) {
+        List<FamilyMember> existingMembers = familyMemberRepository.findByContact(contact, contact);
+
+        boolean isExistingMember = existingMembers.stream()
+                .anyMatch(fm -> fm.getMemorial().getId().equals(memorial.getId()));
+
+        if (isExistingMember) {
+            throw new APIException(ResponseStatus.FAMILY_INVITE_ALREADY_MEMBER);
+        }
+    }
+
+    /**
+     * 토큰 유효성 검증 및 조회
+     */
+    private FamilyInviteToken validateAndGetToken(String token) {
+        Optional<FamilyInviteToken> tokenOpt = inviteTokenRepository.findUsableToken(token, LocalDateTime.now());
+
+        if (tokenOpt.isEmpty()) {
+            throw new APIException(ResponseStatus.FAMILY_INVITE_TOKEN_INVALID);
+        }
+
+        return tokenOpt.get();
+    }
+
+    /**
+     * 자기 자신 수락 방지
+     */
+    private void validateNotSelfAcceptance(FamilyInviteToken inviteToken, Member acceptingMember) {
+        if (inviteToken.getInviter().getId().equals(acceptingMember.getId())) {
+            throw new APIException(ResponseStatus.FAMILY_INVITE_SELF_INVITE);
+        }
+
+        if (inviteToken.getMemorial().getOwner().getId().equals(acceptingMember.getId())) {
+            throw new APIException(ResponseStatus.FAMILY_INVITE_OWNER_SELF_INVITE);
+        }
+    }
+
+    /**
+     * 중복 가족 구성원 확인
+     */
+    private void validateNotDuplicateMember(Memorial memorial, Member member) {
+        if (familyMemberRepository.existsByMemorialAndMember(memorial, member)) {
+            throw new APIException(ResponseStatus.FAMILY_INVITE_ALREADY_MEMBER);
+        }
+    }
+
+    // ===== 비즈니스 로직 메서드들 =====
+
+    /**
+     * 기존 토큰 처리 또는 새 토큰 생성
+     */
+    private FamilyInviteToken handleExistingOrCreateNewToken(Memorial memorial, Member inviter, FamilyInviteRequest request) {
+        String contact = request.getContact();
+
+        // 현재 유효한 토큰 조회
+        List<FamilyInviteToken> pendingTokens = inviteTokenRepository
+                .findPendingTokensByMemorialAndContact(memorial, contact, LocalDateTime.now());
+
+        if (!pendingTokens.isEmpty()) {
+            // 기존 유효한 토큰 재사용
+            FamilyInviteToken existingToken = pendingTokens.get(0);
+
+            log.info("기존 유효한 초대 토큰 재사용 - 토큰: {}", StringUtil.maskToken(existingToken.getToken()));
+
+            // 메시지 업데이트
+            if (StringUtil.isNotEmpty(request.getMessage())) {
+                existingToken.updateInviteMessage(request.getMessage());
+                inviteTokenRepository.save(existingToken);
+            }
+
+            return existingToken;
+        }
+
+        // 새로운 토큰 생성
+        FamilyInviteToken newToken = FamilyInviteToken.createInviteToken(
+                memorial,
+                inviter,
+                request.getRelationship(),
+                request.getMethod(),
+                contact,
+                request.getMessage()
+        );
+
+        return inviteTokenRepository.save(newToken);
+    }
+
+    /**
+     * 초대 발송 처리
+     */
+    private FamilyInviteResponse processInviteSending(FamilyInviteToken inviteToken, FamilyInviteRequest request) {
+        try {
+            if (inviteToken.isEmailMethod()) {
+                return processEmailInvite(inviteToken, request);
+            } else if (inviteToken.isSmsMethod()) {
+                return processSmsInvite(inviteToken, request);
+            } else {
+                throw new APIException(ResponseStatus.FAMILY_INVITE_METHOD_NOT_SUPPORTED);
+            }
+        } catch (APIException e) {
+            // APIException은 그대로 전파
+            throw e;
+        } catch (Exception e) {
+            // 예기치 못한 에러는 500으로 래핑
+            log.error("초대 발송 처리 중 예기치 못한 오류 - 토큰: {}", StringUtil.maskToken(inviteToken.getToken()), e);
+            throw new APIException(ResponseStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * 이메일 초대 처리
+     */
+    private FamilyInviteResponse processEmailInvite(FamilyInviteToken inviteToken, FamilyInviteRequest request) {
+        try {
+            // 기존 EmailService 메서드 활용
+            emailService.sendFamilyInviteEmail(inviteToken);
+
+            return FamilyInviteResponse.forEmail(
+                    StringUtil.maskContact(inviteToken.getContact()),
+                    request.getMemorialId(),
+                    request.getRelationship().getDisplayName()
+            );
+
+        } catch (APIException e) {
+            // APIException은 그대로 전파
+            throw e;
+        } catch (Exception e) {
+            log.error("이메일 초대 발송 실패 - 토큰: {}", StringUtil.maskToken(inviteToken.getToken()), e);
+            throw new APIException(ResponseStatus.FAMILY_INVITE_EMAIL_FAILED);
+        }
+    }
+
+    /**
+     * SMS 초대 처리
+     */
+    private FamilyInviteResponse processSmsInvite(FamilyInviteToken inviteToken, FamilyInviteRequest request) {
+        try {
+            // 기존 SmsService 메서드 활용하여 SMS 앱 연동 데이터 생성
+            SmsAppDataResponse smsData = smsService.createSmsAppDataResponse(inviteToken);
+
+            return FamilyInviteResponse.forSms(
+                    StringUtil.maskContact(inviteToken.getContact()),
+                    request.getMemorialId(),
+                    request.getRelationship().getDisplayName(),
+                    inviteToken.getToken(),
+                    smsData.getSmsUrl(),
+                    smsData.getShortSmsUrl(),
+                    smsData.getMessageLength(),
+                    smsData.getShortMessageLength(),
+                    smsData.getRecommendShort()
+            );
+
+        } catch (APIException e) {
+            // APIException은 그대로 전파
+            throw e;
+        } catch (Exception e) {
+            log.error("SMS 초대 데이터 생성 실패 - 토큰: {}", StringUtil.maskToken(inviteToken.getToken()), e);
+            throw new APIException(ResponseStatus.FAMILY_INVITE_SMS_FAILED);
+        }
+    }
+
+    /**
+     * 초대 토큰에서 FamilyMember 생성
+     */
+    private FamilyMember createFamilyMemberFromToken(FamilyInviteToken inviteToken, Member acceptingMember) {
+        return FamilyMember.builder()
+                .memorial(inviteToken.getMemorial())
+                .member(acceptingMember)
+                .invitedBy(inviteToken.getInviter())
+                .relationship(inviteToken.getRelationship())
+                .inviteMessage(inviteToken.getInviteMessage())
+                .inviteStatus(com.tomato.remember.application.family.code.InviteStatus.ACCEPTED)
+                .acceptedAt(LocalDateTime.now())
+                .memorialAccess(false)  // 기본적으로 권한 없음
+                .videoCallAccess(false) // 기본적으로 권한 없음
+                .lastAccessAt(LocalDateTime.now())
+                .build();
+    }
+
+    // ===== 유틸리티 메서드들 =====
 
     /**
      * 자기 자신 초대 여부 확인
@@ -373,30 +453,81 @@ public class FamilyInviteService {
     }
 
     /**
-     * 연락처 마스킹
+     * 만료된 토큰 정리 (스케줄러에서 호출)
      */
-    private String maskContact(String contact) {
-        if (contact == null || contact.length() < 4) {
-            return "****";
-        }
+    @Transactional
+    public void cleanupExpiredTokens() {
+        log.info("만료된 초대 토큰 정리 시작");
 
-        if (contact.contains("@")) {
-            // 이메일 마스킹
-            int atIndex = contact.indexOf('@');
-            if (atIndex > 2) {
-                return contact.substring(0, 2) + "**" + contact.substring(atIndex);
+        try {
+            List<FamilyInviteToken> expiredTokens = inviteTokenRepository.findExpiredTokens(LocalDateTime.now());
+
+            int processedCount = 0;
+            for (FamilyInviteToken token : expiredTokens) {
+                token.expire();
+                processedCount++;
             }
-            return "**" + contact.substring(atIndex);
-        } else {
-            // 전화번호 마스킹
-            return contact.substring(0, 3) + "****" + contact.substring(contact.length() - 4);
+
+            if (processedCount > 0) {
+                inviteTokenRepository.saveAll(expiredTokens);
+            }
+
+            log.info("만료된 초대 토큰 정리 완료 - 처리된 토큰 수: {}", processedCount);
+
+        } catch (Exception e) {
+            log.error("만료된 토큰 정리 중 오류 발생", e);
+            // 스케줄러에서 호출되므로 예외를 던지지 않고 로그만 남김
         }
     }
 
-    // ... 기존 나머지 메서드들 유지
+    // ===== 백워드 호환성을 위한 추가 메서드들 =====
 
     /**
-     * 초대 토큰 상태 확인
+     * 이메일 발송 가능 여부 확인 (EmailService 위임)
+     */
+    public boolean canSendEmail(String email) {
+        return emailService.isValidEmail(email);
+    }
+
+    /**
+     * 전화번호 유효성 확인 (SmsService 위임)
+     */
+    public boolean isValidPhoneNumber(String phoneNumber) {
+        return smsService.isValidPhoneNumber(phoneNumber);
+    }
+
+    /**
+     * 전화번호 포맷팅 (SmsService 위임)
+     */
+    public String formatPhoneNumber(String phoneNumber) {
+        return smsService.formatPhoneNumber(phoneNumber);
+    }
+
+    /**
+     * SMS 텍스트 길이 체크 (SmsService 위임)
+     */
+    public boolean isTextTooLong(String text) {
+        return smsService.isTextTooLong(text);
+    }
+
+    /**
+     * 테스트 이메일 발송 (EmailService 위임)
+     */
+    public void sendTestEmail(String to) {
+        emailService.sendTestEmail(to);
+    }
+
+    /**
+     * SMS 텍스트 길이 정보 반환 (SmsService 위임)
+     */
+    public java.util.Map<String, Object> getTextLengthInfo(String text) {
+        return smsService.getTextLengthInfo(text);
+    }
+
+    // ===== 레거시 호환 메서드들 (기존 코드와의 호환성) =====
+
+    /**
+     * 토큰 유효성 확인 (boolean 반환 - 레거시 호환)
      */
     public boolean isTokenValid(String token) {
         Optional<FamilyInviteToken> tokenOpt = inviteTokenRepository.findUsableToken(token, LocalDateTime.now());
@@ -404,160 +535,81 @@ public class FamilyInviteService {
     }
 
     /**
-     * SMS 앱 연동 데이터 조회
+     * SMS 앱 연동 데이터 조회 (Map 반환 - 레거시 호환)
      */
-    public Map<String, Object> getSmsAppData(String token) {
-        log.info("SMS 앱 연동 데이터 조회 - 토큰: {}", token.substring(0, 8) + "...");
+    public java.util.Map<String, Object> getSmsAppDataAsMap(String token) {
+        log.info("SMS 앱 연동 데이터 조회 (Map) - 토큰: {}", StringUtil.maskToken(token));
 
         Optional<FamilyInviteToken> tokenOpt = inviteTokenRepository.findByToken(token);
 
         if (tokenOpt.isEmpty()) {
-            log.warn("SMS 앱 데이터 조회 실패 - 토큰을 찾을 수 없음: {}", token.substring(0, 8) + "...");
-            return Map.of("error", "토큰을 찾을 수 없습니다.");
+            return java.util.Map.of("error", "토큰을 찾을 수 없습니다.");
         }
 
         FamilyInviteToken inviteToken = tokenOpt.get();
 
         if (!inviteToken.isSmsMethod()) {
-            log.warn("SMS 앱 데이터 조회 실패 - SMS 방식이 아님: {}", token.substring(0, 8) + "...");
-            return Map.of("error", "SMS 방식이 아닙니다.");
+            return java.util.Map.of("error", "SMS 방식이 아닙니다.");
         }
 
         return smsService.createSmsAppData(inviteToken);
     }
 
     /**
-     * SMS 앱 실행 URL 생성
-     */
-    public String createSmsAppUrl(String token) {
-        log.info("SMS 앱 실행 URL 생성 - 토큰: {}", token.substring(0, 8) + "...");
-
-        Optional<FamilyInviteToken> tokenOpt = inviteTokenRepository.findByToken(token);
-
-        if (tokenOpt.isEmpty()) {
-            throw new IllegalArgumentException("토큰을 찾을 수 없습니다.");
-        }
-
-        FamilyInviteToken inviteToken = tokenOpt.get();
-
-        if (!inviteToken.isSmsMethod()) {
-            throw new IllegalArgumentException("SMS 방식이 아닙니다.");
-        }
-
-        Map<String, Object> smsData = smsService.createSmsAppData(inviteToken);
-        return (String) smsData.get("smsUrl");
-    }
-
-    /**
-     * 초대 토큰으로 초대 처리
+     * 기존 Map 기반 초대 발송 (레거시 호환)
      */
     @Transactional
-    public String processInviteByToken(String token, Member acceptingMember) {
-        log.info("초대 토큰 처리 시작 - 토큰: {}, 수락자: {}",
-                token.substring(0, 8) + "...", acceptingMember.getId());
-
+    public java.util.Map<String, Object> sendFamilyInviteAsMap(Member inviter, FamilyInviteRequest request) {
         try {
-            // 1. 토큰 유효성 검증
-            Optional<FamilyInviteToken> tokenOpt = inviteTokenRepository.findUsableToken(token, LocalDateTime.now());
+            FamilyInviteResponse response = sendFamilyInvite(inviter, request);
 
-            if (tokenOpt.isEmpty()) {
-                throw new IllegalArgumentException("유효하지 않거나 만료된 초대 토큰입니다.");
+            // DTO를 Map으로 변환
+            java.util.Map<String, Object> result = new java.util.HashMap<>();
+            result.put("success", true);
+            result.put("method", response.getMethod());
+            result.put("contact", response.getMaskedContact());
+            result.put("memorialId", response.getMemorialId());
+            result.put("relationshipDisplayName", response.getRelationshipDisplayName());
+            result.put("timestamp", response.getTimestamp());
+
+            if (response.getToken() != null) {
+                result.put("token", response.getToken());
+            }
+            if (response.getSmsUrl() != null) {
+                result.put("smsUrl", response.getSmsUrl());
+            }
+            if (response.getShortSmsUrl() != null) {
+                result.put("shortSmsUrl", response.getShortSmsUrl());
+            }
+            if (response.getMessageLength() != null) {
+                result.put("messageLength", response.getMessageLength());
+            }
+            if (response.getRecommendShort() != null) {
+                result.put("recommendShort", response.getRecommendShort());
             }
 
-            FamilyInviteToken inviteToken = tokenOpt.get();
-
-            // 2. 자기 자신 초대 방지 검사
-            if (inviteToken.getInviter().getId().equals(acceptingMember.getId())) {
-                log.warn("자기 자신 초대 시도 차단 - 초대자: {}, 수락자: {}",
-                        inviteToken.getInviter().getId(), acceptingMember.getId());
-                throw new IllegalArgumentException("자기 자신을 초대할 수 없습니다.");
-            }
-
-            // 3. 메모리얼 소유자 자기 자신 초대 방지
-            if (inviteToken.getMemorial().getOwner().getId().equals(acceptingMember.getId())) {
-                log.warn("메모리얼 소유자 자기 자신 초대 시도 차단 - 소유자: {}, 수락자: {}",
-                        inviteToken.getMemorial().getOwner().getId(), acceptingMember.getId());
-                throw new IllegalArgumentException("메모리얼 소유자는 자기 자신을 초대할 수 없습니다.");
-            }
-
-            // 4. 중복 가족 구성원 확인
-            if (familyMemberRepository.existsByMemorialAndMember(inviteToken.getMemorial(), acceptingMember)) {
-                throw new IllegalArgumentException("이미 해당 메모리얼의 가족 구성원입니다.");
-            }
-
-            // 5. 초대 수락 처리
-            inviteToken.accept(acceptingMember);
-            inviteTokenRepository.save(inviteToken);
-
-            // 6. 가족 구성원 등록
-            FamilyMember familyMember = createFamilyMemberFromToken(inviteToken, acceptingMember);
-            familyMemberRepository.save(familyMember);
-
-            log.info("초대 토큰 처리 완료 - 토큰: {}, 수락자: {}, 메모리얼: {}",
-                    token.substring(0, 8) + "...",
-                    acceptingMember.getId(),
-                    inviteToken.getMemorial().getId());
-
-            return String.format("%s 메모리얼에 가족 구성원으로 등록되었습니다.",
-                    inviteToken.getMemorialName());
+            return result;
 
         } catch (Exception e) {
-            log.error("초대 토큰 처리 실패 - 토큰: {}, 수락자: {}",
-                    token.substring(0, 8) + "...", acceptingMember.getId(), e);
-            throw e;
+            log.error("레거시 Map 기반 초대 발송 실패", e);
+            java.util.Map<String, Object> errorResult = new java.util.HashMap<>();
+            errorResult.put("success", false);
+            errorResult.put("error", e.getMessage());
+            return errorResult;
         }
     }
 
     /**
-     * 초대 토큰에서 FamilyMember 생성
-     */
-    private FamilyMember createFamilyMemberFromToken(FamilyInviteToken inviteToken, Member acceptingMember) {
-        log.info("FamilyMember 생성 - 메모리얼: {}, 구성원: {}, 관계: {}",
-                inviteToken.getMemorial().getId(),
-                acceptingMember.getId(),
-                inviteToken.getRelationship());
-
-        // 접근 권한 없음으로 초기 설정
-        FamilyMember familyMember = FamilyMember.builder()
-                .memorial(inviteToken.getMemorial())
-                .member(acceptingMember)
-                .invitedBy(inviteToken.getInviter())
-                .relationship(inviteToken.getRelationship())
-                .inviteMessage(inviteToken.getInviteMessage())
-                .inviteStatus(com.tomato.remember.application.family.code.InviteStatus.ACCEPTED)
-                .acceptedAt(LocalDateTime.now())
-                .memorialAccess(false)  // 메모리얼 접근 권한 없음
-                .videoCallAccess(false) // 영상통화 권한 없음
-                .lastAccessAt(LocalDateTime.now())
-                .build();
-
-        log.info("FamilyMember 생성 완료 - 메모리얼 접근: {}, 영상통화: {}, 관계: {}",
-                familyMember.getMemorialAccess(),
-                familyMember.getVideoCallAccess(),
-                familyMember.getRelationshipDisplayName());
-
-        return familyMember;
-    }
-
-    /**
-     * 만료된 토큰 정리 (스케줄러에서 호출)
+     * 기존 String 기반 초대 처리 (레거시 호환)
      */
     @Transactional
-    public void cleanupExpiredTokens() {
-        log.info("만료된 초대 토큰 정리 시작");
-
-        List<FamilyInviteToken> expiredTokens = inviteTokenRepository.findExpiredTokens(LocalDateTime.now());
-
-        int processedCount = 0;
-        for (FamilyInviteToken token : expiredTokens) {
-            token.expire();
-            processedCount++;
+    public String processInviteByTokenAsString(String token, Member acceptingMember) {
+        try {
+            InviteProcessResponse response = processInviteByToken(token, acceptingMember);
+            return String.format("%s 메모리얼에 가족 구성원으로 등록되었습니다.", response.getMemorialName());
+        } catch (Exception e) {
+            log.error("레거시 String 기반 초대 처리 실패", e);
+            throw e;
         }
-
-        if (processedCount > 0) {
-            inviteTokenRepository.saveAll(expiredTokens);
-        }
-
-        log.info("만료된 초대 토큰 정리 완료 - 처리된 토큰 수: {}", processedCount);
     }
 }

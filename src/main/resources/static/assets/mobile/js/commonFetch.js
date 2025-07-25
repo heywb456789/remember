@@ -1,4 +1,12 @@
-// commonFetch.js - 토마토리멤버 확장 버전 (개선됨)
+// commonFetch.js - common.js에서 import 받아서 사용
+
+// common.js에서 토스트 관련 함수들 import
+import {
+    showToast as originalShowToast,
+    showLoading as originalShowLoading,
+    hideLoading as originalHideLoading,
+    showConfirm as originalShowConfirm
+} from './common.js';
 
 export class FetchError extends Error {
   constructor(status, statusCode, statusMessage, responseBody) {
@@ -11,7 +19,193 @@ export class FetchError extends Error {
   }
 }
 
-// =========================== 공통 유틸리티 ===========================
+// =========================== 에러 메시지 추출 및 처리 유틸리티 ===========================
+
+/**
+ * 서버 응답에서 에러 메시지 추출
+ * ResponseDTO 구조: { status: { code, message, httpStatus }, response }
+ */
+export function extractErrorMessage(error) {
+  // 기본 에러 메시지
+  let defaultMessage = '요청 처리 중 오류가 발생했습니다.';
+
+  try {
+    // 1. FetchError인 경우 (우리가 던진 에러)
+    if (error instanceof FetchError) {
+      return error.statusMessage || defaultMessage;
+    }
+
+    // 2. error.response가 있는 경우 (axios 응답 등)
+    if (error.response) {
+      const responseData = error.response.data;
+
+      // 우리의 ResponseDTO 구조: { status: { message: "..." }, response: null }
+      if (responseData?.status?.message) {
+        return responseData.status.message;
+      }
+
+      // 기존 구조 호환성: { message: "..." }
+      if (responseData?.message) {
+        return responseData.message;
+      }
+
+      // HTTP 상태 코드별 기본 메시지
+      return getDefaultErrorMessage(error.response.status);
+    }
+
+    // 3. error.responseBody가 있는 경우 (우리 FetchError)
+    if (error.responseBody?.status?.message) {
+      return error.responseBody.status.message;
+    }
+
+    // 4. error.message가 있는 경우
+    if (error.message) {
+      return error.message;
+    }
+
+    // 5. 문자열 에러인 경우
+    if (typeof error === 'string') {
+      return error;
+    }
+
+  } catch (e) {
+    console.error('에러 메시지 추출 중 오류:', e);
+  }
+
+  return defaultMessage;
+}
+
+/**
+ * HTTP 상태 코드별 기본 에러 메시지
+ */
+function getDefaultErrorMessage(status) {
+  switch (status) {
+    case 400:
+      return '잘못된 요청입니다.';
+    case 401:
+      return '로그인이 필요합니다.';
+    case 403:
+      return '권한이 없습니다.';
+    case 404:
+      return '요청한 리소스를 찾을 수 없습니다.';
+    case 409:
+      return '요청이 현재 상태와 충돌합니다.';
+    case 422:
+      return '입력된 데이터가 올바르지 않습니다.';
+    case 429:
+      return '너무 많은 요청이 발생했습니다. 잠시 후 다시 시도해주세요.';
+    case 500:
+      return '서버 내부 오류가 발생했습니다.';
+    case 502:
+      return '서버가 일시적으로 사용할 수 없습니다.';
+    case 503:
+      return '서비스를 일시적으로 사용할 수 없습니다.';
+    case 504:
+      return '서버 응답 시간이 초과되었습니다.';
+    default:
+      return '요청 처리 중 오류가 발생했습니다.';
+  }
+}
+
+// =========================== 토스트 함수들 (common.js에서 가져온 것 재export) ===========================
+
+/**
+ * 토스트 메시지 표시 - common.js에서 import한 함수 사용
+ */
+export function showToast(message, type = 'error') {
+  return originalShowToast(message, type);
+}
+
+/**
+ * 성공 메시지 표시
+ */
+export function showSuccess(message) {
+  return originalShowToast(message, 'success');
+}
+
+/**
+ * 정보 메시지 표시
+ */
+export function showInfo(message) {
+  return originalShowToast(message, 'info');
+}
+
+/**
+ * 경고 메시지 표시
+ */
+export function showWarning(message) {
+  return originalShowToast(message, 'warning');
+}
+
+/**
+ * 로딩 표시 (common.js에서 재export)
+ */
+export function showLoading(message) {
+  return originalShowLoading(message);
+}
+
+/**
+ * 로딩 숨김 (common.js에서 재export)
+ */
+export function hideLoading() {
+  return originalHideLoading();
+}
+
+/**
+ * 확인 다이얼로그 (common.js에서 재export)
+ */
+export function showConfirm(title, message, confirmText, cancelText) {
+  return originalShowConfirm(title, message, confirmText, cancelText);
+}
+
+// =========================== 공통 에러 처리 함수 ===========================
+
+/**
+ * 공통 에러 처리 함수 - 토스트 표시 포함
+ */
+export function handleError(error, options = {}) {
+  const {
+    showToast: shouldShowToast = true,
+    errorPrefix = '',
+    customMessage = null,
+    redirectOn401 = true
+  } = options;
+
+  console.error('[API Error]', error);
+
+  // 커스텀 메시지가 있으면 우선 사용
+  let message = customMessage || extractErrorMessage(error);
+
+  // 에러 접두사 추가
+  if (errorPrefix) {
+    message = `${errorPrefix}: ${message}`;
+  }
+
+  // 토스트 표시
+  if (shouldShowToast) {
+    showToast(message, 'error');
+  }
+
+  // 401 에러 시 로그인 페이지로 리다이렉트
+  if (redirectOn401 && (
+    (error instanceof FetchError && error.httpStatus === 401) ||
+    (error.response && error.response.status === 401) ||
+    (error.status === 401)
+  )) {
+    setTimeout(() => {
+      const currentPath = window.location.pathname;
+      if (currentPath.startsWith('/admin')) {
+        window.location.href = '/admin/view/login?reason=session_expired';
+      } else {
+        window.location.href = '/mobile/login?reason=session_expired';
+      }
+    }, 1500); // 토스트가 보일 시간을 준 후 리다이렉트
+  }
+
+  return message;
+}
+
+// =========================== 나머지 기존 코드들 (변경 없음) ===========================
 
 /**
  * 응답 처리 및 에러 검사
@@ -44,34 +238,10 @@ async function processResponse(res) {
 }
 
 /**
- * 최종 캐치용 에러 핸들러
+ * 최종 캐치용 에러 핸들러 (레거시 호환)
  */
-export function handleFetchError(error) {
-  if (error instanceof FetchError) {
-    console.error('[API Error]', error);
-
-    // 특정 에러 코드별 처리
-    switch (error.httpStatus) {
-      case 401:
-        alert('로그인이 필요합니다.');
-        window.location.href = '/mobile/login';
-        break;
-      case 403:
-        alert('접근 권한이 없습니다.');
-        break;
-      case 404:
-        alert('요청한 페이지를 찾을 수 없습니다.');
-        break;
-      case 500:
-        alert('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
-        break;
-      default:
-        alert(error.statusMessage || '오류가 발생했습니다.');
-    }
-  } else {
-    console.error('[Network/Error]', error);
-    alert('네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.');
-  }
+export function handleFetchError(error, options = {}) {
+  return handleError(error, options);
 }
 
 /**
@@ -144,7 +314,6 @@ export async function handleTokenRefresh() {
   const refreshToken = localStorage.getItem('refreshToken');
 
   if (!refreshToken) {
-    //완전 정리
     await performCompleteTokenCleanup();
     throw new FetchError(401, null, '리프레시 토큰이 없습니다.', null);
   }
@@ -158,7 +327,6 @@ export async function handleTokenRefresh() {
     });
 
     if (!res.ok) {
-
       await performCompleteTokenCleanup();
 
       if (res.status === 401 || res.status === 403) {
@@ -183,7 +351,6 @@ export async function handleTokenRefresh() {
 
   } catch (error) {
     console.error('토큰 갱신 중 오류:', error);
-    // 🎯 개선: 오류 시 완전 정리
     await performCompleteTokenCleanup();
     throw error;
   }
@@ -239,7 +406,6 @@ export async function authFetch(url, options = {}) {
         body: options.body
       });
     } catch (refreshError) {
-      // 토큰 갱신 실패 시 로그인 페이지로 리다이렉트
       console.error('토큰 갱신 실패:', refreshError);
       throw refreshError;
     }
@@ -295,12 +461,11 @@ export async function getUserId() {
 
   try {
     const response = await authFetch('/api/auth/me');
-    const data = await response.json();
 
-    if (data.status?.code === 'OK_0000' && data.response?.id) {
-      return data.response.id;
+    if (response.status?.code === 'OK_0000' && response.response?.id) {
+      return response.response.id;
     } else {
-      console.error('getUserId: 잘못된 응답 포맷', data);
+      console.error('getUserId: 잘못된 응답 포맷', response);
       return 0;
     }
   } catch (err) {
@@ -322,12 +487,11 @@ export async function getUserInfo() {
 
   try {
     const response = await authFetch('/api/auth/me');
-    const data = await response.json();
 
-    if (data.status?.code === 'OK_0000' && data.response) {
-      return data.response;
+    if (response.status?.code === 'OK_0000' && response.response) {
+      return response.response;
     } else {
-      console.error('getUserInfo: 잘못된 응답 포맷', data);
+      console.error('getUserInfo: 잘못된 응답 포맷', response);
       return null;
     }
   } catch (err) {
@@ -458,12 +622,11 @@ export async function getAdminInfo() {
 
   try {
     const response = await adminAuthFetch('/admin/api/auth/me');
-    const data = await response.json();
 
-    if (data.status?.code === 'OK_0000' && data.response) {
-      return data.response;
+    if (response.status?.code === 'OK_0000' && response.response) {
+      return response.response;
     } else {
-      console.error('getAdminInfo: 잘못된 응답 포맷', data);
+      console.error('getAdminInfo: 잘못된 응답 포맷', response);
       return null;
     }
   } catch (err) {
@@ -505,7 +668,7 @@ export async function memberLogin(phoneNumber, password, autoLogin = false) {
     console.error('회원 로그인 오류:', error);
     return {
       success: false,
-      error: '네트워크 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
+      error: extractErrorMessage(error)
     };
   }
 }
@@ -541,7 +704,7 @@ export async function adminLogin(username, password, autoLogin = false) {
     console.error('관리자 로그인 오류:', error);
     return {
       success: false,
-      error: '네트워크 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
+      error: extractErrorMessage(error)
     };
   }
 }
@@ -600,6 +763,85 @@ export async function adminLogout() {
     // 관리자 로그인 페이지로 리다이렉트
     window.location.href = '/admin/view/login';
   }
+}
+
+// =========================== API 래퍼 함수들 ===========================
+
+/**
+ * API 요청 래퍼 - 자동 에러 처리 포함
+ */
+export async function apiCall(fetchFunction, options = {}) {
+  const {
+    showLoadingToast = false,
+    loadingMessage = '처리 중...',
+    showSuccessToast = false,
+    successMessage = '',
+    showErrorToast = true,
+    errorPrefix = '',
+    customErrorMessage = null,
+    redirectOn401 = true
+  } = options;
+
+  try {
+    if (showLoadingToast) {
+      showInfo(loadingMessage);
+    }
+
+    const result = await fetchFunction();
+
+    if (showSuccessToast && successMessage) {
+      showSuccess(successMessage);
+    }
+
+    return result;
+
+  } catch (error) {
+    if (showErrorToast) {
+      handleError(error, {
+        showToast: true,
+        errorPrefix,
+        customMessage: customErrorMessage,
+        redirectOn401
+      });
+    }
+    throw error;
+  }
+}
+
+/**
+ * GET 요청 래퍼
+ */
+export async function apiGet(url, options = {}) {
+  return apiCall(() => authFetch(url), options);
+}
+
+/**
+ * POST 요청 래퍼
+ */
+export async function apiPost(url, data, options = {}) {
+  return apiCall(() => authFetch(url, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }), options);
+}
+
+/**
+ * PUT 요청 래퍼
+ */
+export async function apiPut(url, data, options = {}) {
+  return apiCall(() => authFetch(url, {
+    method: 'PUT',
+    body: JSON.stringify(data)
+  }), options);
+}
+
+/**
+ * DELETE 요청 래퍼
+ */
+export async function apiDelete(url, options = {}) {
+  return apiCall(() => authFetch(url, {
+    method: 'DELETE'
+  }), options);
 }
 
 // =========================== 토큰 동기화 유틸리티 ===========================

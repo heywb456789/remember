@@ -843,7 +843,7 @@ private boolean isEmitterClosed(SseEmitter emitter) {
      */
     @Scheduled(fixedRate = 300000) // 5분마다
     public void monitorConnections() {
-        log.debug("🔍 연결 상태 모니터링 시작");
+        log.debug("연결 상태 모니터링 시작");
 
         int totalSessions = activeSessions.size();
         int activeSseConnections = sseEmitters.size();

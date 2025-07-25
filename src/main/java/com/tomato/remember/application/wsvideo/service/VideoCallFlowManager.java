@@ -83,7 +83,7 @@ public class VideoCallFlowManager {
                 return true; // 이미 원하는 상태이므로 성공으로 처리
             }
 
-            log.info("🔍 상태 전환 시도 (락 보호): {} - {} -> {}", sessionKey, previousState, newState);
+            log.info("상태 전환 시도 (락 보호): {} - {} -> {}", sessionKey, previousState, newState);
 
             // 상태 전환 규칙 확인
             if (!previousState.canTransitionTo(newState)) {

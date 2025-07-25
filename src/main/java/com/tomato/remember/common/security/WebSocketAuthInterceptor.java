@@ -36,7 +36,7 @@ public class WebSocketAuthInterceptor implements HandshakeInterceptor {
         URI uri = request.getURI();
         String path = uri.getPath();
 
-        log.info("🔍 WebSocket 연결 요청 - Path: {}", path);
+        log.info("WebSocket 연결 요청 - Path: {}", path);
 
         try {
             // 1. URL에서 세션 키 추출

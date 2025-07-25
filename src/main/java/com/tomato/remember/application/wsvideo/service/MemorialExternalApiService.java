@@ -101,7 +101,7 @@ public class MemorialExternalApiService {
      * 영상통화 가능 여부 체크 POST /call/memorial (체크 모드)
      */
     public boolean checkVideoCallAvailable(Long memberId, Long memorialId) {
-        log.info("🔍 영상통화 가능 여부 체크 - 회원ID: {}, 메모리얼ID: {}", memberId, memorialId);
+        log.info("영상통화 가능 여부 체크 - 회원ID: {}, 메모리얼ID: {}", memberId, memorialId);
 
         String fullApiUrl = memorialApiBaseUrl + memorialEndpoint;
 

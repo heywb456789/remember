@@ -206,10 +206,10 @@ public class FamilyService {
         try {
             //  1. 내가 소유한 메모리얼들 조회 (디버깅 강화)
             List<Memorial> myMemorials = memorialService.findByOwner(member);
-            log.info("🔍 디버깅: 소유한 메모리얼 수: {} (사용자: {})", myMemorials.size(), member.getId());
+            log.info("디버깅: 소유한 메모리얼 수: {} (사용자: {})", myMemorials.size(), member.getId());
 
             for (Memorial memorial : myMemorials) {
-                log.info("🔍 디버깅: 메모리얼 처리 중 - ID: {}, 이름: {}, 소유자: {}",
+                log.info("디버깅: 메모리얼 처리 중 - ID: {}, 이름: {}, 소유자: {}",
                     memorial.getId(), memorial.getName(), memorial.getOwner().getId());
 
                 try {
@@ -224,11 +224,11 @@ public class FamilyService {
 
             //  2. 초대된 가족 구성원들 추가 (디버깅 강화)
             List<FamilyMember> familyMembers = familyMemberRepository.findAllAccessibleFamilyMembers(member);
-            log.info("🔍 디버깅: 초대된 가족 구성원 수: {} (사용자: {})", familyMembers.size(), member.getId());
+            log.info("디버깅: 초대된 가족 구성원 수: {} (사용자: {})", familyMembers.size(), member.getId());
 
             List<FamilyMemberResponse> invitedMembers = familyMembers.stream()
                 .map(fm -> {
-                    log.debug("🔍 디버깅: 초대받은 구성원 - ID: {}, 이름: {}, 메모리얼: {}",
+                    log.debug("디버깅: 초대받은 구성원 - ID: {}, 이름: {}, 메모리얼: {}",
                         fm.getId(), fm.getMember().getName(), fm.getMemorial().getId());
                     return FamilyMemberResponse.from(fm);
                 })

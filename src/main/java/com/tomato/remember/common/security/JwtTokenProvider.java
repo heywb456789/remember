@@ -147,7 +147,7 @@ public class JwtTokenProvider {
      * 회원 토큰 검증
      */
     public boolean validateMemberToken(String token) {
-        log.debug("🔍 Validating member token...");
+        log.debug("Validating member token...");
 
         if (token == null || token.trim().isEmpty()) {
             log.warn("❌ Token is null or empty");
@@ -155,7 +155,7 @@ public class JwtTokenProvider {
         }
 
         try {
-            log.debug("🔍 Parsing token with member key...");
+            log.debug("Parsing token with member key...");
             Claims claims = Jwts.parserBuilder()
                     .setSigningKey(memberKey)
                     .build()
@@ -204,7 +204,7 @@ public class JwtTokenProvider {
      * 회원 토큰에서 정보 추출
      */
     public Map<String, Object> getMemberClaims(String token) {
-        log.debug("🔍 Extracting member claims from token...");
+        log.debug("Extracting member claims from token...");
 
         try {
             Claims claims = Jwts.parserBuilder()
@@ -226,7 +226,7 @@ public class JwtTokenProvider {
      * 토큰에서 Subject 추출 (토큰 타입 자동 감지)
      */
     public String getSubject(String token) {
-        log.debug("🔍 Extracting subject from token...");
+        log.debug("Extracting subject from token...");
 
         // 먼저 관리자 토큰으로 시도
         try {
@@ -239,7 +239,7 @@ public class JwtTokenProvider {
             log.debug("👤 Admin token subject: {}", subject);
             return subject;
         } catch (JwtException e) {
-            log.debug("🔍 Not admin token, trying member token...");
+            log.debug("Not admin token, trying member token...");
 
             // 회원 토큰으로 시도
             try {

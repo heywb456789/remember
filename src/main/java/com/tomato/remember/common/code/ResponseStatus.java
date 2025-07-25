@@ -141,31 +141,30 @@ public enum ResponseStatus {
 
     ALREADY_EXIST_URL("ER_9001", "이미 존재하는 활동 링크입니다.", HttpStatus.INTERNAL_SERVER_ERROR),
 
-    CANNOT_EXCHANGE_TTR("ER_A001", "현재 교환이 불가 합니다. 관리자에게 문의해 주세요. CODE_3469", HttpStatus.INTERNAL_SERVER_ERROR),
-    CANNOT_FIND_BALANCE("ER_A002", "현재 교환이 불가 합니다. 관리자에게 문의해 주세요. CODE_3470", HttpStatus.INTERNAL_SERVER_ERROR),
-    CANNOT_FIND_WALLET("ER_A003", "지갑 정보를 찾을수 없습니다. 문제가 지속될 경우 관리자에게 문의해 주세요.", HttpStatus.INTERNAL_SERVER_ERROR),
-    TTR_BAD_REQUEST("ER_A004", "현재 교환이 불가 합니다. 관리자에게 문의해 주세요. CODE_3471", HttpStatus.BAD_REQUEST),
-    TTR_CONNECTION_FAIL("ER_A005", "현재 교환이 불가 합니다. 관리자에게 문의해 주세요. CODE_3472", HttpStatus.INTERNAL_SERVER_ERROR),
-    TTR_EXCHANGE_FAIL("ER_A006", "현재 교환이 불가 합니다. 관리자에게 문의해 주세요. CODE_3473", HttpStatus.INTERNAL_SERVER_ERROR),
-    TTR_EXCHANGE_ZERO_VALUE("ER_A007", "교환가능한 TTR이 없습니다. CODE_3474", HttpStatus.INTERNAL_SERVER_ERROR),
-
     FILE_UPLOAD_FAIL("ER_B001", "파일 업로드 실패", HttpStatus.INTERNAL_SERVER_ERROR),
 
-    SUBSCRIPTION_NOT_EXIST("ER_C001", "구독 정보가 없습니다.", HttpStatus.INTERNAL_SERVER_ERROR),
+    // 가족 초대 관련 에러 코드 (ER_FI로 시작)
+    FAMILY_INVITE_EMAIL_SENT("OK_0000", "이메일로 초대 링크가 발송되었습니다.", HttpStatus.OK),
+    FAMILY_INVITE_SMS_READY("OK_0000", "SMS 초대 준비가 완료되었습니다.", HttpStatus.OK),
+    FAMILY_INVITE_TOKEN_CREATED("OK_0000", "초대 토큰이 생성되었습니다.", HttpStatus.OK),
+    FAMILY_INVITE_ACCEPTED("OK_0000", "가족 초대가 수락되었습니다.", HttpStatus.OK),
 
-    NICE_CRYPTO_TOKEN_FAIL("ER_D001", "NICE 인증 실패 CODE_4001", HttpStatus.INTERNAL_SERVER_ERROR),
-    NICE_CRYPTO_TOKEN_REQUEST_FAIL("ER_D002", "NICE 인증 실패 CODE_4002", HttpStatus.INTERNAL_SERVER_ERROR),
-    NICE_CRYPTO_TOKEN_REQUEST_RESPONSE_FAIL("ER_D003", "NICE 인증 실패 CODE_4003", HttpStatus.INTERNAL_SERVER_ERROR),
-    NICE_ACCESS_TOKEN_REQUEST_FAIL("ER_D004", "NICE 인증 실패 CODE_4004", HttpStatus.INTERNAL_SERVER_ERROR),
-    NICE_ACCESS_TOKEN_REQUEST_RESPONSE_FAIL("ER_D005", "NICE 인증 실패 CODE_4005", HttpStatus.INTERNAL_SERVER_ERROR),
-    NICE_CRYPTO_TOKEN_INFO_NOT_FOUND("ER_D006", "NICE 인증 실패 CODE_4006", HttpStatus.BAD_REQUEST),
-    NICE_INTEGRITY_CHECK_FAIL("ER_D007", "NICE 인증 실패 CODE_4007", HttpStatus.BAD_REQUEST),
-    NICE_DECRYPTION_FAIL("ER_D008", "NICE 인증 실패 CODE_4008", HttpStatus.INTERNAL_SERVER_ERROR),
-    NICE_PASS_RESULT_FAIL("ER_D009", "NICE 인증 실패 CODE_4009", HttpStatus.INTERNAL_SERVER_ERROR),
-    NICE_PASS_BIRTH_DAY_FAIL("ER_D010", "만 20세 이상 39세 이하만 가입 가능합니다.", HttpStatus.BAD_REQUEST),
-
-    INVALID_YOUTUBE_ID("ER_E001", "유효하지 않은 YouTube URL 또는 ID입니다.", HttpStatus.BAD_REQUEST),
-    YOUTUBE_UPLOAD_FAIL("ER_E002", "YouTube 비디오 업로드에 실패했습니다.", HttpStatus.INTERNAL_SERVER_ERROR),
+    // 가족 초대 에러 코드들
+    FAMILY_INVITE_INVALID_CONTACT("ER_FI001", "유효하지 않은 연락처입니다.", HttpStatus.BAD_REQUEST),
+    FAMILY_INVITE_SELF_INVITE("ER_FI002", "자기 자신을 초대할 수 없습니다.", HttpStatus.BAD_REQUEST),
+    FAMILY_INVITE_ALREADY_MEMBER("ER_FI003", "이미 가족 구성원으로 등록된 연락처입니다.", HttpStatus.BAD_REQUEST),
+    FAMILY_INVITE_DUPLICATE_PENDING("ER_FI004", "이미 처리되지 않은 초대가 있습니다.", HttpStatus.BAD_REQUEST),
+    FAMILY_INVITE_TOKEN_INVALID("ER_FI005", "유효하지 않거나 만료된 초대 토큰입니다.", HttpStatus.BAD_REQUEST),
+    FAMILY_INVITE_TOKEN_EXPIRED("ER_FI006", "만료된 초대 토큰입니다.", HttpStatus.BAD_REQUEST),
+    FAMILY_INVITE_METHOD_NOT_SUPPORTED("ER_FI007", "지원하지 않는 초대 방법입니다.", HttpStatus.BAD_REQUEST),
+    FAMILY_INVITE_EMAIL_FAILED("ER_FI008", "이메일 발송에 실패했습니다.", HttpStatus.INTERNAL_SERVER_ERROR),
+    FAMILY_INVITE_SMS_FAILED("ER_FI009", "SMS 발송에 실패했습니다.", HttpStatus.INTERNAL_SERVER_ERROR),
+    FAMILY_INVITE_PHONE_INVALID("ER_FI010", "유효하지 않은 전화번호 형식입니다.", HttpStatus.BAD_REQUEST),
+    FAMILY_INVITE_EMAIL_INVALID("ER_FI011", "유효하지 않은 이메일 형식입니다.", HttpStatus.BAD_REQUEST),
+    FAMILY_INVITE_OWNER_SELF_INVITE("ER_FI012", "메모리얼 소유자는 자기 자신을 초대할 수 없습니다.", HttpStatus.BAD_REQUEST),
+    FAMILY_INVITE_ALREADY_ACCEPTED("ER_FI013", "이미 수락된 초대입니다.", HttpStatus.BAD_REQUEST),
+    FAMILY_INVITE_NOT_SMS_METHOD("ER_FI014", "SMS 방식의 초대가 아닙니다.", HttpStatus.BAD_REQUEST),
+    FAMILY_INVITE_CONTACT_VALIDATION_FAILED("ER_FI015", "연락처 유효성 검사에 실패했습니다.", HttpStatus.BAD_REQUEST),
     ;
     @JsonProperty("code")
     private final String code;

@@ -3,6 +3,9 @@ package com.tomato.remember.application.family.service;
 import com.tomato.remember.application.family.entity.FamilyInviteToken;
 import com.tomato.remember.application.member.entity.Member;
 import com.tomato.remember.application.memorial.entity.Memorial;
+import com.tomato.remember.common.code.ResponseStatus;
+import com.tomato.remember.common.exception.APIException;
+import com.tomato.remember.common.util.StringUtil;
 import java.io.UnsupportedEncodingException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,7 +24,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
 /**
- * 이메일 발송 서비스 (에러 처리 강화)
+ * 이메일 발송 서비스 - 리팩터링 버전
+ * ResponseStatus 기반 예외 처리와 StringUtil 적용
  */
 @Slf4j
 @Service
@@ -34,7 +38,7 @@ public class EmailService {
     @Value("${spring.mail.from:noreply@tomatoremember.com}")
     private String fromEmail;
 
-    @Value("${spring.mail.domain:http://114.31.52.64:8095}")
+    @Value("${spring.mail.domain:https://www.tomatoremember.com}")
     private String appDomain;
 
     @Value("${spring.mail.name:토마토리멤버}")
@@ -45,8 +49,8 @@ public class EmailService {
      */
     public void sendFamilyInviteEmail(FamilyInviteToken inviteToken) {
         log.info("가족 초대 이메일 발송 시작 - 토큰: {}, 수신자: {}",
-                inviteToken.getToken().substring(0, 8) + "...",
-                inviteToken.getMaskedContact());
+                StringUtil.maskToken(inviteToken.getToken()),
+                StringUtil.maskContact(inviteToken.getContact()));
 
         try {
             // 1. 연결 테스트
@@ -60,18 +64,21 @@ public class EmailService {
             sendHtmlEmail(inviteToken.getContact(), subject, htmlContent);
 
             log.info("가족 초대 이메일 발송 완료 - 토큰: {}, 수신자: {}",
-                    inviteToken.getToken().substring(0, 8) + "...",
-                    inviteToken.getMaskedContact());
+                    StringUtil.maskToken(inviteToken.getToken()),
+                    StringUtil.maskContact(inviteToken.getContact()));
 
+        } catch (APIException e) {
+            // APIException은 그대로 전파
+            throw e;
         } catch (Exception e) {
             log.error("가족 초대 이메일 발송 실패 - 토큰: {}, 수신자: {}, 오류: {}",
-                    inviteToken.getToken().substring(0, 8) + "...",
-                    inviteToken.getMaskedContact(),
+                    StringUtil.maskToken(inviteToken.getToken()),
+                    StringUtil.maskContact(inviteToken.getContact()),
                     e.getMessage(), e);
 
             // 상세한 오류 정보 제공
             String errorMessage = getDetailedErrorMessage(e);
-            throw new RuntimeException("이메일 발송에 실패했습니다: " + errorMessage, e);
+            throw new APIException(ResponseStatus.FAMILY_INVITE_EMAIL_FAILED);
         }
     }
 
@@ -87,7 +94,7 @@ public class EmailService {
             }
         } catch (Exception e) {
             log.error("메일 서버 연결 테스트 실패: {}", e.getMessage());
-            throw new RuntimeException("메일 서버 연결에 실패했습니다: " + e.getMessage(), e);
+            throw new APIException(ResponseStatus.FAMILY_INVITE_EMAIL_FAILED);
         }
     }
 
@@ -97,7 +104,7 @@ public class EmailService {
     private void sendHtmlEmail(String to, String subject, String htmlContent)
         throws MessagingException, MailException, UnsupportedEncodingException {
 
-        log.info("HTML 이메일 발송 시작 - 받는 사람: {}", maskEmail(to));
+        log.info("HTML 이메일 발송 시작 - 받는 사람: {}", StringUtil.maskContact(to));
 
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
@@ -108,7 +115,7 @@ public class EmailService {
 
         // 수신자 설정
         helper.setTo(to);
-        log.debug("수신자 설정 완료: {}", maskEmail(to));
+        log.debug("수신자 설정 완료: {}", StringUtil.maskContact(to));
 
         // 제목 설정
         helper.setSubject(subject);
@@ -120,7 +127,7 @@ public class EmailService {
 
         // 발송 실행
         mailSender.send(message);
-        log.info("HTML 이메일 발송 완료 - 받는 사람: {}", maskEmail(to));
+        log.info("HTML 이메일 발송 완료 - 받는 사람: {}", StringUtil.maskContact(to));
     }
 
     /**
@@ -146,13 +153,13 @@ public class EmailService {
                     memorial.getName(), memorial.getNickname(), inviteToken.getRelationshipDisplayName());
 
             // 템플릿 변수 설정 (null 체크 강화)
-            context.setVariable("appName", appName != null ? appName : "토마토리멤버");
-            context.setVariable("inviterName", inviteToken.getInviterName() != null ? inviteToken.getInviterName() : "알 수 없음");
-            context.setVariable("memorialName", memorial.getName() != null && !memorial.getName().trim().isEmpty() ? memorial.getName() : "이름 없음");
-            context.setVariable("deceasedName", memorial.getName() != null && !memorial.getName().trim().isEmpty() ? memorial.getName() : null);
-            context.setVariable("deceasedNickname", memorial.getNickname() != null && !memorial.getNickname().trim().isEmpty() ? memorial.getNickname() : "별명 없음");
-            context.setVariable("relationshipDisplayName", inviteToken.getRelationshipDisplayName() != null ? inviteToken.getRelationshipDisplayName() : "관계 미설정");
-            context.setVariable("inviteMessage", inviteToken.getInviteMessage() != null && !inviteToken.getInviteMessage().trim().isEmpty() ? inviteToken.getInviteMessage() : null);
+            context.setVariable("appName", StringUtil.isNotEmpty(appName) ? appName : "토마토리멤버");
+            context.setVariable("inviterName", StringUtil.isNotEmpty(inviteToken.getInviterName()) ? inviteToken.getInviterName() : "알 수 없음");
+            context.setVariable("memorialName", StringUtil.isNotEmpty(memorial.getName()) ? memorial.getName() : "이름 없음");
+            context.setVariable("deceasedName", StringUtil.isNotEmpty(memorial.getName()) ? memorial.getName() : null);
+            context.setVariable("deceasedNickname", StringUtil.isNotEmpty(memorial.getNickname()) ? memorial.getNickname() : "별명 없음");
+            context.setVariable("relationshipDisplayName", StringUtil.isNotEmpty(inviteToken.getRelationshipDisplayName()) ? inviteToken.getRelationshipDisplayName() : "관계 미설정");
+            context.setVariable("inviteMessage", StringUtil.isNotEmpty(inviteToken.getInviteMessage()) ? inviteToken.getInviteMessage() : null);
             context.setVariable("inviteLink", createInviteLink(inviteToken.getToken()));
             context.setVariable("expiresAt", formatExpirationDate(inviteToken));
             context.setVariable("remainingHours", inviteToken.getRemainingHours());
@@ -162,7 +169,7 @@ public class EmailService {
 
             // 생성된 HTML 내용 로그 (처음 500자만)
             log.info("생성된 HTML 내용 미리보기: {}",
-                    htmlContent.length() > 500 ? htmlContent.substring(0, 500) + "..." : htmlContent);
+                    StringUtil.truncate(htmlContent, 500));
 
             return htmlContent;
 
@@ -226,7 +233,7 @@ public class EmailService {
         html.append("</div>");
 
         // 초대 메시지
-        if (inviteToken.getInviteMessage() != null && !inviteToken.getInviteMessage().trim().isEmpty()) {
+        if (StringUtil.isNotEmpty(inviteToken.getInviteMessage())) {
             html.append("<div class='invite-message'>");
             html.append("<p>").append(inviteToken.getInviteMessage()).append("</p>");
             html.append("</div>");
@@ -292,8 +299,8 @@ public class EmailService {
     /**
      * 이메일 발송 가능 여부 확인
      */
-    public boolean canSendEmail(String email) {
-        if (email == null || email.trim().isEmpty()) {
+    public boolean isValidEmail(String email) {
+        if (StringUtil.isEmpty(email)) {
             return false;
         }
 
@@ -311,10 +318,10 @@ public class EmailService {
 
             sendHtmlEmail(to, subject, content);
 
-            log.info("테스트 이메일 발송 완료 - 수신자: {}", maskEmail(to));
+            log.info("테스트 이메일 발송 완료 - 수신자: {}", StringUtil.maskContact(to));
         } catch (Exception e) {
-            log.error("테스트 이메일 발송 실패 - 수신자: {}", maskEmail(to), e);
-            throw new RuntimeException("테스트 이메일 발송에 실패했습니다: " + e.getMessage(), e);
+            log.error("테스트 이메일 발송 실패 - 수신자: {}", StringUtil.maskContact(to), e);
+            throw new APIException(ResponseStatus.FAMILY_INVITE_EMAIL_FAILED);
         }
     }
 
@@ -370,23 +377,7 @@ public class EmailService {
             return "잘못된 이메일 주소 - 발송자 또는 수신자 이메일을 확인해주세요.";
         }
 
-        // 원본 메시지 반환 (앞의 100자만)
-        return message.length() > 100 ? message.substring(0, 100) + "..." : message;
-    }
-
-    /**
-     * 이메일 마스킹
-     */
-    private String maskEmail(String email) {
-        if (email == null || !email.contains("@")) {
-            return "****";
-        }
-
-        int atIndex = email.indexOf('@');
-        if (atIndex > 2) {
-            return email.substring(0, 2) + "**" + email.substring(atIndex);
-        }
-
-        return "**" + email.substring(atIndex);
+        // 원본 메시지 반환 (StringUtil.truncate 사용)
+        return StringUtil.truncate(message, 100);
     }
 }

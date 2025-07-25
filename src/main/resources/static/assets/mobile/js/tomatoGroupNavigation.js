@@ -193,7 +193,7 @@ async function loadTomatoData() {
     }
     
     const result = await response.json();
-    console.log('🔍 서버 응답:', result);
+    console.log('서버 응답:', result);
     
     if (!result.success) {
       throw new Error(result.error?.message || '서버에서 오류 응답');
@@ -212,7 +212,7 @@ async function loadTomatoData() {
       tomatoData = result.data;
     }
     
-    console.log('🔍 파싱된 토마토 데이터:', tomatoData);
+    console.log('파싱된 토마토 데이터:', tomatoData);
     
     if (!tomatoData || !tomatoData.tomatogroup || !Array.isArray(tomatoData.tomatogroup)) {
       throw new Error('토마토 데이터 형식이 올바르지 않습니다');
@@ -716,7 +716,7 @@ function generateTomatoUrl(app) {
     const referrerNo = getCurrentReferrerNo();
     
     const params = {
-      tomatoid: currentUser?.id || currentUser?.email || 'guest',
+      tomatoid: currentUser?.userKey || currentUser?.email || 'guest',
       tomatoGroupNo: userOrder,
       tomatoRefNo: referrerNo
     };

@@ -50,13 +50,13 @@ public class WSVideoCallController {
             model.addAttribute("waitingVideoUrl", apiResponse.getWaitingVideoUrl());
             model.addAttribute("memberName", member.getName());
 
-            log.info("✅ 외부 API 응답 성공 - 연락처: {}, 대기영상: {}", 
+            log.info("✅ 외부 API 응답 성공 - 연락처: {}, 대기영상: {}",
                     apiResponse.getContactName(), apiResponse.getWaitingVideoUrl());
 
             return "mobile/wsvideocall/ws-video-call"; // ws-video-call.html 템플릿 반환
 
         } catch (Exception e) {
-            log.error("❌ 외부 API 호출 실패 - 회원ID: {}, 메모리얼ID: {}", 
+            log.error("❌ 외부 API 호출 실패 - 회원ID: {}, 메모리얼ID: {}",
                     member.getId(), memorialId, e);
 
             // 실패 시 기본값으로 페이지 제공
@@ -165,7 +165,7 @@ public class WSVideoCallController {
     public ResponseEntity<?> checkVideoCallAvailable(@RequestParam Long memorialId,
                                                    @AuthenticationPrincipal MemberUserDetails userDetails) {
         Member member = userDetails.getMember();
-        log.info("🔍 영상통화 가능 여부 체크 - 회원ID: {}, 메모리얼ID: {}", 
+        log.info("영상통화 가능 여부 체크 - 회원ID: {}, 메모리얼ID: {}", 
                 member.getId(), memorialId);
 
         try {

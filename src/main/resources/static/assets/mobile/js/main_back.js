@@ -502,7 +502,7 @@ function createExperienceOptions() {
   setTimeout(() => {
     const createdOptions = document.querySelector('.experience-options');
     const createdBtns = document.querySelectorAll('.experience-option-btn');
-    console.log('🔍 생성 확인:', {
+    console.log('생성 확인:', {
       옵션컨테이너: !!createdOptions,
       버튼개수: createdBtns.length,
       컨테이너위치: createdOptions ? createdOptions.style.bottom : 'N/A'
@@ -556,7 +556,7 @@ function bindExperienceFabEvents() {
       if (mutation.type === 'childList') {
         mutation.addedNodes.forEach((node) => {
           if (node.nodeType === 1 && node.classList && node.classList.contains('experience-options')) {
-            console.log('🔍 MutationObserver: 확장 옵션이 DOM에 추가됨');
+            console.log('MutationObserver: 확장 옵션이 DOM에 추가됨');
             setTimeout(bindOptionEvents, 50);
           }
         });
@@ -866,7 +866,7 @@ async function handleRetryClick(e) {
  * ===== 영상통화 가능 여부 확인 =====
  */
 async function checkVideoCallAvailability(memorial) {
-  console.log('🔍 영상통화 가능 여부 확인:', memorial);
+  console.log('영상통화 가능 여부 확인:', memorial);
 
   try {
     // 1. 프로필 이미지 확인
@@ -1134,7 +1134,7 @@ function destroyMainPage() {
 
 // 전역 디버깅 함수 추가
 window.debugExperienceFab = function() {
-  console.group('🔍 체험하기 FAB 디버그');
+  console.group('체험하기 FAB 디버그');
 
   const fab = document.querySelector('.experience-fab');
   const options = document.querySelector('.experience-options');
